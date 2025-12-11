@@ -23,7 +23,7 @@ export const DashboardContent = ({ services, isLoading, error }: DashboardConten
 
   // Filter services based on search term and type filter
   const filteredServices = services.filter(service => {
-    const matchesSearch = service.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const matchesSearch = service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         (service.url && service.url.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesFilter = filter === 'all' || service.type.toLowerCase() === filter.toLowerCase();
     return matchesSearch && matchesFilter;
@@ -39,34 +39,34 @@ export const DashboardContent = ({ services, isLoading, error }: DashboardConten
   }
 
   return (
-    <main className="flex-1 flex flex-col overflow-auto bg-background p-6 pb-0">
-      <div className="flex flex-col flex-1">
+    <main className="flex-1 flex flex-col overflow-auto bg-background p-6 pb-0 min-w-0">
+      <div className="flex flex-col flex-1 min-w-0">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-foreground">{t('overview')}</h2>
-          <Button 
+          <Button
             className="text-primary-foreground"
             onClick={() => setIsAddDialogOpen(true)}
           >
             <Plus className="w-4 h-4 mr-2" /> {t('newService')}
           </Button>
         </div>
-        
+
         <StatusCards services={services} />
-        
-        <ServiceFilters 
+
+        <ServiceFilters
           filter={filter}
           setFilter={setFilter}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           servicesCount={filteredServices.length}
         />
-        
+
         <div className="flex-1 flex flex-col pb-6">
           <ServicesTable services={filteredServices} />
         </div>
       </div>
 
-      <AddServiceDialog 
+      <AddServiceDialog
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
       />

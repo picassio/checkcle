@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/dashboard/Header";
 import { Sidebar } from "@/components/dashboard/Sidebar";
@@ -7,7 +7,6 @@ import { DashboardContent } from "@/components/dashboard/DashboardContent";
 import { serviceService } from "@/services/serviceService";
 import { authService } from "@/services/authService";
 import { useNavigate } from "react-router-dom";
-import { LoadingState } from "@/components/services/LoadingState";
 import { useSidebar } from "@/contexts/SidebarContext";
 
 const Dashboard = () => {
@@ -63,22 +62,17 @@ const Dashboard = () => {
     };
   }, []); // Remove services dependency to prevent re-runs
 
-  // Show the loading state while fetching data
-  if (isLoading) {
-    return <LoadingState />;
-  }
-
   return (
     <div className="flex h-screen overflow-hidden bg-background text-foreground">
       <Sidebar collapsed={sidebarCollapsed} />
-      <div className="flex flex-col flex-1">
-        <Header 
-          currentUser={currentUser} 
-          onLogout={handleLogout} 
-          sidebarCollapsed={sidebarCollapsed} 
-          toggleSidebar={toggleSidebar} 
+      <div className="flex flex-col flex-1 min-w-0">
+        <Header
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          sidebarCollapsed={sidebarCollapsed}
+          toggleSidebar={toggleSidebar}
         />
-        <DashboardContent 
+        <DashboardContent
           services={services}
           isLoading={isLoading}
           error={error as Error}

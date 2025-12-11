@@ -26,8 +26,8 @@ export const ServicesTableView = ({
   const { t } = useLanguage();
 
   return (
-    <div className={`${theme === 'dark' ? 'bg-gray-900' : 'bg-white'} rounded-lg overflow-hidden border border-border shadow-sm`}>
-      <div className="overflow-auto">
+    <div className={`${theme === 'dark' ? 'bg-gray-900' : 'bg-white'} rounded-lg overflow-hidden border border-border shadow-sm w-full`}>
+      <div className="overflow-x-auto">
         <Table>
           <TableHeader className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'} sticky top-0 z-10`}>
             <TableRow className={`${theme === 'dark' ? 'border-gray-700 hover:bg-gray-800' : 'border-gray-200 hover:bg-gray-100'}`}>
