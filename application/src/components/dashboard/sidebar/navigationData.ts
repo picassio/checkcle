@@ -52,11 +52,11 @@ export const mainMenuItems = [
   },
   {
     id: 'reports',
-    path: null,
+    path: '/reports',
     icon: LineChart,
     translationKey: 'reports',
     color: 'text-rose-400',
-    hasNavigation: false
+    hasNavigation: true
   }
 ];
 

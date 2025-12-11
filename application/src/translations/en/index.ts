@@ -14,6 +14,7 @@ import { operationTranslations } from './operation';
 import { regionTranslations } from './region';
 import { dockerTranslations } from './docker';
 import { publicTranslations } from './public';
+import { reportsTranslations } from './reports';
 
 const enTranslations: Translations = {
   common: commonTranslations,
@@ -29,7 +30,8 @@ const enTranslations: Translations = {
   operation: operationTranslations,
   region: regionTranslations,
   docker: dockerTranslations,
-  public: publicTranslations
+  public: publicTranslations,
+  reports: reportsTranslations
 };
 
 export default enTranslations;
