@@ -46,6 +46,12 @@ export const serviceService = {
         agent_id: item.agent_id || "",
         regional_status: item.regional_status || "disabled",
         regional_monitoring_enabled: item.regional_status === "enabled", // Backward compatibility
+        // Content validation fields
+        expected_status_code: item.expected_status_code || undefined,
+        keyword_check: item.keyword_check || undefined,
+        keyword_check_type: item.keyword_check_type || undefined,
+        json_path_checks: item.json_path_checks || undefined,
+        header_checks: item.header_checks || undefined,
       }));
     } catch (error) {
       throw new Error('Failed to load services data.');
@@ -83,14 +89,20 @@ export const serviceService = {
         region_name: params.regionName || "",
         agent_id: params.agentId || "",
         // Conditionally add fields based on service type
-        ...(serviceType === "dns" 
+        ...(serviceType === "dns"
           ? { domain: params.domain, url: "", host: "", port: null }  // DNS: store in domain field
           : serviceType === "ping"
           ? { host: params.host, url: "", domain: "", port: null }    // PING: store in host field
           : serviceType === "tcp"
           ? { host: params.host, port: params.port, url: "", domain: "" }  // TCP: store in host and port fields
           : { url: params.url, domain: "", host: "", port: null }     // HTTP: store in url field
-        )
+        ),
+        // Content validation fields (HTTP only)
+        expected_status_code: params.expected_status_code || null,
+        keyword_check: params.keyword_check || null,
+        keyword_check_type: params.keyword_check_type || null,
+        json_path_checks: params.json_path_checks || null,
+        header_checks: params.header_checks || null,
       };
 
       const record = await pb.collection('services').create(data);
@@ -156,17 +168,22 @@ export const serviceService = {
         region_name: params.regionName || "",
         agent_id: params.agentId || "",
         // Conditionally update fields based on service type
-        ...(serviceType === "dns" 
+        ...(serviceType === "dns"
           ? { domain: params.domain, url: "", host: "", port: null }  // DNS: update domain field
           : serviceType === "ping"
           ? { host: params.host, url: "", domain: "", port: null }    // PING: update host field
           : serviceType === "tcp"
           ? { host: params.host, port: params.port, url: "", domain: "" }  // TCP: update host and port fields
           : { url: params.url, domain: "", host: "", port: null }     // HTTP: update url field
-        )
+        ),
+        // Content validation fields (HTTP only)
+        expected_status_code: params.expected_status_code || null,
+        keyword_check: params.keyword_check || null,
+        keyword_check_type: params.keyword_check_type || null,
+        json_path_checks: params.json_path_checks || null,
+        header_checks: params.header_checks || null,
       };
 
-      
       // Use timeout to ensure the request doesn't hang
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error("Request timed out")), 10000);

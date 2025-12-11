@@ -76,7 +76,7 @@ func (p *ICMPPinger) Ping(host string, count int) (*PingResult, error) {
 		rtt := time.Since(start)
 
 		// Parse the reply
-		rm, err := icmp.ParseMessage(ipv4.ICMPTypeEchoReply, reply)
+		rm, err := icmp.ParseMessage(int(ipv4.ICMPTypeEchoReply), reply)
 		if err != nil {
 			continue
 		}

@@ -71,7 +71,23 @@ func (ms *MonitoringService) performCheck(service pocketbase.Service) {
 			url = latestService.Host
 		}
 		result, err = httpOp.Execute(url, "GET")
-		
+
+		// Perform content validation if HTTP check succeeded
+		if result != nil && result.Success {
+			validationConfig := latestService.GetValidationConfig()
+			if validationConfig != nil && validationConfig.HasValidationRules() {
+				validator := operations.NewContentValidator()
+				validationResult := validator.ValidateResponse(result, validationConfig)
+				result.ValidationResult = validationResult
+
+				// If validation failed, mark the overall result as failed
+				if !validationResult.Passed {
+					result.Success = false
+					result.Error = "🔍 Content validation failed: " + validationResult.FailureReason
+				}
+			}
+		}
+
 	default:
 		log.Printf("Unknown service type: %s for service %s", latestService.ServiceType, latestService.Name)
 		return

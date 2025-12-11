@@ -2,6 +2,17 @@ import { z } from "zod";
 import type { ZodSchema } from "zod";
 import { useLanguage } from "@/contexts/LanguageContext";
 
+export interface JSONPathCheckFormData {
+  path: string;
+  operator: string;
+  expectedValue: string;
+}
+
+export interface HeaderCheckFormData {
+  headerName: string;
+  operator: string;
+  expectedValue: string;
+}
 
 export type ServiceFormData = {
   name: string;
@@ -15,6 +26,12 @@ export type ServiceFormData = {
   alertTemplate?: string;
   regionalMonitoringEnabled?: boolean;
   regionalAgents?: string[];
+  // Content validation fields (HTTP only)
+  expectedStatusCode?: string;
+  keywordCheck?: string;
+  keywordCheckType?: "contains" | "not_contains";
+  jsonPathChecks?: JSONPathCheckFormData[];
+  headerChecks?: HeaderCheckFormData[];
 };
 
 // Hook to use the schema with translations
@@ -38,5 +55,19 @@ export const useServiceSchema = () => {
       // Regional monitoring fields - now supports multiple agents
       regionalMonitoringEnabled: z.boolean().optional(),
       regionalAgents: z.array(z.string()).optional(),
+      // Content validation fields (HTTP only)
+      expectedStatusCode: z.string().optional(),
+      keywordCheck: z.string().optional(),
+      keywordCheckType: z.enum(["contains", "not_contains"]).optional(),
+      jsonPathChecks: z.array(z.object({
+        path: z.string(),
+        operator: z.string(),
+        expectedValue: z.string(),
+      })).optional(),
+      headerChecks: z.array(z.object({
+        headerName: z.string(),
+        operator: z.string(),
+        expectedValue: z.string(),
+      })).optional(),
     });
 };

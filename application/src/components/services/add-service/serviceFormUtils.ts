@@ -14,6 +14,12 @@ export const getServiceFormDefaults = (): ServiceFormData => ({
   alertTemplate: "",
   regionalMonitoringEnabled: false,
   regionalAgents: [],
+  // Content validation defaults
+  expectedStatusCode: "",
+  keywordCheck: "",
+  keywordCheckType: "contains",
+  jsonPathChecks: [],
+  headerChecks: [],
 });
 
 export const mapServiceToFormData = (service: Service): ServiceFormData => {
@@ -110,6 +116,20 @@ export const mapServiceToFormData = (service: Service): ServiceFormData => {
     alertTemplate: service.alertTemplate === "default" ? "" : service.alertTemplate || "",
     regionalMonitoringEnabled: isRegionalEnabled,
     regionalAgents: regionalAgents,
+    // Content validation fields
+    expectedStatusCode: service.expected_status_code ? String(service.expected_status_code) : "",
+    keywordCheck: service.keyword_check || "",
+    keywordCheckType: service.keyword_check_type || "contains",
+    jsonPathChecks: (service.json_path_checks || []).map(check => ({
+      path: check.path,
+      operator: check.operator,
+      expectedValue: check.expected_value,
+    })),
+    headerChecks: (service.header_checks || []).map(check => ({
+      headerName: check.header_name,
+      operator: check.operator,
+      expectedValue: check.expected_value,
+    })),
   };
 };
 
@@ -157,13 +177,29 @@ export const mapFormDataToServiceData = (data: ServiceFormData) => {
     regionName: regionNames,
     agentId: agentIds,
     // Map the URL field to appropriate database field based on service type
-    ...(data.type === "dns" 
+    ...(data.type === "dns"
       ? { domain: data.url, url: "", host: "", port: undefined }  // DNS: store in domain field
       : data.type === "ping"
-      ? { host: data.url, url: "", domain: "", port: undefined }  // PING: store in host field  
+      ? { host: data.url, url: "", domain: "", port: undefined }  // PING: store in host field
       : data.type === "tcp"
       ? { host: data.url, port: parseInt(data.port || "80"), url: "", domain: "" }  // TCP: store in host and port fields
       : { url: data.url, domain: "", host: "", port: undefined }  // HTTP: store in url field
-    )
+    ),
+    // Content validation fields (HTTP only)
+    ...(data.type === "http" && {
+      expected_status_code: data.expectedStatusCode ? parseInt(data.expectedStatusCode) : null,
+      keyword_check: data.keywordCheck || null,
+      keyword_check_type: data.keywordCheckType || null,
+      json_path_checks: data.jsonPathChecks?.length ? data.jsonPathChecks.map(check => ({
+        path: check.path,
+        operator: check.operator,
+        expected_value: check.expectedValue,
+      })) : null,
+      header_checks: data.headerChecks?.length ? data.headerChecks.map(check => ({
+        header_name: check.headerName,
+        operator: check.operator,
+        expected_value: check.expectedValue,
+      })) : null,
+    }),
   };
 };

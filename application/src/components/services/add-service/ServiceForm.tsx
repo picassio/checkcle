@@ -9,6 +9,7 @@ import { ServiceTypeField } from "./ServiceTypeField";
 import { ServiceConfigFields } from "./ServiceConfigFields";
 import { ServiceNotificationFields } from "./ServiceNotificationFields";
 import { ServiceFormActions } from "./ServiceFormActions";
+import { ServiceContentValidationFields } from "./ServiceContentValidationFields";
 import { serviceService } from "@/services/serviceService";
 import { Service } from "@/types/service.types";
 import { ServiceRegionalFields } from "./ServiceRegionalFields";
@@ -137,6 +138,8 @@ export function ServiceForm({
             <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">{t('configuration')}</h3>
             <ServiceConfigFields form={form} />
           </div>
+
+          <ServiceContentValidationFields form={form} />
 
           <div className="space-y-4">
             <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">{t('regionalMonitoring')}</h3>

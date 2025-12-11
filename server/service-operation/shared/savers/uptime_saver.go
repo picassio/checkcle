@@ -2,6 +2,7 @@
 package savers
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -46,21 +47,28 @@ func (ms *MetricsSaver) SaveUptimeDataToPocketBase(result *types.OperationResult
 		}
 	}
 
+	// Serialize validation results if present
+	var validationJSON json.RawMessage
+	if result.ValidationResult != nil {
+		validationJSON, _ = json.Marshal(result.ValidationResult)
+	}
+
 	uptimeData := pocketbase.UptimeDataRecord{
-		ServiceID:    serviceID,
-		Timestamp:    time.Now(),
-		ResponseTime: result.ResponseTime.Milliseconds(),
-		Status:       GetStatusString(result.Success),
-		Packets:      "N/A", // Not applicable for HTTP
-		Latency:      fmt.Sprintf("%.2fms", float64(result.ResponseTime.Nanoseconds())/1000000),
-		StatusCodes:  fmt.Sprintf("%d", result.HTTPStatusCode),
-		Keyword:      "", // Can be populated later if needed
-		ErrorMessage: result.Error,
-		Details:      details, // Short, clean message
-		Region:       ms.regionName, // Legacy field
-		RegionID:     ms.agentID,    // Legacy field
-		RegionName:   ms.regionName, // Add regional fields
-		AgentID:      ms.agentID,
+		ServiceID:         serviceID,
+		Timestamp:         time.Now(),
+		ResponseTime:      result.ResponseTime.Milliseconds(),
+		Status:            GetStatusString(result.Success),
+		Packets:           "N/A", // Not applicable for HTTP
+		Latency:           fmt.Sprintf("%.2fms", float64(result.ResponseTime.Nanoseconds())/1000000),
+		StatusCodes:       fmt.Sprintf("%d", result.HTTPStatusCode),
+		Keyword:           "", // Can be populated later if needed
+		ErrorMessage:      result.Error,
+		Details:           details, // Short, clean message
+		Region:            ms.regionName, // Legacy field
+		RegionID:          ms.agentID,    // Legacy field
+		RegionName:        ms.regionName, // Add regional fields
+		AgentID:           ms.agentID,
+		ValidationResults: validationJSON,
 	}
 
 	if err := ms.pbClient.SaveUptimeData(uptimeData); err != nil {

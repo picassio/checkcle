@@ -5,6 +5,7 @@ import { getStatusInfo } from "./utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { ValidationResultsDisplay } from "../ValidationResultsDisplay";
 
 interface IncidentTableProps {
   incidents: UptimeData[];
@@ -27,6 +28,7 @@ export function IncidentTable({ incidents }: IncidentTableProps) {
           <TableHead className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>{t("responseTime")}</TableHead>
           <TableHead className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>{t("errorMessage")}</TableHead>
           <TableHead className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>{t("details")}</TableHead>
+          <TableHead className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>{t("validation") || "Validation"}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -68,6 +70,13 @@ export function IncidentTable({ incidents }: IncidentTableProps) {
                   <div className="truncate" title={check.details}>
                     {check.details}
                   </div>
+                ) : (
+                  <span className={theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}>-</span>
+                )}
+              </TableCell>
+              <TableCell className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                {check.validation_results ? (
+                  <ValidationResultsDisplay results={check.validation_results} />
                 ) : (
                   <span className={theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}>-</span>
                 )}

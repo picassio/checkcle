@@ -1,10 +1,12 @@
 .git
-server/
 **/node_modules
-**/dist
 **/.next
 **/.turbo
 **/.cache
 **/coverage
 **/*.log
+
+# Exclude server binaries and data, but keep source code
+server/pb_data
+server/service-operation/service-operation
 

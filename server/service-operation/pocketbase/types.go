@@ -1,6 +1,11 @@
 package pocketbase
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+
+	"service-operation/types"
+)
 
 type AuthResponse struct {
 	Token  string      `json:"token"`
@@ -50,20 +55,21 @@ type PingDataRecord struct {
 }
 
 type UptimeDataRecord struct {
-	ServiceID     string    `json:"service_id"`
-	Timestamp     time.Time `json:"timestamp"`
-	ResponseTime  int64     `json:"response_time"`
-	Status        string    `json:"status"`
-	Packets       string    `json:"packets"`
-	Latency       string    `json:"latency"`
-	StatusCodes   string    `json:"status_codes"`
-	Keyword       string    `json:"keyword"`
-	ErrorMessage  string    `json:"error_message"`
-	Details       string    `json:"details"`
-	Region        string    `json:"region,omitempty"`
-	RegionID      string    `json:"region_id,omitempty"`
-	RegionName    string    `json:"region_name,omitempty"`
-	AgentID       string    `json:"agent_id,omitempty"`
+	ServiceID         string          `json:"service_id"`
+	Timestamp         time.Time       `json:"timestamp"`
+	ResponseTime      int64           `json:"response_time"`
+	Status            string          `json:"status"`
+	Packets           string          `json:"packets"`
+	Latency           string          `json:"latency"`
+	StatusCodes       string          `json:"status_codes"`
+	Keyword           string          `json:"keyword"`
+	ErrorMessage      string          `json:"error_message"`
+	Details           string          `json:"details"`
+	Region            string          `json:"region,omitempty"`
+	RegionID          string          `json:"region_id,omitempty"`
+	RegionName        string          `json:"region_name,omitempty"`
+	AgentID           string          `json:"agent_id,omitempty"`
+	ValidationResults json.RawMessage `json:"validation_results,omitempty"`
 }
 
 type DNSDataRecord struct {
@@ -138,26 +144,50 @@ type RegionalServicesResponse struct {
 }
 
 type Service struct {
-	ID                 string    `json:"id"`
-	Name               string    `json:"name"`
-	Host               string    `json:"host"`
-	Uptime             float64   `json:"uptime"`
-	ResponseTime       int64     `json:"response_time"`
-	LastChecked        string    `json:"last_checked"`
-	Port               int       `json:"port"`
-	Domain             string    `json:"domain"`
-	HeartbeatInterval  int       `json:"heartbeat_interval"`
-	MaxRetries         int       `json:"max_retries"`
-	NotificationID     string    `json:"notification_id"`
-	TemplateID         string    `json:"template_id"`
-	ServiceType        string    `json:"service_type"`
-	Status             string    `json:"status"`
-	URL                string    `json:"url"`
-	Alerts             string    `json:"alerts"`
-	StatusCodes        string    `json:"status_codes"`
-	Keyword            string    `json:"keyword"`
-	Created            string    `json:"created"`
-	Updated            string    `json:"updated"`
+	ID                 string          `json:"id"`
+	Name               string          `json:"name"`
+	Host               string          `json:"host"`
+	Uptime             float64         `json:"uptime"`
+	ResponseTime       int64           `json:"response_time"`
+	LastChecked        string          `json:"last_checked"`
+	Port               int             `json:"port"`
+	Domain             string          `json:"domain"`
+	HeartbeatInterval  int             `json:"heartbeat_interval"`
+	MaxRetries         int             `json:"max_retries"`
+	NotificationID     string          `json:"notification_id"`
+	TemplateID         string          `json:"template_id"`
+	ServiceType        string          `json:"service_type"`
+	Status             string          `json:"status"`
+	URL                string          `json:"url"`
+	Alerts             string          `json:"alerts"`
+	StatusCodes        string          `json:"status_codes"`
+	Keyword            string          `json:"keyword"`
+	Created            string          `json:"created"`
+	Updated            string          `json:"updated"`
+	// Content validation fields
+	ExpectedStatusCode int             `json:"expected_status_code,omitempty"`
+	KeywordCheck       string          `json:"keyword_check,omitempty"`
+	KeywordCheckType   string          `json:"keyword_check_type,omitempty"`
+	JSONPathChecks     json.RawMessage `json:"json_path_checks,omitempty"`
+	HeaderChecks       json.RawMessage `json:"header_checks,omitempty"`
+}
+
+// GetValidationConfig returns the validation configuration for the service
+func (s *Service) GetValidationConfig() *types.ValidationConfig {
+	config := &types.ValidationConfig{
+		ExpectedStatusCode: s.ExpectedStatusCode,
+		KeywordCheck:       s.KeywordCheck,
+		KeywordCheckType:   s.KeywordCheckType,
+	}
+
+	if len(s.JSONPathChecks) > 0 {
+		json.Unmarshal(s.JSONPathChecks, &config.JSONPathChecks)
+	}
+	if len(s.HeaderChecks) > 0 {
+		json.Unmarshal(s.HeaderChecks, &config.HeaderChecks)
+	}
+
+	return config
 }
 
 type ServicesResponse struct {

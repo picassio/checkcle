@@ -4953,6 +4953,66 @@
             },
             {
                 "hidden": false,
+                "id": "number1234567890",
+                "max": 599,
+                "min": 100,
+                "name": "expected_status_code",
+                "onlyInt": true,
+                "presentable": false,
+                "required": false,
+                "system": false,
+                "type": "number"
+            },
+            {
+                "autogeneratePattern": "",
+                "hidden": false,
+                "id": "text1234567891",
+                "max": 1000,
+                "min": 0,
+                "name": "keyword_check",
+                "pattern": "",
+                "presentable": false,
+                "primaryKey": false,
+                "required": false,
+                "system": false,
+                "type": "text"
+            },
+            {
+                "hidden": false,
+                "id": "select1234567892",
+                "maxSelect": 1,
+                "name": "keyword_check_type",
+                "presentable": false,
+                "required": false,
+                "system": false,
+                "type": "select",
+                "values": [
+                    "contains",
+                    "not_contains"
+                ]
+            },
+            {
+                "hidden": false,
+                "id": "json1234567893",
+                "maxSize": 10000,
+                "name": "json_path_checks",
+                "presentable": false,
+                "required": false,
+                "system": false,
+                "type": "json"
+            },
+            {
+                "hidden": false,
+                "id": "json1234567894",
+                "maxSize": 5000,
+                "name": "header_checks",
+                "presentable": false,
+                "required": false,
+                "system": false,
+                "type": "json"
+            },
+            {
+                "hidden": false,
                 "id": "autodate2990389176",
                 "name": "created",
                 "onCreate": true,
@@ -6448,6 +6508,16 @@
                 "required": false,
                 "system": false,
                 "type": "text"
+            },
+            {
+                "hidden": false,
+                "id": "json1234567895",
+                "maxSize": 10000,
+                "name": "validation_results",
+                "presentable": false,
+                "required": false,
+                "system": false,
+                "type": "json"
             },
             {
                 "hidden": false,

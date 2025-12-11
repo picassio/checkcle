@@ -105,6 +105,37 @@ export interface ServicesTranslations {
 	responseTime: string;
 	errorMessage: string;
 	details: string;
+	validation: string;
+
+	// Content Validation
+	contentValidation: string;
+	optional: string;
+	expectedStatusCode: string;
+	expectedStatusCodeDesc: string;
+	keywordCheck: string;
+	keywordCheckPlaceholder: string;
+	keywordCheckDesc: string;
+	keywordCheckType: string;
+	contains: string;
+	notContains: string;
+	jsonPathChecks: string;
+	noJsonPathChecks: string;
+	jsonPath: string;
+	operator: string;
+	expectedValue: string;
+	equals: string;
+	notEquals: string;
+	exists: string;
+	notExists: string;
+	headerChecks: string;
+	noHeaderChecks: string;
+	headerName: string;
+	add: string;
+	validationPassed: string;
+	validationFailed: string;
+	statusCode: string;
+	keyword: string;
+	header: string;
 
 	//LastCheckedTime.tsx
 	pausedAt: string;

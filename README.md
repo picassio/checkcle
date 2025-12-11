@@ -50,9 +50,10 @@ CheckCle is an Open Source solution for seamless, real-time monitoring of full-s
 ## 🌟 Core Features
 ### 📝 Roadmap : [DEVELOPMENT_ROADMAP](docs/DEVELOPMENT_ROADMAP.md) 
 
-### Uptime Services & Infrastructure Server Monitoring 
+### Uptime Services & Infrastructure Server Monitoring
 - Monitor HTTP, DNS, and Ping protocols
 - Monitor TCP-based, API services (e.g., FTP, SMTP, HTTP)
+- **Content Validation** - Verify API responses with expected status codes, keyword checks, JSON path validation, and header checks
 - Track detail uptime, response times, and performance issues
 - Distributed Regional Monitoring
 - Incident History (UP/DOWN/WARNING/PAUSE)
@@ -72,9 +73,8 @@ CheckCle is an Open Source solution for seamless, real-time monitoring of full-s
 
 ### Install CheckCle using one of the following methods:
 
-1. Install with Docker Compose Configuration (Recommended)
-```bash 
-
+#### 1. Install with Docker Compose (Recommended for Production)
+```bash
 version: '3.9'
 
 services:
@@ -90,10 +90,10 @@ services:
       nofile:
         soft: 4096
         hard: 8192
-
 ```
-2. Install with docker run. Just copy ready docker run command below
-```bash 
+
+#### 2. Install with docker run
+```bash
 docker run -d \
   --name checkcle \
   --restart unless-stopped \
@@ -101,10 +101,22 @@ docker run -d \
   -v /opt/pb_data:/mnt/pb_data \
   --ulimit nofile=4096:8192 \
   operacle/checkcle:latest
-
 ```
 
-3. Admin Web Management
+#### 3. Build from Source (Development)
+```bash
+# Clone the repository
+git clone https://github.com/operacle/checkcle.git
+cd checkcle
+
+# Build and run with Docker
+docker build -f docker/Dockerfile.local -t checkcle:local .
+docker compose -f docker/docker-compose-local.yml up -d
+```
+
+This builds the complete stack (Go backend + React frontend) and auto-applies database migrations on startup.
+
+#### 4. Admin Web Management
 
     Default URL: http://0.0.0.0:8090
     User: admin@example.com

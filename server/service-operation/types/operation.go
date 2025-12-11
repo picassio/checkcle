@@ -55,6 +55,9 @@ type OperationResult struct {
 	HTTPHeaders    map[string]string `json:"http_headers,omitempty"`
 	ContentLength  int64        `json:"content_length,omitempty"`
 	ResponseBody   string       `json:"response_body,omitempty"`
+
+	// Content validation result
+	ValidationResult *ValidationResult `json:"validation_result,omitempty"`
 	
 	// SSL specific fields
 	SSLValidFrom     time.Time   `json:"ssl_valid_from,omitempty"`

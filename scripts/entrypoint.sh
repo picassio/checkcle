@@ -7,6 +7,10 @@ if [ ! -f /mnt/pb_data/data.db ] && [ -d /app/pb_data ] && [ "$(ls -A /app/pb_da
   cp -a /app/pb_data/. /mnt/pb_data/
 fi
 
+# Apply database migrations before starting
+echo "Applying database migrations..."
+/app/pocketbase migrate up --dir /mnt/pb_data --migrationsDir /app/pb_migrations 2>&1 || true
+
 # Start PocketBase in the background
 echo "Starting CheckCle Application..."
 /app/pocketbase serve --http=0.0.0.0:8090 --dir /mnt/pb_data 2>&1 | grep -vE 'REST API|Dashboard' &

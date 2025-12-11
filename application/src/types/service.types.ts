@@ -24,9 +24,13 @@ export interface Service {
   muteChangedAt?: string;
   follow_redirects?: boolean;
   verify_ssl?: boolean;
+  // Content validation fields
   expected_status_code?: number;
   keyword_check?: string;
   keyword_check_type?: "contains" | "not_contains";
+  json_path_checks?: JSONPathCheck[];
+  header_checks?: HeaderCheck[];
+  // DNS fields
   dns_record_type?: "A" | "AAAA" | "CNAME" | "MX" | "TXT" | "NS";
   dns_expected_value?: string;
   headers?: string;
@@ -37,6 +41,62 @@ export interface Service {
   agent_id?: string;
   regional_status?: "enabled" | "disabled"; // Add regional_status field
   regional_monitoring_enabled?: boolean;
+}
+
+// Content validation types
+export interface JSONPathCheck {
+  path: string;
+  operator: "equals" | "not_equals" | "contains" | "exists" | "not_exists";
+  expected_value: string;
+}
+
+export interface HeaderCheck {
+  header_name: string;
+  operator: "equals" | "contains" | "exists";
+  expected_value: string;
+}
+
+// Validation results for display
+export interface ValidationResult {
+  passed: boolean;
+  status_code_result?: StatusCodeValidation;
+  keyword_result?: KeywordValidation;
+  json_path_results?: JSONPathValidation[];
+  header_results?: HeaderValidation[];
+  failure_reason?: string;
+}
+
+export interface StatusCodeValidation {
+  expected: number;
+  actual: number;
+  passed: boolean;
+  message?: string;
+}
+
+export interface KeywordValidation {
+  keyword: string;
+  check_type: string;
+  found: boolean;
+  passed: boolean;
+  message?: string;
+}
+
+export interface JSONPathValidation {
+  path: string;
+  operator: string;
+  expected_value: string;
+  actual_value?: string;
+  passed: boolean;
+  message?: string;
+}
+
+export interface HeaderValidation {
+  header_name: string;
+  operator: string;
+  expected_value: string;
+  actual_value?: string;
+  passed: boolean;
+  message?: string;
 }
 
 export interface CreateServiceParams {
@@ -75,6 +135,8 @@ export interface UptimeData {
   agent_id?: string | number;
   // Source identifier for multi-source display
   source?: string;
+  // Content validation results
+  validation_results?: ValidationResult;
 }
 
 export interface PingData {

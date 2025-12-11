@@ -125,7 +125,8 @@ export const uptimeService = {
         date: item.timestamp,
         uptime: 100,
         error_message: item.error_message,
-        details: item.details
+        details: item.details,
+        validation_results: item.validation_results
       }));
       
       // Cache the result
@@ -211,7 +212,8 @@ export const uptimeService = {
         error_message: item.error_message,
         details: item.details,
         created: item.created,
-        updated: item.updated
+        updated: item.updated,
+        validation_results: item.validation_results
       }));
 
       // Cache the result
