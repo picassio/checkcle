@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { performanceService } from "@/services/performanceService";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CreatePerformanceTestDialog } from "./CreatePerformanceTestDialog";
 import { PerformanceDetailView } from "./PerformanceDetailView";
+import { QueueStatusBanner } from "./QueueStatusBanner";
 import {
   Plus,
   Play,
@@ -26,8 +27,9 @@ import {
   Clock,
   RefreshCw,
   Loader2,
+  ListOrdered,
 } from "lucide-react";
-import { PerformanceTest, BROWSER_OPTIONS, CONNECTIVITY_OPTIONS } from "@/types/performance.types";
+import { PerformanceTest, BROWSER_OPTIONS, CONNECTIVITY_OPTIONS, QueueStatus } from "@/types/performance.types";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -39,12 +41,44 @@ export function PerformanceTestList() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingTest, setEditingTest] = useState<PerformanceTest | null>(null);
   const [selectedTest, setSelectedTest] = useState<PerformanceTest | null>(null);
-  const [runningTestId, setRunningTestId] = useState<string | null>(null);
 
   const { data: tests = [], isLoading } = useQuery({
     queryKey: ["performance-tests"],
     queryFn: () => performanceService.getTests(),
   });
+
+  // Fetch queue status
+  const { data: queueStatus } = useQuery({
+    queryKey: ["performance-queue-status"],
+    queryFn: () => performanceService.getQueueStatus(),
+    refetchInterval: 5000, // Poll every 5 seconds
+  });
+
+  // Create a map of test_id to test name for the queue banner
+  const testNamesMap = useMemo(() => {
+    return tests.reduce((acc, test) => {
+      acc[test.id] = test.name;
+      return acc;
+    }, {} as Record<string, string>);
+  }, [tests]);
+
+  // Check if a test is queued or running
+  const getTestQueueStatus = (testId: string): { isQueued: boolean; isRunning: boolean; position: number } => {
+    if (!queueStatus) return { isQueued: false, isRunning: false, position: 0 };
+
+    // Check if currently running
+    if (queueStatus.currently_running?.test_id === testId) {
+      return { isQueued: true, isRunning: true, position: 0 };
+    }
+
+    // Check position in pending queue
+    const position = queueStatus.pending_items.findIndex(item => item.test_id === testId);
+    if (position !== -1) {
+      return { isQueued: true, isRunning: false, position: position + 1 };
+    }
+
+    return { isQueued: false, isRunning: false, position: 0 };
+  };
 
   const deleteMutation = useMutation({
     mutationFn: performanceService.deleteTest,
@@ -75,18 +109,15 @@ export function PerformanceTestList() {
 
   const runTestMutation = useMutation({
     mutationFn: async (testId: string) => {
-      setRunningTestId(testId);
       return performanceService.runTestNow(testId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["performance-tests"] });
-      queryClient.invalidateQueries({ queryKey: ["performance-latest-metrics"] });
-      toast.success(t("testCompleted") || "Test completed successfully");
-      setRunningTestId(null);
+      queryClient.invalidateQueries({ queryKey: ["performance-queue-status"] });
+      toast.success(t("testQueued") || "Test added to queue");
     },
     onError: (error: Error) => {
-      toast.error(error.message || t("testFailed") || "Test failed to run");
-      setRunningTestId(null);
+      toast.error(error.message || t("testFailed") || "Failed to queue test");
     },
   });
 
@@ -130,6 +161,11 @@ export function PerformanceTestList() {
     );
   }
 
+  const handleQueueRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["performance-queue-status"] });
+    queryClient.invalidateQueries({ queryKey: ["performance-tests"] });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -139,6 +175,12 @@ export function PerformanceTestList() {
           {t("addTest") || "Add Test"}
         </Button>
       </div>
+
+      {/* Queue Status Banner */}
+      <QueueStatusBanner
+        onRefresh={handleQueueRefresh}
+        testNames={testNamesMap}
+      />
 
       {tests.length === 0 ? (
         <Card className={theme === "dark" ? "bg-gray-900 border-gray-800" : ""}>
@@ -194,24 +236,41 @@ export function PerformanceTestList() {
                   </div>
 
                   <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={runningTestId === test.id || test.status === "running"}
-                      onClick={() => runTestMutation.mutate(test.id)}
-                    >
-                      {runningTestId === test.id ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                          {t("running") || "Running"}...
-                        </>
-                      ) : (
-                        <>
-                          <Play className="h-4 w-4 mr-1" />
-                          {t("runNow") || "Run Now"}
-                        </>
-                      )}
-                    </Button>
+                    {(() => {
+                      const queueInfo = getTestQueueStatus(test.id);
+                      const isDisabled = queueInfo.isQueued || test.status === "running" || runTestMutation.isPending;
+
+                      return (
+                        <Button
+                          size="sm"
+                          variant={queueInfo.isQueued ? "secondary" : "outline"}
+                          disabled={isDisabled}
+                          onClick={() => runTestMutation.mutate(test.id)}
+                        >
+                          {queueInfo.isRunning ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                              {t("running") || "Running"}...
+                            </>
+                          ) : queueInfo.isQueued ? (
+                            <>
+                              <ListOrdered className="h-4 w-4 mr-1" />
+                              {t("queued") || "Queued"} #{queueInfo.position}
+                            </>
+                          ) : runTestMutation.isPending ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                              {t("queueing") || "Queueing"}...
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-4 w-4 mr-1" />
+                              {t("runNow") || "Run Now"}
+                            </>
+                          )}
+                        </Button>
+                      );
+                    })()}
 
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

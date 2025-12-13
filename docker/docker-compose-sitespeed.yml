@@ -1,0 +1,33 @@
+version: '3.9'
+
+# Docker Compose for CheckCle with integrated sitespeed.io
+# This version includes sitespeed.io, Chrome, and Firefox directly in the container
+# No Docker-in-Docker required - simpler and more efficient
+
+services:
+  checkcle:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.sitespeed
+    image: checkcle:sitespeed
+    container_name: checkcle
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+      - "8091:8091"
+    volumes:
+      - /opt/pb_data:/mnt/pb_data
+      - sitespeed_results:/opt/sitespeed-results
+    environment:
+      - SITESPEED_RESULTS_DIR=/opt/sitespeed-results
+      # Local execution is auto-detected, but can be forced with:
+      # - SITESPEED_LOCAL_EXEC=true
+    # Required for Chrome stability
+    shm_size: '2g'
+    ulimits:
+      nofile:
+        soft: 4096
+        hard: 8192
+
+volumes:
+  sitespeed_results:

@@ -1,6 +1,7 @@
 package performancemonitoring
 
 import (
+	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -8,18 +9,20 @@ import (
 	"service-operation/pocketbase"
 )
 
-// PerformanceMonitor orchestrates performance testing
+// PerformanceMonitor orchestrates performance testing using a queue system
 type PerformanceMonitor struct {
-	client         *PerformanceClient
-	runner         *DockerRunner
-	parser         *ResultParser
-	budgetChecker  *BudgetChecker
-	notifier       *PerformanceNotifier
-	checkInterval  time.Duration
-	stopChan       chan bool
-	isRunning      bool
-	runningTests   map[string]bool
-	runningMu      sync.Mutex
+	client          *PerformanceClient
+	runner          *DockerRunner
+	parser          *ResultParser
+	budgetChecker   *BudgetChecker
+	notifier        *PerformanceNotifier
+	queueClient     *QueueClient
+	checkInterval   time.Duration
+	queueInterval   time.Duration // How often to check queue for processing
+	stopChan        chan bool
+	isRunning       bool
+	currentItem     *QueueItem // Single item being processed
+	currentMu       sync.Mutex
 }
 
 // NewPerformanceMonitor creates a new performance monitor
@@ -29,6 +32,7 @@ func NewPerformanceMonitor(pbClient *pocketbase.PocketBaseClient) *PerformanceMo
 	parser := NewResultParser()
 	budgetChecker := NewBudgetChecker()
 	notifier := NewPerformanceNotifier(pbClient)
+	queueClient := NewQueueClient(pbClient)
 
 	return &PerformanceMonitor{
 		client:        client,
@@ -36,10 +40,12 @@ func NewPerformanceMonitor(pbClient *pocketbase.PocketBaseClient) *PerformanceMo
 		parser:        parser,
 		budgetChecker: budgetChecker,
 		notifier:      notifier,
+		queueClient:   queueClient,
 		checkInterval: 1 * time.Minute, // Check for due tests every minute
+		queueInterval: 5 * time.Second, // Check queue for processing every 5 seconds
 		stopChan:      make(chan bool, 1),
 		isRunning:     false,
-		runningTests:  make(map[string]bool),
+		currentItem:   nil,
 	}
 }
 
@@ -50,25 +56,43 @@ func (pm *PerformanceMonitor) Start() {
 	}
 
 	pm.isRunning = true
-	log.Printf("[PERFORMANCE] Starting performance monitoring service")
+	log.Printf("[PERFORMANCE] Starting performance monitoring service with queue system")
 
-	// Run initial check
-	pm.checkAndRunTests()
+	// Reset any items stuck in processing state from previous run
+	if err := pm.queueClient.ResetProcessingItemsOnStartup(); err != nil {
+		log.Printf("[PERFORMANCE] Warning: Failed to reset stuck items: %v", err)
+	}
 
-	// Set up periodic checking
-	ticker := time.NewTicker(pm.checkInterval)
-	defer ticker.Stop()
+	// Run initial check to enqueue due tests
+	pm.checkAndEnqueueTests()
 
-	// Clean up old results daily
-	cleanupTicker := time.NewTicker(24 * time.Hour)
+	// Set up periodic checking for due tests (enqueue them)
+	schedulerTicker := time.NewTicker(pm.checkInterval)
+	defer schedulerTicker.Stop()
+
+	// Set up queue processing ticker (process one at a time)
+	queueTicker := time.NewTicker(pm.queueInterval)
+	defer queueTicker.Stop()
+
+	// Clean up old results and queue items hourly
+	cleanupTicker := time.NewTicker(1 * time.Hour)
 	defer cleanupTicker.Stop()
+
+	// Timeout stuck items every 5 minutes
+	timeoutTicker := time.NewTicker(5 * time.Minute)
+	defer timeoutTicker.Stop()
 
 	for {
 		select {
-		case <-ticker.C:
-			pm.checkAndRunTests()
+		case <-schedulerTicker.C:
+			pm.checkAndEnqueueTests()
+		case <-queueTicker.C:
+			pm.processQueue()
 		case <-cleanupTicker.C:
 			pm.cleanupOldResults()
+			pm.cleanupOldQueueItems()
+		case <-timeoutTicker.C:
+			pm.handleStuckItems()
 		case <-pm.stopChan:
 			log.Printf("[PERFORMANCE] Performance monitoring stopped")
 			pm.isRunning = false
@@ -86,8 +110,8 @@ func (pm *PerformanceMonitor) Stop() {
 	}
 }
 
-// checkAndRunTests checks for tests that are due and runs them
-func (pm *PerformanceMonitor) checkAndRunTests() {
+// checkAndEnqueueTests checks for tests that are due and adds them to the queue
+func (pm *PerformanceMonitor) checkAndEnqueueTests() {
 	tests, err := pm.client.GetTestsDueForRun()
 	if err != nil {
 		log.Printf("[PERFORMANCE] Error fetching due tests: %v", err)
@@ -101,28 +125,85 @@ func (pm *PerformanceMonitor) checkAndRunTests() {
 	log.Printf("[PERFORMANCE] Found %d tests due for execution", len(tests))
 
 	for _, test := range tests {
-		// Skip if test is already running
-		pm.runningMu.Lock()
-		if pm.runningTests[test.ID] {
-			pm.runningMu.Unlock()
+		// Skip if test is already queued or processing
+		alreadyQueued, err := pm.queueClient.IsTestAlreadyQueued(test.ID)
+		if err != nil {
+			log.Printf("[PERFORMANCE] Error checking queue status for %s: %v", test.Name, err)
 			continue
 		}
-		pm.runningTests[test.ID] = true
-		pm.runningMu.Unlock()
+		if alreadyQueued {
+			log.Printf("[PERFORMANCE] Test %s already in queue, skipping", test.Name)
+			continue
+		}
 
-		// Run test in goroutine
-		go pm.runTest(test)
+		// Add to queue with scheduled priority
+		if _, err := pm.queueClient.EnqueueTest(test.ID, PriorityScheduled, "scheduled"); err != nil {
+			log.Printf("[PERFORMANCE] Error enqueueing test %s: %v", test.Name, err)
+			continue
+		}
+
+		log.Printf("[PERFORMANCE] Enqueued test: %s", test.Name)
 	}
 }
 
-// runTest executes a single performance test
-func (pm *PerformanceMonitor) runTest(test PerformanceTest) {
-	defer func() {
-		pm.runningMu.Lock()
-		delete(pm.runningTests, test.ID)
-		pm.runningMu.Unlock()
-	}()
+// processQueue processes the next item in the queue (one at a time)
+func (pm *PerformanceMonitor) processQueue() {
+	pm.currentMu.Lock()
+	if pm.currentItem != nil {
+		pm.currentMu.Unlock()
+		return // Already processing
+	}
+	pm.currentMu.Unlock()
 
+	// Get next pending item
+	item, err := pm.queueClient.GetNextPendingItem()
+	if err != nil {
+		log.Printf("[PERFORMANCE] Error fetching next queue item: %v", err)
+		return
+	}
+	if item == nil {
+		return // Nothing to process
+	}
+
+	// Get the test details
+	test, err := pm.client.GetTest(item.TestID)
+	if err != nil {
+		log.Printf("[PERFORMANCE] Error fetching test %s: %v", item.TestID, err)
+		pm.queueClient.FailItem(item.ID, fmt.Sprintf("test not found: %v", err))
+		return
+	}
+
+	// Set as current item
+	pm.currentMu.Lock()
+	pm.currentItem = item
+	pm.currentMu.Unlock()
+
+	// Mark as processing
+	if err := pm.queueClient.MarkItemProcessing(item.ID); err != nil {
+		log.Printf("[PERFORMANCE] Error marking item as processing: %v", err)
+	}
+
+	log.Printf("[PERFORMANCE] Processing queue item for test: %s (source: %s, priority: %d)",
+		test.Name, item.Source, item.Priority)
+
+	// Run the test synchronously (blocking)
+	metricsID, runErr := pm.runTestFromQueue(*test)
+
+	// Update queue item based on result
+	if runErr != nil {
+		pm.queueClient.FailItem(item.ID, runErr.Error())
+	} else {
+		pm.queueClient.CompleteItem(item.ID, metricsID)
+	}
+
+	// Clear current item
+	pm.currentMu.Lock()
+	pm.currentItem = nil
+	pm.currentMu.Unlock()
+}
+
+// runTestFromQueue executes a single performance test from the queue and returns metrics ID
+func (pm *PerformanceMonitor) runTestFromQueue(test PerformanceTest) (string, error) {
 	log.Printf("[PERFORMANCE] Starting test: %s (%s)", test.Name, test.URL)
 
 	// Update status to running
@@ -149,7 +230,7 @@ func (pm *PerformanceMonitor) runTest(test PerformanceTest) {
 		// Update status to error
 		nextRun := pm.calculateNextRun(test)
 		pm.client.UpdateTestStatus(test.ID, "error", &now, &nextRun)
-		return
+		return "", fmt.Errorf("sitespeed.io run failed: %w", err)
 	}
 
 	// Parse results
@@ -160,7 +241,7 @@ func (pm *PerformanceMonitor) runTest(test PerformanceTest) {
 		// Update status to error
 		nextRun := pm.calculateNextRun(test)
 		pm.client.UpdateTestStatus(test.ID, "error", &now, &nextRun)
-		return
+		return "", fmt.Errorf("failed to parse results: %w", err)
 	}
 
 	// Convert to metrics
@@ -185,8 +266,10 @@ func (pm *PerformanceMonitor) runTest(test PerformanceTest) {
 	}
 
 	// Save metrics
-	if err := pm.client.SaveMetrics(metrics); err != nil {
+	metricsID, err := pm.client.SaveMetricsWithID(metrics)
+	if err != nil {
 		log.Printf("[PERFORMANCE] Failed to save metrics for %s: %v", test.Name, err)
+		return "", fmt.Errorf("failed to save metrics: %w", err)
 	}
 
 	// Calculate next run and update status
@@ -197,79 +280,67 @@ func (pm *PerformanceMonitor) runTest(test PerformanceTest) {
 
 	log.Printf("[PERFORMANCE] Test completed: %s - LCP: %.0fms, FCP: %.0fms, CLS: %.3f, SpeedIndex: %.0f",
 		test.Name, metrics.LCP, metrics.FCP, metrics.CLS, metrics.SpeedIndex)
+
+	return metricsID, nil
 }
 
-// RunTestNow immediately runs a specific test (for API calls)
-func (pm *PerformanceMonitor) RunTestNow(testID string) (*PerformanceMetrics, error) {
+// RunTestNow adds a test to the queue with high priority (for "Run Now" API calls)
+// Returns the queue item instead of waiting for completion
+func (pm *PerformanceMonitor) RunTestNow(testID string) (*QueueItem, error) {
+	// Check if test exists
 	test, err := pm.client.GetTest(testID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if already running
-	pm.runningMu.Lock()
-	if pm.runningTests[test.ID] {
-		pm.runningMu.Unlock()
-		return nil, ErrTestAlreadyRunning
-	}
-	pm.runningTests[test.ID] = true
-	pm.runningMu.Unlock()
-
-	defer func() {
-		pm.runningMu.Lock()
-		delete(pm.runningTests, test.ID)
-		pm.runningMu.Unlock()
-	}()
-
-	log.Printf("[PERFORMANCE] Running test on demand: %s", test.Name)
-
-	// Update status to running
-	now := time.Now()
-	pm.client.UpdateTestStatus(test.ID, "running", nil, nil)
-
-	// Get budget
-	var budget *PerformanceBudget
-	if test.BudgetID != "" {
-		budget, _ = pm.client.GetBudget(test.BudgetID)
-	}
-
-	// Run test
-	resultDir, err := pm.runner.RunSitespeed(*test, budget)
+	// Check if already queued
+	alreadyQueued, err := pm.queueClient.IsTestAlreadyQueued(testID)
 	if err != nil {
-		nextRun := pm.calculateNextRun(*test)
-		pm.client.UpdateTestStatus(test.ID, "error", &now, &nextRun)
-		return nil, err
+		return nil, fmt.Errorf("failed to check queue status: %w", err)
+	}
+	if alreadyQueued {
+		return nil, ErrTestAlreadyQueued
 	}
 
-	// Parse results
-	result, err := pm.parser.ParseResults(resultDir, test.URL)
+	log.Printf("[PERFORMANCE] Adding test to queue with high priority: %s", test.Name)
+
+	// Add to queue with manual (high) priority
+	item, err := pm.queueClient.EnqueueTest(testID, PriorityManual, "manual")
 	if err != nil {
-		nextRun := pm.calculateNextRun(*test)
-		pm.client.UpdateTestStatus(test.ID, "error", &now, &nextRun)
-		return nil, err
+		return nil, fmt.Errorf("failed to enqueue test: %w", err)
 	}
 
-	// Convert to metrics
-	metrics := pm.parser.ConvertToMetrics(result, test.ID)
-	metrics.Timestamp = now
+	return item, nil
+}
 
-	// Check budget
-	if budget != nil {
-		passed, budgetResults := pm.budgetChecker.CheckBudget(metrics, budget)
-		metrics.BudgetPassed = passed
-		metrics.BudgetResults = budgetResults
-	} else {
-		metrics.BudgetPassed = true
+// GetQueueStatus returns the current queue status
+func (pm *PerformanceMonitor) GetQueueStatus() (*QueueStatus, error) {
+	return pm.queueClient.GetQueueStatus()
+}
+
+// GetQueuePositionForTest returns the queue position for a specific test
+func (pm *PerformanceMonitor) GetQueuePositionForTest(testID string) (int, error) {
+	return pm.queueClient.GetQueuePositionForTest(testID)
+}
+
+// CancelQueueItem cancels a pending queue item
+func (pm *PerformanceMonitor) CancelQueueItem(itemID string) error {
+	// Get the item first to check status
+	item, err := pm.queueClient.GetQueueItemByID(itemID)
+	if err != nil {
+		return err
 	}
 
-	// Save metrics
-	pm.client.SaveMetrics(metrics)
+	if item.Status != "pending" {
+		return ErrCannotCancelNonPending
+	}
 
-	// Update status
-	nextRun := pm.calculateNextRun(*test)
-	pm.client.UpdateTestStatus(test.ID, "active", &now, &nextRun)
+	return pm.queueClient.CancelPendingItem(itemID)
+}
 
-	return metrics, nil
+// GetQueueClient returns the queue client for external use
+func (pm *PerformanceMonitor) GetQueueClient() *QueueClient {
+	return pm.queueClient
 }
 
 // calculateNextRun calculates the next scheduled run time
@@ -289,9 +360,39 @@ func (pm *PerformanceMonitor) cleanupOldResults() {
 	}
 }
 
+// cleanupOldQueueItems removes old completed/failed queue items
+func (pm *PerformanceMonitor) cleanupOldQueueItems() {
+	log.Printf("[PERFORMANCE] Running cleanup of old queue items...")
+	if err := pm.queueClient.CleanupOldQueueItems(7 * 24 * time.Hour); err != nil {
+		log.Printf("[PERFORMANCE] Error during queue cleanup: %v", err)
+	}
+}
+
+// handleStuckItems marks items stuck in processing as timeout
+func (pm *PerformanceMonitor) handleStuckItems() {
+	// Mark items stuck for more than 15 minutes as timeout
+	if err := pm.queueClient.ResetStuckProcessingItems(15 * time.Minute); err != nil {
+		log.Printf("[PERFORMANCE] Error handling stuck items: %v", err)
+	}
+}
+
 // GetRunner returns the Docker runner (for API use)
 func (pm *PerformanceMonitor) GetRunner() *DockerRunner {
 	return pm.runner
+}
+
+// IsProcessing returns whether a test is currently being processed
+func (pm *PerformanceMonitor) IsProcessing() bool {
+	pm.currentMu.Lock()
+	defer pm.currentMu.Unlock()
+	return pm.currentItem != nil
+}
+
+// GetCurrentItem returns the currently processing queue item (or nil)
+func (pm *PerformanceMonitor) GetCurrentItem() *QueueItem {
+	pm.currentMu.Lock()
+	defer pm.currentMu.Unlock()
+	return pm.currentItem
 }
 
 // Custom error types
@@ -300,6 +401,8 @@ type Error string
 func (e Error) Error() string { return string(e) }
 
 const (
-	ErrTestAlreadyRunning = Error("test is already running")
-	ErrTestNotFound       = Error("test not found")
+	ErrTestAlreadyRunning     = Error("test is already running")
+	ErrTestAlreadyQueued      = Error("test is already queued")
+	ErrTestNotFound           = Error("test not found")
+	ErrCannotCancelNonPending = Error("can only cancel pending items")
 )

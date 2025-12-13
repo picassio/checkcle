@@ -141,6 +141,12 @@ func (c *PerformanceClient) UpdateTestStatus(testID string, status string, lastR
 
 // SaveMetrics saves performance metrics to PocketBase
 func (c *PerformanceClient) SaveMetrics(metrics *PerformanceMetrics) error {
+	_, err := c.SaveMetricsWithID(metrics)
+	return err
+}
+
+// SaveMetricsWithID saves performance metrics to PocketBase and returns the created ID
+func (c *PerformanceClient) SaveMetricsWithID(metrics *PerformanceMetrics) (string, error) {
 	data := map[string]interface{}{
 		"test_id":             metrics.TestID,
 		"timestamp":           metrics.Timestamp.Format(time.RFC3339),
@@ -196,29 +202,37 @@ func (c *PerformanceClient) SaveMetrics(metrics *PerformanceMetrics) error {
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		return fmt.Errorf("failed to marshal metrics: %w", err)
+		return "", fmt.Errorf("failed to marshal metrics: %w", err)
 	}
 
 	reqURL := fmt.Sprintf("%s/api/collections/performance_metrics/records", c.pbClient.GetBaseURL())
 
 	req, err := http.NewRequest("POST", reqURL, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return fmt.Errorf("failed to create POST request: %w", err)
+		return "", fmt.Errorf("failed to create POST request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.pbClient.GetHTTPClient().Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to save metrics: %w", err)
+		return "", fmt.Errorf("failed to save metrics: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("failed to save metrics, status: %d, response: %s", resp.StatusCode, string(bodyBytes))
+		return "", fmt.Errorf("failed to save metrics, status: %d, response: %s", resp.StatusCode, string(bodyBytes))
 	}
 
-	return nil
+	// Parse response to get the created ID
+	var result struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("failed to parse metrics response: %w", err)
+	}
+
+	return result.ID, nil
 }
 
 // GetTestsDueForRun fetches tests that are due for execution

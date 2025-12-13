@@ -174,7 +174,6 @@ export interface PerformanceTranslations {
   testsPassed: string;
   latestResults: string;
   noPerformanceTests: string;
-  test: string;
   passed: string;
   failed: string;
   lastRun: string;
@@ -222,11 +221,7 @@ export interface PerformanceTranslations {
   requests: string;
   transferSize: string;
   optional: string;
-  budget: string;
-  pass: string;
-  fail: string;
   size: string;
-  date: string;
   time: string;
   back: string;
   name: string;
@@ -276,4 +271,20 @@ export interface PerformanceTranslations {
   goodTTFB: string;
   poorTTFB: string;
   goodTBT: string;
+
+  // Queue system
+  queueStatus: string;
+  queuePosition: string;
+  queuedAt: string;
+  cancelQueue: string;
+  queueItemCancelled: string;
+  failedToCancelQueueItem: string;
+  runningTest: string;
+  queueIdle: string;
+  pending: string;
+  queued: string;
+  queueing: string;
+  testQueued: string;
+  manualRun: string;
+  processing: string;
 }

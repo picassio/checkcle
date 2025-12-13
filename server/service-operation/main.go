@@ -149,7 +149,13 @@ func main() {
 	router.HandleFunc("/performance/report/{testId}/{timestamp}/", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
 	router.HandleFunc("/performance/report/{testId}/{timestamp}", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
 
+	// Queue endpoints
+	router.HandleFunc("/performance/queue", handler.HandlePerformanceQueueStatus).Methods("GET", "OPTIONS")
+	router.HandleFunc("/performance/queue/test/{testId}", handler.HandlePerformanceQueuePosition).Methods("GET", "OPTIONS")
+	router.HandleFunc("/performance/queue/{itemId}/cancel", handler.HandlePerformanceCancelQueue).Methods("POST", "OPTIONS")
+
 	// Run test endpoint (needs access to performanceMonitoringService)
+	// Now adds to queue instead of running directly
 	if performanceMonitoringService != nil {
 		router.HandleFunc("/performance/test/{testId}/run", func(w http.ResponseWriter, r *http.Request) {
 			vars := mux.Vars(r)
@@ -160,18 +166,23 @@ func main() {
 				return
 			}
 
-			metrics, err := performanceMonitoringService.RunTestNow(testID)
+			// RunTestNow now returns a queue item instead of metrics
+			queueItem, err := performanceMonitoringService.RunTestNow(testID)
 			if err != nil {
+				if err == performancemonitoring.ErrTestAlreadyQueued {
+					http.Error(w, "Test is already queued", http.StatusConflict)
+					return
+				}
 				if err == performancemonitoring.ErrTestAlreadyRunning {
 					http.Error(w, "Test is already running", http.StatusConflict)
 					return
 				}
-				http.Error(w, "Failed to run test: "+err.Error(), http.StatusInternalServerError)
+				http.Error(w, "Failed to queue test: "+err.Error(), http.StatusInternalServerError)
 				return
 			}
 
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(metrics)
+			json.NewEncoder(w).Encode(queueItem)
 		}).Methods("POST", "OPTIONS")
 	}
 

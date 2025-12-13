@@ -7,6 +7,9 @@ import {
   PerformanceMetricsResponse,
   PerformanceBudgetsResponse,
   PerformanceTestWithMetrics,
+  QueueItem,
+  QueueStatus,
+  QueuePositionResponse,
 } from '@/types/performance.types';
 
 // Dynamically construct service operation URL based on current host
@@ -56,14 +59,47 @@ export const performanceService = {
     return await pb.collection('performance_tests').delete(testId);
   },
 
-  // Run a test immediately
-  async runTestNow(testId: string): Promise<PerformanceMetrics> {
+  // Run a test immediately (adds to queue with high priority)
+  // Returns a QueueItem instead of metrics - the test runs asynchronously
+  async runTestNow(testId: string): Promise<QueueItem> {
     const response = await fetch(`${SERVICE_OPERATION_URL}/performance/test/${testId}/run`, {
       method: 'POST',
     });
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(error || 'Failed to run test');
+      throw new Error(error || 'Failed to queue test');
+    }
+    return await response.json();
+  },
+
+  // Queue Management Methods
+
+  // Get current queue status (currently running + pending items)
+  async getQueueStatus(): Promise<QueueStatus> {
+    const response = await fetch(`${SERVICE_OPERATION_URL}/performance/queue`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch queue status');
+    }
+    return await response.json();
+  },
+
+  // Get queue position for a specific test
+  async getQueuePosition(testId: string): Promise<QueuePositionResponse> {
+    const response = await fetch(`${SERVICE_OPERATION_URL}/performance/queue/test/${testId}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch queue position');
+    }
+    return await response.json();
+  },
+
+  // Cancel a pending queue item
+  async cancelQueueItem(itemId: string): Promise<{ success: boolean; message: string }> {
+    const response = await fetch(`${SERVICE_OPERATION_URL}/performance/queue/${itemId}/cancel`, {
+      method: 'POST',
+    });
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || 'Failed to cancel queue item');
     }
     return await response.json();
   },

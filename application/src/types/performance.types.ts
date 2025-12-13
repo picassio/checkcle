@@ -230,3 +230,31 @@ export interface PerformanceBudgetsResponse {
   totalPages: number;
   items: PerformanceBudget[];
 }
+
+// Queue types for sequential test execution
+export interface QueueItem {
+  id: string;
+  test_id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'timeout';
+  priority: number; // 1 = manual (high), 10 = scheduled (low)
+  source: 'scheduled' | 'manual';
+  queued_at: string;
+  started_at?: string;
+  completed_at?: string;
+  error?: string;
+  metrics_id?: string;
+  created?: string;
+  updated?: string;
+}
+
+export interface QueueStatus {
+  currently_running: QueueItem | null;
+  pending_items: QueueItem[];
+  total_pending: number;
+}
+
+export interface QueuePositionResponse {
+  position: number; // 0 = currently running, 1+ = position in queue, 0 with status="not_queued" = not in queue
+  status: 'processing' | 'pending' | 'not_queued';
+  queue_item: QueueItem | null;
+}

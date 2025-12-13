@@ -1,0 +1,104 @@
+# Multi-stage build for CheckCle with sitespeed.io
+# This Dockerfile integrates sitespeed.io directly into the CheckCle image
+# eliminating the need for Docker-in-Docker (DinD) execution
+
+# Stage 1: Build Go service-operation
+FROM golang:1.21-alpine AS go-builder
+WORKDIR /build
+RUN apk add --no-cache git
+COPY server/service-operation/go.mod server/service-operation/go.sum ./
+RUN go mod download
+COPY server/service-operation/ ./
+RUN CGO_ENABLED=0 GOOS=linux go build -o service-operation .
+
+# Stage 2: Build Frontend
+FROM node:20-alpine AS frontend-builder
+WORKDIR /app
+COPY application/package.json application/package-lock.json ./
+RUN npm ci --no-audit --fund=false
+COPY application/ ./
+RUN npm run build
+
+# Stage 3: Final image with sitespeed.io and browsers
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+
+# Install system dependencies for Chrome and Firefox
+# Including tini for proper zombie process reaping
+RUN apt-get update && apt-get install -y \
+    wget gnupg2 ca-certificates curl tzdata \
+    xvfb libxss1 tini \
+    fonts-liberation libasound2 libatk-bridge2.0-0 \
+    libatk1.0-0 libcups2 libdbus-1-3 libgbm1 \
+    libgtk-3-0 libnspr4 libnss3 libxcomposite1 \
+    libxdamage1 libxrandr2 xdg-utils \
+    libdrm2 libxkbcommon0 libxshmfence1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Google Chrome
+RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor > /usr/share/keyrings/google-chrome.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update && apt-get install -y google-chrome-stable \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Firefox from Mozilla PPA (not snap which doesn't work in Docker)
+RUN apt-get update && apt-get install -y software-properties-common \
+    && add-apt-repository -y ppa:mozillateam/ppa \
+    && echo 'Package: *\nPin: release o=LP-PPA-mozillateam\nPin-Priority: 1001' > /etc/apt/preferences.d/mozilla-firefox \
+    && apt-get update && apt-get install -y firefox \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Microsoft Edge
+RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/microsoft-edge.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-edge.gpg] https://packages.microsoft.com/repos/edge stable main" > /etc/apt/sources.list.d/microsoft-edge.list \
+    && apt-get update && apt-get install -y microsoft-edge-stable \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js 20
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install sitespeed.io globally with all plugins
+RUN npm install -g sitespeed.io \
+    @sitespeed.io/plugin-lighthouse \
+    @sitespeed.io/plugin-gpsi \
+    @sitespeed.io/plugin-influxdb
+
+# Environment variables for sitespeed.io
+ENV SITESPEED_IO_BROWSERTIME__XVFB=true
+ENV SITESPEED_IO_BROWSERTIME__DOCKER=false
+ENV DISPLAY=:99
+
+WORKDIR /app
+
+# Copy PocketBase binary
+COPY server/pocketbase /app/pocketbase
+RUN chmod +x /app/pocketbase
+
+# Copy Go service
+COPY --from=go-builder /build/service-operation /app/service-operation
+RUN chmod +x /app/service-operation
+
+# Copy migrations
+COPY server/pb_migrations /app/pb_migrations
+
+# Copy frontend build
+COPY --from=frontend-builder /app/dist /app/pb_public
+
+# Copy entrypoint
+COPY scripts/entrypoint-sitespeed.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# Create directories
+RUN mkdir -p /mnt/pb_data /opt/sitespeed-results
+
+# Set proper permissions
+RUN chmod 755 /opt/sitespeed-results
+
+EXPOSE 8090 8091
+
+# Use tini as init to properly reap zombie processes (Chrome spawns many child processes)
+ENTRYPOINT ["/usr/bin/tini", "--", "/app/entrypoint.sh"]
