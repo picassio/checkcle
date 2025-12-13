@@ -13,6 +13,7 @@ export interface PerformanceTest {
   browser: 'chrome' | 'firefox' | 'edge';
   connectivity: 'native' | '3g' | '4g' | 'cable';
   runs: number; // iterations per test (1-10)
+  visual_metrics: boolean; // Enable visual metrics (SpeedIndex, video recording)
   sitespeed_options?: Record<string, unknown>;
   created: string;
   updated: string;

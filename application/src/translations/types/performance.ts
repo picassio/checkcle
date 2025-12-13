@@ -272,6 +272,12 @@ export interface PerformanceTranslations {
   poorTTFB: string;
   goodTBT: string;
 
+  // Visual Metrics
+  visualMetrics: string;
+  visualMetricsDescription: string;
+  visualMetricsEnabled: string;
+  visualMetricsDisabled: string;
+
   // Queue system
   queueStatus: string;
   queuePosition: string;

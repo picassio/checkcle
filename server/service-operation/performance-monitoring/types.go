@@ -16,6 +16,7 @@ type PerformanceTest struct {
 	Browser          string                 `json:"browser"` // chrome, firefox, edge
 	Connectivity     string                 `json:"connectivity"` // native, 3g, 4g, cable
 	Runs             int                    `json:"runs"` // iterations per test (1-10)
+	VisualMetrics    bool                   `json:"visual_metrics"` // Enable visual metrics (SpeedIndex, video)
 	SitespeedOptions map[string]interface{} `json:"sitespeed_options"`
 	Created          string                 `json:"created"`
 	Updated          string                 `json:"updated"`

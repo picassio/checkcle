@@ -61,6 +61,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
+# Install ffmpeg for visual metrics (SpeedIndex, video recording)
+RUN apt-get update && apt-get install -y ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install sitespeed.io globally with all plugins
 RUN npm install -g sitespeed.io \
     @sitespeed.io/plugin-lighthouse \

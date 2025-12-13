@@ -274,6 +274,12 @@ export const performanceTranslations: PerformanceTranslations = {
   poorTTFB: "Poor TTFB",
   goodTBT: "Good TBT",
 
+  // Visual Metrics
+  visualMetrics: "Visual Metrics",
+  visualMetricsDescription: "Enable SpeedIndex and video recording for visual performance analysis",
+  visualMetricsEnabled: "Visual Metrics Enabled",
+  visualMetricsDisabled: "Visual Metrics Disabled",
+
   // Queue system
   queueStatus: "Queue Status",
   queuePosition: "Queue Position",

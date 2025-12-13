@@ -19,7 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Loader2, Video } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   PerformanceTest,
   BROWSER_OPTIONS,
@@ -50,6 +51,7 @@ export function CreatePerformanceTestDialog({
     schedule_interval: 86400, // 1 day default
     runs: 3,
     budget_id: "",
+    visual_metrics: false,
   });
 
   const { data: budgets = [] } = useQuery({
@@ -67,6 +69,7 @@ export function CreatePerformanceTestDialog({
         schedule_interval: editingTest.schedule_interval,
         runs: editingTest.runs,
         budget_id: editingTest.budget_id || "",
+        visual_metrics: editingTest.visual_metrics || false,
       });
     } else {
       setFormData({
@@ -77,6 +80,7 @@ export function CreatePerformanceTestDialog({
         schedule_interval: 86400,
         runs: 3,
         budget_id: "",
+        visual_metrics: false,
       });
     }
   }, [editingTest, open]);
@@ -259,6 +263,27 @@ export function CreatePerformanceTestDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <Video className="h-4 w-4 text-muted-foreground" />
+                <Label htmlFor="visual-metrics" className="font-medium">
+                  {t("visualMetrics") || "Visual Metrics"}
+                </Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {t("visualMetricsDescription") || "Enable SpeedIndex and video recording for visual performance analysis"}
+              </p>
+            </div>
+            <Switch
+              id="visual-metrics"
+              checked={formData.visual_metrics}
+              onCheckedChange={(checked) =>
+                setFormData({ ...formData, visual_metrics: checked })
+              }
+            />
           </div>
 
           <DialogFooter>
