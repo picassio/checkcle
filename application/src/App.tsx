@@ -24,6 +24,7 @@ import PublicStatusPage from './pages/PublicStatusPage';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import ServerDetail from './pages/ServerDetail';
 import Reports from './pages/Reports';
+import PerformanceMonitoring from './pages/PerformanceMonitoring';
 
 function App() {
   const [queryClient] = useState(() => new QueryClient({
@@ -59,6 +60,7 @@ function App() {
                 <Route path="/operational-page" element={<ProtectedRoute><OperationalPage /></ProtectedRoute>} />
                 <Route path="/regional-monitoring" element={<ProtectedRoute><RegionalMonitoring /></ProtectedRoute>} />
                 <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+                <Route path="/performance" element={<ProtectedRoute><PerformanceMonitoring /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />

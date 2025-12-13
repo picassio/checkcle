@@ -13,8 +13,16 @@ services:
       - "8091:8091"
     volumes:
       - /opt/pb_data:/mnt/pb_data
+      - sitespeed_results:/opt/sitespeed-results
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - SITESPEED_RESULTS_DIR=/opt/sitespeed-results
+      - SITESPEED_DOCKER_VOLUME=docker_sitespeed_results
     ulimits:
       nofile:
         soft: 4096
         hard: 8192
+
+volumes:
+  sitespeed_results:
 

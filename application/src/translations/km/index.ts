@@ -14,8 +14,10 @@ import { operationTranslations } from './operation';
 import { regionTranslations } from './region';
 import { dockerTranslations } from './docker';
 import { publicTranslations } from './public';
+import { reportsTranslations } from './reports';
+import { performanceTranslations } from '../en/performance';
 
-const enTranslations: Translations = {
+const kmTranslations: Translations = {
   common: commonTranslations,
   menu: menuTranslations,
   login: loginTranslations,
@@ -29,8 +31,9 @@ const enTranslations: Translations = {
   operation: operationTranslations,
   region: regionTranslations,
   docker: dockerTranslations,
-  public: publicTranslations
-  
+  public: publicTranslations,
+  reports: reportsTranslations,
+  performance: performanceTranslations
 };
 
-export default enTranslations;
+export default kmTranslations;

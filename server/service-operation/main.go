@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -10,13 +11,14 @@ import (
 
 	"github.com/gorilla/mux"
 	"service-operation/config"
+	dataretention "service-operation/data-retention"
 	"service-operation/handlers"
 	"service-operation/monitoring"
+	performancemonitoring "service-operation/performance-monitoring"
 	"service-operation/pocketbase"
 	servermonitoring "service-operation/server-monitoring"
 	sslmonitoring "service-operation/ssl-monitoring"
 	uptimemonitoring "service-operation/uptime-monitoring"
-	dataretention "service-operation/data-retention"
 )
 
 func main() {
@@ -38,6 +40,7 @@ func main() {
 	var serverMonitoringService *servermonitoring.ServerMonitoringService
 	var uptimeMonitoringService *uptimemonitoring.UptimeMonitor
 	var dataRetentionScheduler *dataretention.Scheduler
+	var performanceMonitoringService *performancemonitoring.PerformanceMonitor
 	
 	if cfg.PocketBaseEnabled {
 		//log.Println("🔧 Initializing PocketBase client...")
@@ -89,6 +92,12 @@ func main() {
 				dataRetentionScheduler = dataretention.NewScheduler(pbClient, 24*time.Hour) // Run daily
 				go dataRetentionScheduler.Start()
 				//log.Println("✅ Data retention scheduler started (daily cleanup)")
+
+				// Initialize and start performance monitoring service
+				//log.Println("🔧 Initializing performance monitoring...")
+				performanceMonitoringService = performancemonitoring.NewPerformanceMonitor(pbClient)
+				go performanceMonitoringService.Start()
+				//log.Println("✅ Performance monitoring started with sitespeed.io support")
 			}
 		}
 	}
@@ -97,6 +106,25 @@ func main() {
 	handler := handlers.NewOperationHandler(cfg, pbClient)
 
 	router := mux.NewRouter()
+
+	// CORS middleware
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Allow requests from any origin
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+			w.Header().Set("Access-Control-Max-Age", "3600")
+
+			// Handle preflight requests
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	})
 
 	// Main operation endpoint
 	router.HandleFunc("/operation", handler.HandleOperation).Methods("POST")
@@ -110,6 +138,42 @@ func main() {
 	
 	// Health check
 	router.HandleFunc("/health", handler.HandleHealth).Methods("GET")
+
+	// Performance monitoring endpoints
+	router.HandleFunc("/performance/tests", handler.HandlePerformanceTests).Methods("GET", "OPTIONS")
+	router.HandleFunc("/performance/test/{testId}", handler.HandlePerformanceTestStatus).Methods("GET", "OPTIONS")
+	router.HandleFunc("/performance/metrics/{testId}", handler.HandlePerformanceMetrics).Methods("GET", "OPTIONS")
+	router.HandleFunc("/performance/latest", handler.HandlePerformanceLatestMetrics).Methods("GET", "OPTIONS")
+	router.HandleFunc("/performance/budgets", handler.HandlePerformanceBudgets).Methods("GET", "OPTIONS")
+	router.HandleFunc("/performance/report/{testId}/{timestamp}/{file:.*}", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
+	router.HandleFunc("/performance/report/{testId}/{timestamp}/", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
+	router.HandleFunc("/performance/report/{testId}/{timestamp}", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
+
+	// Run test endpoint (needs access to performanceMonitoringService)
+	if performanceMonitoringService != nil {
+		router.HandleFunc("/performance/test/{testId}/run", func(w http.ResponseWriter, r *http.Request) {
+			vars := mux.Vars(r)
+			testID := vars["testId"]
+
+			if testID == "" {
+				http.Error(w, "Missing testId", http.StatusBadRequest)
+				return
+			}
+
+			metrics, err := performanceMonitoringService.RunTestNow(testID)
+			if err != nil {
+				if err == performancemonitoring.ErrTestAlreadyRunning {
+					http.Error(w, "Test is already running", http.StatusConflict)
+					return
+				}
+				http.Error(w, "Failed to run test: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(metrics)
+		}).Methods("POST", "OPTIONS")
+	}
 
 	log.Printf("=== 🌐 CHECKCLE SERVICE OPERATION SERVER READY ===")
 	log.Printf("🚀 Starting on port %s", cfg.Port)
@@ -134,6 +198,9 @@ func main() {
 	log.Printf("✓Supported operations: ping, dns, tcp, http, ssl")
 	if dataRetentionScheduler != nil {
 		log.Printf("✓Data retention scheduler enabled (daily cleanup)")
+	}
+	if performanceMonitoringService != nil {
+		log.Printf("✓Performance monitoring enabled with sitespeed.io support")
 	}
 	
 
@@ -170,7 +237,11 @@ func main() {
 			log.Println("🛑 Stopping data retention scheduler...")
 			dataRetentionScheduler.Stop()
 		}
-		
+		if performanceMonitoringService != nil {
+			log.Println("🛑 Stopping performance monitoring...")
+			performanceMonitoringService.Stop()
+		}
+
 		log.Println("✅ All services stopped gracefully")
 		log.Println("🛑 === SERVICE OPERATION SERVER STOPPED ===")
 		os.Exit(0)

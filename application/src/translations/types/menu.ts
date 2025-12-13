@@ -7,6 +7,7 @@ export interface MenuTranslations {
   operationalPage: string;
   reports: string;
   regionalMonitoring: string;
+  performanceMonitoring: string;
   settingPanel: string;
   generalSettings: string;
   userManagement: string;

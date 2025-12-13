@@ -227,5 +227,8 @@ export interface ServicesTranslations {
 	monitorAndManageContainers: string;
 	serverIdLabel: string;
 
-	
+	// ServiceDetailContent.tsx
+	responseTimeHistory: string;
+	noUptimeData: string;
+	noUptimeDataDescription: string;
 }

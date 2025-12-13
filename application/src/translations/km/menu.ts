@@ -9,6 +9,7 @@ export const menuTranslations: MenuTranslations = {
   operationalPage: "ទំព័រប្រតិបត្តិការ",
   reports: "របាយការណ៍",
   regionalMonitoring: "ត្រួតពិនិត្យតំបន់",
+  performanceMonitoring: "ដំណើរការ",
   settingPanel: "ផ្ទាំងការកំណត់",
   generalSettings: "ការកំណត់ទូទៅ",
   userManagement: "ការគ្រប់គ្រងអ្នកប្រើប្រាស់",

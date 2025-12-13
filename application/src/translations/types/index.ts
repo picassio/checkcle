@@ -14,6 +14,7 @@ import { RegionTranslations } from './region';
 import { DockerTranslations } from './docker';
 import { PublicTranslations } from './public';
 import { ReportsTranslations } from './reports';
+import { PerformanceTranslations } from './performance';
 
 export interface Translations {
   common: CommonTranslations;
@@ -31,4 +32,5 @@ export interface Translations {
   docker: DockerTranslations;
   public: PublicTranslations;
   reports: ReportsTranslations;
+  performance: PerformanceTranslations;
 }

@@ -10,6 +10,7 @@ export const menuTranslations: MenuTranslations = {
   operationalPage: "Betriebsstatus-Seite",
   reports: "Berichte",
   regionalMonitoring: "Regional Monitoring",
+  performanceMonitoring: "Leistung",
   // Einstellungen-Panel
   settingPanel: "Einstellungsbereich",
   generalSettings: "Allgemeine Einstellungen",

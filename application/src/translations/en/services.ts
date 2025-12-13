@@ -228,4 +228,9 @@ export const servicesTranslations: ServicesTranslations = {
 	containerMonitoring: "Container Monitoring",
 	monitorAndManageContainers: "Monitor and manage your Docker containers in real-time",
 	serverIdLabel: "Server ID",
+
+	// ServiceDetailContent.tsx
+	responseTimeHistory: "Response Time History",
+	noUptimeData: "No uptime data available",
+	noUptimeDataDescription: "There's no monitoring data for this service in the selected time period. This could be because the service was recently added or monitoring is paused.",
 };

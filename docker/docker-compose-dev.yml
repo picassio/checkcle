@@ -9,6 +9,10 @@ services:
       - "8090:8090"
     volumes:
       - pb_data:/mnt/pb_data  # Persist PocketBase data across rebuilds
+      - sitespeed_results:/opt/sitespeed-results  # Performance test results
+      - /var/run/docker.sock:/var/run/docker.sock  # Docker socket for sitespeed.io
+    environment:
+      - SITESPEED_RESULTS_DIR=/opt/sitespeed-results
     ulimits:
       nofile:
         soft: 4096
@@ -37,3 +41,4 @@ services:
 
 volumes:
   pb_data:
+  sitespeed_results:

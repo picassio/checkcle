@@ -9,6 +9,7 @@ export const menuTranslations: MenuTranslations = {
   operationalPage: "运营页面",
   reports: "报告",
   regionalMonitoring: "区域监控",
+  performanceMonitoring: "性能",
   settingPanel: "设置面板",
   generalSettings: "一般设置",
   userManagement: "用户管理",

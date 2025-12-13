@@ -9,6 +9,7 @@ export const menuTranslations: MenuTranslations = {
   operationalPage: "운영 페이지",
   reports: "리포트",
   regionalMonitoring: "지역 모니터링",
+  performanceMonitoring: "성능",
   settingPanel: "설정 패널",
   generalSettings: "일반 설정",
   userManagement: "사용자 관리",

@@ -9,6 +9,7 @@ export const menuTranslations: MenuTranslations = {
   operationalPage: "Operational Page",
   reports: "Reports",
   regionalMonitoring: "Regional Monitoring",
+  performanceMonitoring: "Performance",
   settingPanel: "Setting Panel",
   generalSettings: "General Settings",
   userManagement: "User Management",

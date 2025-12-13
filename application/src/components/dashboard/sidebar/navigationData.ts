@@ -1,5 +1,5 @@
 
-import { Globe, Boxes, Layers, Calendar, BarChart2, LineChart, MapPin, Settings, User, Bell, Database, Info, BookOpen } from "lucide-react";
+import { Globe, Boxes, Layers, Calendar, BarChart2, LineChart, MapPin, Settings, User, Bell, Database, Info, BookOpen, Gauge } from "lucide-react";
 
 export const mainMenuItems = [
   {
@@ -48,6 +48,14 @@ export const mainMenuItems = [
     icon: MapPin,
     translationKey: 'regionalMonitoring',
     color: 'text-indigo-400',
+    hasNavigation: true
+  },
+  {
+    id: 'performance-monitoring',
+    path: '/performance',
+    icon: Gauge,
+    translationKey: 'performanceMonitoring',
+    color: 'text-orange-400',
     hasNavigation: true
   },
   {

@@ -8,6 +8,7 @@ export const menuTranslations: MenuTranslations = {
   operationalPage: "運用ページ",
   reports: "レポート",
   regionalMonitoring: "地域監視",
+  performanceMonitoring: "パフォーマンス",
   settingPanel: "設定パネル",
   generalSettings: "一般設定",
   userManagement: "ユーザー管理",
