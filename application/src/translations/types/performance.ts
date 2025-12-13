@@ -107,6 +107,7 @@ export interface PerformanceTranslations {
   // Reports
   testsRun: string;
   avgLCP: string;
+  avgFCP: string;
   avgSpeedIndex: string;
   avgFullyLoaded: string;
   avgCLS: string;
@@ -117,10 +118,24 @@ export interface PerformanceTranslations {
   selectTestForReport: string;
   noDataForPeriod: string;
   recentResults: string;
+  recentResultsDesc: string;
+  allTests: string;
+  noPerformanceData: string;
+  inSelectedPeriod: string;
+  healthy: string;
+  attention: string;
+  coreWebVitalsDesc: string;
+  test: string;
+  date: string;
+  budget: string;
+  pass: string;
+  fail: string;
 
   // Charts
   webVitalsTrend: string;
   speedIndexTrend: string;
+  lcpFcpTrend: string;
+  clsTbtTrend: string;
   ttfbTrend: string;
   requestsAndTransfer: string;
   pageLoadTrend: string;

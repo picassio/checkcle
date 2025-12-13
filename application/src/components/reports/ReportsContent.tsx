@@ -3,9 +3,9 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { UptimeReports } from "./UptimeReports";
-import { ResponseTimeAnalytics } from "./ResponseTimeAnalytics";
+import { PerformanceReport } from "./PerformanceReport";
 import { IncidentReports } from "./IncidentReports";
-import { Activity, Clock, AlertTriangle, LineChart } from "lucide-react";
+import { Activity, Gauge, AlertTriangle, LineChart } from "lucide-react";
 
 export function ReportsContent() {
   const { t } = useLanguage();
@@ -31,9 +31,9 @@ export function ReportsContent() {
             <Activity className="h-4 w-4" />
             <span className="hidden sm:inline">{t("uptimeReports") || "Uptime"}</span>
           </TabsTrigger>
-          <TabsTrigger value="response" className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            <span className="hidden sm:inline">{t("responseTime") || "Response"}</span>
+          <TabsTrigger value="performance" className="flex items-center gap-2">
+            <Gauge className="h-4 w-4" />
+            <span className="hidden sm:inline">{t("performance") || "Performance"}</span>
           </TabsTrigger>
           <TabsTrigger value="incidents" className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
@@ -45,8 +45,8 @@ export function ReportsContent() {
           <UptimeReports />
         </TabsContent>
 
-        <TabsContent value="response" className="space-y-4">
-          <ResponseTimeAnalytics />
+        <TabsContent value="performance" className="space-y-4">
+          <PerformanceReport />
         </TabsContent>
 
         <TabsContent value="incidents" className="space-y-4">
