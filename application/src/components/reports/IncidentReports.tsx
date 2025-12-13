@@ -6,10 +6,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Download, FileText, AlertTriangle, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Download, FileText, AlertTriangle, Clock, CheckCircle, XCircle, Eye } from "lucide-react";
 import { pb } from "@/lib/pocketbase";
 import { Service, UptimeData } from "@/types/service.types";
 import { ExportUtils } from "./ExportUtils";
+import { ReportIncidentDetailDialog } from "./ReportIncidentDetailDialog";
+
+// Map service types to their corresponding collections
+const getCollectionForServiceType = (serviceType: string): string => {
+  const type = (serviceType || 'http').toLowerCase();
+  switch (type) {
+    case 'ping':
+    case 'icmp':
+      return 'ping_data';
+    case 'dns':
+      return 'dns_data';
+    case 'tcp':
+      return 'tcp_data';
+    case 'http':
+    case 'https':
+    default:
+      return 'uptime_data';
+  }
+};
 import {
   BarChart,
   Bar,
@@ -50,6 +69,13 @@ interface ServiceIncidentStats {
 export function IncidentReports() {
   const { t } = useLanguage();
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
+  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const handleIncidentClick = (incident: Incident) => {
+    setSelectedIncident(incident);
+    setDialogOpen(true);
+  };
 
   const { data: services = [] } = useQuery({
     queryKey: ["services"],
@@ -87,7 +113,10 @@ export function IncidentReports() {
 
       for (const service of services) {
         try {
-          const records = await pb.collection("uptime_data").getFullList<UptimeData>({
+          // Get the correct collection based on service type
+          const collection = getCollectionForServiceType(service.service_type || service.type || 'http');
+
+          const records = await pb.collection(collection).getFullList<UptimeData>({
             filter: `service_id="${service.id}" && timestamp>="${start.toISOString()}" && timestamp<="${end.toISOString()}"`,
             sort: "timestamp",
           });
@@ -467,11 +496,16 @@ export function IncidentReports() {
                   <TableHead className="text-right">{t("duration") || "Duration"}</TableHead>
                   <TableHead>{t("status") || "Status"}</TableHead>
                   <TableHead>{t("error") || "Error"}</TableHead>
+                  <TableHead className="w-10"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {incidents.slice(0, 20).map((incident) => (
-                  <TableRow key={incident.id}>
+                  <TableRow
+                    key={incident.id}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => handleIncidentClick(incident)}
+                  >
                     <TableCell className="font-medium">{incident.serviceName}</TableCell>
                     <TableCell className="text-sm">
                       {new Date(incident.startTime).toLocaleString()}
@@ -493,6 +527,9 @@ export function IncidentReports() {
                     <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
                       {incident.errorMessage}
                     </TableCell>
+                    <TableCell>
+                      <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -500,6 +537,12 @@ export function IncidentReports() {
           )}
         </CardContent>
       </Card>
+
+      <ReportIncidentDetailDialog
+        incident={selectedIncident}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   );
 }

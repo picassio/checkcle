@@ -81,41 +81,43 @@ export const uptimeService = {
       
       // Determine the correct collection based on service type
       const collection = serviceType ? getCollectionForServiceType(serviceType) : 'uptime_data';
-     // console.log(`Fetching default uptime history for service ${serviceId} from collection ${collection}, limit: ${limit}`);
-      
+      console.log(`uptimeService.getUptimeHistory: collection=${collection}, limit=${limit}`);
+
       // Build filter to get records for specific service_id
       let filter = `service_id='${serviceId}'`;
-      
+
       // Add date range filtering if provided
       if (startDate && endDate) {
         const startUTC = startDate.toISOString();
         const endUTC = endDate.toISOString();
-        
-      //  console.log(`Date filter: ${startUTC} to ${endUTC}`);
+
+        console.log(`uptimeService.getUptimeHistory: Date filter ${startUTC} to ${endUTC}`);
         filter += ` && timestamp >= "${startUTC}" && timestamp <= "${endUTC}"`;
       }
-      
-      const options = {
+
+      const options: any = {
         filter: filter,
         sort: '-timestamp', // Sort by timestamp descending (newest first)
         $autoCancel: false,
         $cancelKey: `uptime_history_${serviceId}_${Date.now()}`
       };
-      
-     // console.log(`Filter query for default data: ${filter} on collection: ${collection}`);
-      
-      const response = await pb.collection(collection).getList(1, limit, options);
-      
-    //  console.log(`Fetched ${response.items.length} records for service ${serviceId} from ${collection}`);
-      
-      if (response.items.length > 0) {
-      //  console.log(`Date range in results: ${response.items[response.items.length - 1].timestamp} to ${response.items[0].timestamp}`);
+
+      console.log(`uptimeService.getUptimeHistory: Filter query: ${filter}`);
+
+      // Use getFullList when we have date range to get all records in the range
+      // Otherwise use getList with limit for performance
+      let items: any[];
+      if (startDate && endDate) {
+        items = await pb.collection(collection).getFullList(options);
+        console.log(`uptimeService.getUptimeHistory: Fetched ALL ${items.length} records in date range`);
       } else {
-      //  console.log(`No records found for service_id '${serviceId}' in collection: ${collection}`);
+        const response = await pb.collection(collection).getList(1, limit, options);
+        items = response.items;
+        console.log(`uptimeService.getUptimeHistory: Fetched ${items.length} records (limited)`);
       }
       
-      // Transform the response items to UptimeData format
-      const uptimeData = response.items.map(item => ({
+      // Transform the items to UptimeData format
+      const uptimeData = items.map(item => ({
         id: item.id,
         service_id: item.service_id,
         serviceId: item.service_id,
@@ -193,16 +195,25 @@ export const uptimeService = {
 
     //  console.log(`Regional filter query: ${filter} on collection: ${collection}`);
 
-      const records = await pb.collection(collection).getList(1, limit, {
+      const options: any = {
         sort: '-timestamp',
         filter: filter,
         $autoCancel: false,
         $cancelKey: `regional_uptime_history_${serviceId}_${Date.now()}`
-      });
+      };
 
-    //  console.log(`Retrieved ${records.items.length} regional uptime records from ${collection} for region ${regionName}, agent ${agentId}`);
+      // Use getFullList when we have date range to get all records in the range
+      let items: any[];
+      if (startDate && endDate) {
+        items = await pb.collection(collection).getFullList(options);
+      } else {
+        const records = await pb.collection(collection).getList(1, limit, options);
+        items = records.items;
+      }
 
-      const uptimeData = records.items.map(item => ({
+    //  console.log(`Retrieved ${items.length} regional uptime records from ${collection} for region ${regionName}, agent ${agentId}`);
+
+      const uptimeData = items.map(item => ({
         id: item.id,
         service_id: item.service_id,
         serviceId: item.service_id,

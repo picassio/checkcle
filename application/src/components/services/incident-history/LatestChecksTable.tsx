@@ -28,12 +28,18 @@ export function LatestChecksTable({ uptimeData }: { uptimeData: UptimeData[] }) 
 
   // Filter incidents by status
   const incidents = useMemo(() => {
+    console.log(`LatestChecksTable: Received ${uptimeData.length} uptime records`);
+    if (uptimeData.length > 0) {
+      const timestamps = uptimeData.map(d => new Date(d.timestamp).getTime());
+      const minDate = new Date(Math.min(...timestamps));
+      const maxDate = new Date(Math.max(...timestamps));
+      console.log(`LatestChecksTable: Data range from ${minDate.toISOString()} to ${maxDate.toISOString()}`);
+    }
     const statusChanges = getStatusChangeEvents(uptimeData);
-  //  console.log(`Total status changes: ${statusChanges.length}`);
-  //  console.log(`Status types in incidents: ${[...new Set(statusChanges.map(i => i.status))].join(', ')}`);
-    
+    console.log(`LatestChecksTable: Found ${statusChanges.length} status change events`);
+
     if (statusFilter === "all") return statusChanges;
-    
+
     return statusChanges.filter(incident => incident.status === statusFilter);
   }, [uptimeData, statusFilter]);
 

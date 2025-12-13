@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { format } from "date-fns";
 import { UptimeData } from "@/types/service.types";
 import { getStatusInfo } from "./utils";
@@ -6,6 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ValidationResultsDisplay } from "../ValidationResultsDisplay";
+import { IncidentDetailDialog } from "./IncidentDetailDialog";
+import { Eye } from "lucide-react";
 
 interface IncidentTableProps {
   incidents: UptimeData[];
@@ -14,30 +17,43 @@ interface IncidentTableProps {
 export function IncidentTable({ incidents }: IncidentTableProps) {
   const { theme } = useTheme();
   const { t } = useLanguage();
-  
+  const [selectedIncident, setSelectedIncident] = useState<UptimeData | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const handleRowClick = (incident: UptimeData) => {
+    setSelectedIncident(incident);
+    setDialogOpen(true);
+  };
+
   if (incidents.length === 0) {
     return null;
   }
 
   return (
-    <Table className={theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}>
-      <TableHeader className={theme === 'dark' ? 'bg-gray-800/50' : 'bg-gray-50'}>
-        <TableRow className={theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}>
-          <TableHead className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>{t("time")}</TableHead>
-          <TableHead className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>{t("status")}</TableHead>
-          <TableHead className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>{t("responseTime")}</TableHead>
-          <TableHead className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>{t("errorMessage")}</TableHead>
-          <TableHead className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>{t("details")}</TableHead>
-          <TableHead className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>{t("validation") || "Validation"}</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {incidents.map((check, index) => {
-          const statusInfo = getStatusInfo(check.status);
-          const timestamp = new Date(check.timestamp);
-          
-          return (
-            <TableRow key={check.id || `incident-${index}`} className={theme === 'dark' ? 'border-gray-800 hover:bg-gray-800/30' : 'border-gray-200 hover:bg-gray-50'}>
+    <>
+      <Table className={theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}>
+        <TableHeader className={theme === 'dark' ? 'bg-gray-800/50' : 'bg-gray-50'}>
+          <TableRow className={theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}>
+            <TableHead className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>{t("time")}</TableHead>
+            <TableHead className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>{t("status")}</TableHead>
+            <TableHead className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>{t("responseTime")}</TableHead>
+            <TableHead className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>{t("errorMessage")}</TableHead>
+            <TableHead className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>{t("details")}</TableHead>
+            <TableHead className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>{t("validation") || "Validation"}</TableHead>
+            <TableHead className={`${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} w-10`}></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {incidents.map((check, index) => {
+            const statusInfo = getStatusInfo(check.status);
+            const timestamp = new Date(check.timestamp);
+
+            return (
+              <TableRow
+                key={check.id || `incident-${index}`}
+                className={`cursor-pointer transition-colors ${theme === 'dark' ? 'border-gray-800 hover:bg-gray-800/50' : 'border-gray-200 hover:bg-gray-100'}`}
+                onClick={() => handleRowClick(check)}
+              >
               <TableCell>
                 <div className="flex flex-col">
                   <span>{format(timestamp, 'MMM dd, yyyy')}</span>
@@ -81,10 +97,20 @@ export function IncidentTable({ incidents }: IncidentTableProps) {
                   <span className={theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}>-</span>
                 )}
               </TableCell>
+              <TableCell>
+                <Eye className={`h-4 w-4 ${theme === 'dark' ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`} />
+              </TableCell>
             </TableRow>
           );
         })}
       </TableBody>
     </Table>
+
+    <IncidentDetailDialog
+      incident={selectedIncident}
+      open={dialogOpen}
+      onOpenChange={setDialogOpen}
+    />
+    </>
   );
 }

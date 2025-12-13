@@ -7,11 +7,12 @@ import { useState } from "react";
 
 interface ValidationResultsDisplayProps {
   results: ValidationResult;
+  expanded?: boolean; // If true, show expanded by default
 }
 
-export function ValidationResultsDisplay({ results }: ValidationResultsDisplayProps) {
+export function ValidationResultsDisplay({ results, expanded = false }: ValidationResultsDisplayProps) {
   const { t } = useLanguage();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(expanded);
 
   if (!results) return null;
 

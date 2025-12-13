@@ -83,7 +83,7 @@ export const ServiceDetailContainer = () => {
     setUptimeData,
     selectedRegionalAgent,
     handleRegionalAgentChange
-  } = useServiceData(id, startDate, endDate);
+  } = useServiceData(id, startDate, endDate, selectedRange);
 
   // Set up real-time updates
   useRealTimeUpdates({

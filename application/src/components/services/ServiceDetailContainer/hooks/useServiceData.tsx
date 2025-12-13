@@ -9,7 +9,7 @@ import { DateRangeOption } from "../../DateRangeFilter";
 import { useQuery } from "@tanstack/react-query";
 import { regionalService } from "@/services/regionalService";
 
-export const useServiceData = (serviceId: string | undefined, startDate: Date, endDate: Date) => {
+export const useServiceData = (serviceId: string | undefined, startDate: Date, endDate: Date, selectedRange?: DateRangeOption) => {
   const [service, setService] = useState<Service | null>(null);
   const [uptimeData, setUptimeData] = useState<UptimeData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,28 +53,32 @@ export const useServiceData = (serviceId: string | undefined, startDate: Date, e
     }
   }, [service, serviceId, toast]);
 
-  const fetchUptimeData = useCallback(async (serviceId: string, start: Date, end: Date, selectedRange?: DateRangeOption | string, regionalAgent?: string) => {
+  const fetchUptimeData = useCallback(async (serviceId: string, start: Date, end: Date, rangeOption?: DateRangeOption | string, regionalAgent?: string) => {
     try {
       if (!service) {
-      //  console.log('No service data available for uptime fetch');
+        console.log('fetchUptimeData: No service data available');
         return [];
       }
 
       const currentAgent = regionalAgent || selectedRegionalAgent;
-     // console.log(`Fetching uptime data: ${start.toISOString()} to ${end.toISOString()} for range: ${selectedRange}, service type: ${service.type}, regional agent: ${currentAgent}`);
+      console.log(`fetchUptimeData: Fetching from ${start.toISOString()} to ${end.toISOString()}, range: ${rangeOption}, service type: ${service.type}`);
       
       // Clear existing data immediately when switching agents
       setUptimeData([]);
       
       let limit = 500; // Default limit
-      
-      if (selectedRange === '24h') {
+
+      if (rangeOption === '24h') {
         limit = 300;
-      } else if (selectedRange === '7d') {
-        limit = 400;
+      } else if (rangeOption === '7d') {
+        limit = 1000;
+      } else if (rangeOption === '30d') {
+        limit = 2000;
+      } else if (rangeOption === '1y') {
+        limit = 5000;
       }
-      
-     // console.log(`Using limit ${limit} for range ${selectedRange}`);
+
+      console.log(`fetchUptimeData: Using limit ${limit} for range ${rangeOption}`);
       
       let history: UptimeData[] = [];
       
@@ -151,17 +155,17 @@ export const useServiceData = (serviceId: string | undefined, startDate: Date, e
 
   const handleRegionalAgentChange = useCallback((agent: string) => {
    // console.log(`Regional agent changed from ${selectedRegionalAgent} to: ${agent}`);
-    
+
     // Clear data immediately when switching
     setUptimeData([]);
     setSelectedRegionalAgent(agent);
-    
+
     // Refetch data with new agent selection
     if (serviceId && !isLoading && service) {
     //  console.log(`Refetching data for new agent: ${agent}`);
-      fetchUptimeData(serviceId, startDate, endDate, '24h', agent);
+      fetchUptimeData(serviceId, startDate, endDate, selectedRange || '24h', agent);
     }
-  }, [selectedRegionalAgent, serviceId, isLoading, service, fetchUptimeData, startDate, endDate]);
+  }, [selectedRegionalAgent, serviceId, isLoading, service, fetchUptimeData, startDate, endDate, selectedRange]);
 
   // Memoize the service data fetching to prevent unnecessary re-runs
   const fetchServiceData = useCallback(async () => {
@@ -225,14 +229,15 @@ export const useServiceData = (serviceId: string | undefined, startDate: Date, e
   // Update data when date range changes or when service is loaded - with debouncing
   useEffect(() => {
     if (serviceId && !isLoading && service) {
+      console.log(`useServiceData useEffect: Date range changed, will fetch data for ${serviceId}: ${startDate.toISOString()} to ${endDate.toISOString()}, range: ${selectedRange}`);
       const timeoutId = setTimeout(() => {
-      //  console.log(`Date range changed or service loaded, refetching data for ${serviceId}: ${startDate.toISOString()} to ${endDate.toISOString()}`);
-        fetchUptimeData(serviceId, startDate, endDate, '24h', selectedRegionalAgent);
+        console.log(`useServiceData useEffect: Executing fetchUptimeData for ${serviceId}`);
+        fetchUptimeData(serviceId, startDate, endDate, selectedRange || '24h', selectedRegionalAgent);
       }, 500); // Debounce API calls by 500ms
 
       return () => clearTimeout(timeoutId);
     }
-  }, [startDate, endDate, serviceId, isLoading, service, selectedRegionalAgent, regionalAgents, fetchUptimeData]);
+  }, [startDate, endDate, serviceId, isLoading, service, selectedRegionalAgent, regionalAgents, fetchUptimeData, selectedRange]);
 
   return useMemo(() => ({
     service,

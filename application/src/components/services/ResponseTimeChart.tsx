@@ -9,6 +9,7 @@ import { AreaChart as AreaChartIcon, BarChart3, TrendingUp } from "lucide-react"
 
 interface ResponseTimeChartProps {
   uptimeData: UptimeData[];
+  maxDataPoints?: number; // Allow customizing max data points
 }
 
 type ChartType = 'area' | 'line' | 'bar';
@@ -103,9 +104,17 @@ export function ResponseTimeChart({ uptimeData }: ResponseTimeChartProps) {
         }
       });
       
-      return Array.from(timeGroups.values())
-        .sort((a, b) => a.rawTime - b.rawTime)
-        .slice(-50); // Show last 50 data points for better performance
+      // Dynamically calculate max points based on data range
+      const allPoints = Array.from(timeGroups.values()).sort((a, b) => a.rawTime - b.rawTime);
+
+      // For longer time ranges, sample data to reduce points while maintaining coverage
+      const maxPoints = 200; // Increased from 50 for better coverage
+      if (allPoints.length > maxPoints) {
+        // Sample evenly across the time range
+        const step = Math.ceil(allPoints.length / maxPoints);
+        return allPoints.filter((_, index) => index % step === 0 || index === allPoints.length - 1);
+      }
+      return allPoints;
     } else {
       // Single source display - use original styling
       const sortedData = [...uptimeData].sort((a, b) => 

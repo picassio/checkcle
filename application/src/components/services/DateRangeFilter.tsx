@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -32,6 +32,11 @@ interface DateRange {
 
 export function DateRangeFilter({ onRangeChange, selectedOption = '24h' }: DateRangeFilterProps) {
   const [currentOption, setCurrentOption] = useState<DateRangeOption>(selectedOption);
+
+  // Sync internal state with prop changes
+  useEffect(() => {
+    setCurrentOption(selectedOption);
+  }, [selectedOption]);
   const [customDateRange, setCustomDateRange] = useState<DateRange>({
     from: undefined,
     to: undefined,
