@@ -128,10 +128,28 @@ func (r *NucleiRunner) buildLocalArgs(scan SecurityScan, outputFile string) []st
 		args = append(args, "-severity", strings.Join(scan.SeverityFilter, ","))
 	}
 
-	// Rate limiting to be a good citizen
-	args = append(args, "-rate-limit", "50")
-	args = append(args, "-bulk-size", "10")
-	args = append(args, "-concurrency", "10")
+	// Rate limiting - use configured values or defaults
+	rateLimit := scan.RateLimit
+	if rateLimit <= 0 {
+		rateLimit = 150 // Default: 150 requests/sec
+	}
+	bulkSize := scan.BulkSize
+	if bulkSize <= 0 {
+		bulkSize = 25 // Default: 25 templates per host
+	}
+	concurrency := scan.Concurrency
+	if concurrency <= 0 {
+		concurrency = 25 // Default: 25 concurrent hosts
+	}
+
+	args = append(args, "-rate-limit", fmt.Sprintf("%d", rateLimit))
+	args = append(args, "-bulk-size", fmt.Sprintf("%d", bulkSize))
+	args = append(args, "-concurrency", fmt.Sprintf("%d", concurrency))
+
+	// Add timeout if configured
+	if scan.Timeout > 0 {
+		args = append(args, "-timeout", fmt.Sprintf("%d", scan.Timeout))
+	}
 
 	return args
 }
@@ -164,10 +182,28 @@ func (r *NucleiRunner) buildDockerArgs(scan SecurityScan, outputFile string, out
 		args = append(args, "-severity", strings.Join(scan.SeverityFilter, ","))
 	}
 
-	// Rate limiting
-	args = append(args, "-rate-limit", "50")
-	args = append(args, "-bulk-size", "10")
-	args = append(args, "-concurrency", "10")
+	// Rate limiting - use configured values or defaults
+	rateLimit := scan.RateLimit
+	if rateLimit <= 0 {
+		rateLimit = 150 // Default: 150 requests/sec
+	}
+	bulkSize := scan.BulkSize
+	if bulkSize <= 0 {
+		bulkSize = 25 // Default: 25 templates per host
+	}
+	concurrency := scan.Concurrency
+	if concurrency <= 0 {
+		concurrency = 25 // Default: 25 concurrent hosts
+	}
+
+	args = append(args, "-rate-limit", fmt.Sprintf("%d", rateLimit))
+	args = append(args, "-bulk-size", fmt.Sprintf("%d", bulkSize))
+	args = append(args, "-concurrency", fmt.Sprintf("%d", concurrency))
+
+	// Add timeout if configured
+	if scan.Timeout > 0 {
+		args = append(args, "-timeout", fmt.Sprintf("%d", scan.Timeout))
+	}
 
 	return args
 }

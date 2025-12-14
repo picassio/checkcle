@@ -30,6 +30,28 @@ export interface GeneralSettings {
     senderName?: string;
     senderAddress?: string;
     hideControls?: boolean;
+    // Branding settings stored inside meta for PocketBase compatibility
+    branding?: {
+      appDescription?: string;
+      logoUrl?: string;
+      faviconUrl?: string;
+      loginLogoUrl?: string;
+      showSidebarLogo?: boolean;
+      showLoginLogo?: boolean;
+      showSocialLinks?: boolean;
+      githubUrl?: string;
+      twitterUrl?: string;
+      discordUrl?: string;
+      docsUrl?: string;
+      showGithubLink?: boolean;
+      showTwitterLink?: boolean;
+      showDiscordLink?: boolean;
+      showDocsLink?: boolean;
+      showLoginSocialLinks?: boolean;
+      showHeaderSocialLinks?: boolean;
+      emailSenderName?: string;
+      emailFooterText?: string;
+    };
   };
   smtp?: {
     enabled?: boolean;
@@ -47,6 +69,8 @@ export interface GeneralSettings {
     logoUrl?: string;
     faviconUrl?: string;
     loginLogoUrl?: string;
+    showSidebarLogo?: boolean;
+    showLoginLogo?: boolean;
     showSocialLinks?: boolean;
     githubUrl?: string;
     twitterUrl?: string;

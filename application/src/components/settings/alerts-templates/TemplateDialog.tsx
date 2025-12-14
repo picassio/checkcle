@@ -11,6 +11,7 @@ import { ServerTemplateFields } from "./form/ServerTemplateFields";
 import { ServiceTemplateFields } from "./form/ServiceTemplateFields";
 import { SslTemplateFields } from "./form/SslTemplateFields";
 import { ServerThresholdFields } from "./form/ServerThresholdFields";
+import { SecurityTemplateFields } from "./form/SecurityTemplateFields";
 import { Loader2, ChevronDown } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TemplateType, templateTypeConfigs } from "@/services/templateService";
@@ -76,6 +77,8 @@ export const TemplateDialog: React.FC<TemplateDialogProps> = ({
         return <SslTemplateFields control={form.control} />;
       case 'server_threshold':
         return <ServerThresholdFields control={form.control} />;
+      case 'security':
+        return <SecurityTemplateFields control={form.control} />;
       default:
         return null;
     }
@@ -163,6 +166,7 @@ export const TemplateDialog: React.FC<TemplateDialogProps> = ({
                                   <SelectItem value="server">Server Monitoring</SelectItem>
                                   <SelectItem value="service">Service Uptime</SelectItem>
                                   <SelectItem value="ssl">SSL Certificate</SelectItem>
+                                  <SelectItem value="security">Security Scanning</SelectItem>
                                   <SelectItem value="server_threshold">Server Threshold</SelectItem>
                                 </SelectContent>
                               </Select>

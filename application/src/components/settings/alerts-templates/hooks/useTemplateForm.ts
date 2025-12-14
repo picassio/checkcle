@@ -9,7 +9,7 @@ import { useEffect } from "react";
 // Base schema
 const baseSchema = {
   name: z.string().min(2, "Name is required and must be at least 2 characters"),
-  templateType: z.enum(['server', 'service', 'ssl', 'server_threshold'] as const),
+  templateType: z.enum(['server', 'service', 'ssl', 'server_threshold', 'security'] as const),
   placeholder: z.string().optional(),
 };
 
@@ -69,12 +69,25 @@ const serverThresholdSchema = z.object({
   server_template_id: z.string().optional(),
 });
 
+// Security template schema
+const securityTemplateSchema = z.object({
+  ...baseSchema,
+  templateType: z.literal('security'),
+  critical: z.string().min(1, "Critical message is required"),
+  high: z.string().min(1, "High message is required"),
+  medium: z.string().min(1, "Medium message is required"),
+  low: z.string().min(1, "Low message is required"),
+  info: z.string().min(1, "Info message is required"),
+  summary: z.string().min(1, "Summary message is required"),
+});
+
 // Combined schema
 export const templateFormSchema = z.discriminatedUnion("templateType", [
   serverTemplateSchema,
   serviceTemplateSchema,
   sslTemplateSchema,
   serverThresholdSchema,
+  securityTemplateSchema,
 ]);
 
 export type TemplateFormData = z.infer<typeof templateFormSchema>;
@@ -143,7 +156,19 @@ const getDefaultValues = (templateType: TemplateType): TemplateFormData => {
         notification_id: "",
         server_template_id: "",
       };
-    
+
+    case 'security':
+      return {
+        ...base,
+        templateType: 'security' as const,
+        critical: "[CRITICAL] ${template_name} found on ${host}\n• Scan: ${scan_name}\n• Target: ${target_url}\n• CVEs: ${cve_ids}\n• Description: ${description}\n• Solution: ${solution}\n• Time: ${timestamp}",
+        high: "[HIGH] ${template_name} found on ${host}\n• Scan: ${scan_name}\n• Target: ${target_url}\n• CVEs: ${cve_ids}\n• Description: ${description}\n• Time: ${timestamp}",
+        medium: "[MEDIUM] ${template_name} found on ${host}\n• Scan: ${scan_name}\n• Target: ${target_url}\n• Description: ${description}\n• Time: ${timestamp}",
+        low: "[LOW] ${template_name} found on ${host}\n• Scan: ${scan_name}\n• Target: ${target_url}\n• Description: ${description}\n• Time: ${timestamp}",
+        info: "[INFO] ${template_name} found on ${host}\n• Scan: ${scan_name}\n• Target: ${target_url}\n• Time: ${timestamp}",
+        summary: "Security Scan Complete: ${scan_name}\n• Target: ${target_url}\n• Total Findings: ${total_findings}\n• Critical: ${critical_count}\n• High: ${high_count}\n• Medium: ${medium_count}\n• Low: ${low_count}\n• Time: ${timestamp}",
+      };
+
     default:
       throw new Error(`Unknown template type: ${templateType}`);
   }
@@ -190,7 +215,7 @@ export const useTemplateForm = ({ templateId, templateType, open, onOpenChange, 
       };
 
       // Define the expected fields for each template type
-      const expectedFields = {
+      const expectedFields: Record<string, string[]> = {
         server: [
           'ram_message', 'cpu_message', 'disk_message', 'network_message',
           'up_message', 'down_message', 'notification_id', 'warning_message',
@@ -206,6 +231,9 @@ export const useTemplateForm = ({ templateId, templateType, open, onOpenChange, 
         server_threshold: [
           'cpu_threshold', 'ram_threshold', 'disk_threshold', 'network_threshold',
           'notification_id', 'server_template_id'
+        ],
+        security: [
+          'critical', 'high', 'medium', 'low', 'info', 'summary'
         ]
       };
 

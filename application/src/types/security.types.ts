@@ -14,6 +14,11 @@ export interface SecurityScan {
   findings_count: number;
   critical_count: number;
   high_count: number;
+  // Rate limiting settings
+  rate_limit: number;   // requests per second (default 150)
+  bulk_size: number;    // templates per host (default 25)
+  concurrency: number;  // concurrent hosts (default 25)
+  timeout: number;      // scan timeout in seconds (default 3600)
   created: string;
   updated: string;
 }
@@ -92,6 +97,11 @@ export interface CreateSecurityScanRequest {
   scan_interval?: number;
   status?: 'active' | 'paused';
   notification_id?: string;
+  // Rate limiting settings
+  rate_limit?: number;
+  bulk_size?: number;
+  concurrency?: number;
+  timeout?: number;
 }
 
 export interface UpdateSecurityScanRequest {
@@ -103,6 +113,11 @@ export interface UpdateSecurityScanRequest {
   scan_interval?: number;
   status?: 'active' | 'paused';
   notification_id?: string;
+  // Rate limiting settings
+  rate_limit?: number;
+  bulk_size?: number;
+  concurrency?: number;
+  timeout?: number;
 }
 
 // PocketBase response format
@@ -177,4 +192,44 @@ export const scanIntervalPresets = [
   { value: 43200, label: 'Every 12 hours' },
   { value: 86400, label: 'Daily (24h)' },
   { value: 604800, label: 'Weekly' },
+];
+
+// Rate limit presets (requests per second)
+export const rateLimitPresets = [
+  { value: 50, label: 'Slow (50 req/s)' },
+  { value: 100, label: 'Moderate (100 req/s)' },
+  { value: 150, label: 'Default (150 req/s)' },
+  { value: 250, label: 'Fast (250 req/s)' },
+  { value: 500, label: 'Very Fast (500 req/s)' },
+];
+
+// Scan profile presets
+export const scanProfilePresets = [
+  {
+    name: 'Quick Scan',
+    description: 'Fast scan focusing on critical vulnerabilities',
+    rate_limit: 200,
+    bulk_size: 50,
+    concurrency: 50,
+    timeout: 1800,
+    severity_filter: ['critical', 'high'],
+  },
+  {
+    name: 'Standard Scan',
+    description: 'Balanced scan with moderate speed',
+    rate_limit: 150,
+    bulk_size: 25,
+    concurrency: 25,
+    timeout: 3600,
+    severity_filter: ['critical', 'high', 'medium'],
+  },
+  {
+    name: 'Thorough Scan',
+    description: 'Comprehensive scan including all severities',
+    rate_limit: 100,
+    bulk_size: 15,
+    concurrency: 15,
+    timeout: 7200,
+    severity_filter: ['critical', 'high', 'medium', 'low', 'info'],
+  },
 ];

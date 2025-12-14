@@ -18,8 +18,13 @@ type SecurityScan struct {
 	FindingsCount  int      `json:"findings_count"`
 	CriticalCount  int      `json:"critical_count"`
 	HighCount      int      `json:"high_count"`
-	Created        string   `json:"created"`
-	Updated        string   `json:"updated"`
+	// Rate limiting settings
+	RateLimit   int `json:"rate_limit"`   // requests per second (default 50)
+	BulkSize    int `json:"bulk_size"`    // templates per target (default 10)
+	Concurrency int `json:"concurrency"`  // concurrent hosts (default 10)
+	Timeout     int `json:"timeout"`      // scan timeout in seconds (default 3600)
+	Created     string `json:"created"`
+	Updated     string `json:"updated"`
 }
 
 // SecurityScansResponse represents the response from PocketBase

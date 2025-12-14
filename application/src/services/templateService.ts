@@ -1,33 +1,38 @@
 import { pb } from "@/lib/pocketbase";
-import { 
-  serverNotificationTemplateService, 
+import {
+  serverNotificationTemplateService,
   ServerNotificationTemplate,
-  CreateUpdateServerNotificationTemplateData 
+  CreateUpdateServerNotificationTemplateData
 } from "./serverNotificationTemplateService";
-import { 
-  serviceNotificationTemplateService, 
+import {
+  serviceNotificationTemplateService,
   ServiceNotificationTemplate,
-  CreateUpdateServiceNotificationTemplateData 
+  CreateUpdateServiceNotificationTemplateData
 } from "./serviceNotificationTemplateService";
-import { 
-  sslNotificationTemplateService, 
+import {
+  sslNotificationTemplateService,
   SslNotificationTemplate,
-  CreateUpdateSslNotificationTemplateData 
+  CreateUpdateSslNotificationTemplateData
 } from "./sslNotificationTemplateService";
-import { 
-  serverThresholdService, 
+import {
+  serverThresholdService,
   ServerThreshold,
-  CreateUpdateServerThresholdData 
+  CreateUpdateServerThresholdData
 } from "./serverThresholdService";
+import {
+  securityNotificationTemplateService,
+  SecurityNotificationTemplate,
+  CreateUpdateSecurityNotificationTemplateData
+} from "./securityNotificationTemplateService";
 
-export type TemplateType = 'server' | 'service' | 'ssl' | 'server_threshold';
+export type TemplateType = 'server' | 'service' | 'ssl' | 'server_threshold' | 'security';
 
-export type AnyTemplate = ServerNotificationTemplate | ServiceNotificationTemplate | SslNotificationTemplate | ServerThreshold;
-export type AnyTemplateData = CreateUpdateServerNotificationTemplateData | CreateUpdateServiceNotificationTemplateData | CreateUpdateSslNotificationTemplateData | CreateUpdateServerThresholdData;
+export type AnyTemplate = ServerNotificationTemplate | ServiceNotificationTemplate | SslNotificationTemplate | ServerThreshold | SecurityNotificationTemplate;
+export type AnyTemplateData = CreateUpdateServerNotificationTemplateData | CreateUpdateServiceNotificationTemplateData | CreateUpdateSslNotificationTemplateData | CreateUpdateServerThresholdData | CreateUpdateSecurityNotificationTemplateData;
 
 // Export individual template types
-export type { ServerNotificationTemplate, ServiceNotificationTemplate, SslNotificationTemplate, ServerThreshold };
-export type { CreateUpdateServerNotificationTemplateData, CreateUpdateServiceNotificationTemplateData, CreateUpdateSslNotificationTemplateData, CreateUpdateServerThresholdData };
+export type { ServerNotificationTemplate, ServiceNotificationTemplate, SslNotificationTemplate, ServerThreshold, SecurityNotificationTemplate };
+export type { CreateUpdateServerNotificationTemplateData, CreateUpdateServiceNotificationTemplateData, CreateUpdateSslNotificationTemplateData, CreateUpdateServerThresholdData, CreateUpdateSecurityNotificationTemplateData };
 
 export const templateService = {
   async getTemplates(type: TemplateType): Promise<AnyTemplate[]> {
@@ -40,6 +45,8 @@ export const templateService = {
         return sslNotificationTemplateService.getTemplates();
       case 'server_threshold':
         return serverThresholdService.getServerThresholds();
+      case 'security':
+        return securityNotificationTemplateService.getTemplates();
       default:
         throw new Error(`Unknown template type: ${type}`);
     }
@@ -55,6 +62,8 @@ export const templateService = {
         return sslNotificationTemplateService.getTemplate(id);
       case 'server_threshold':
         return serverThresholdService.getServerThreshold(id);
+      case 'security':
+        return securityNotificationTemplateService.getTemplate(id);
       default:
         throw new Error(`Unknown template type: ${type}`);
     }
@@ -70,6 +79,8 @@ export const templateService = {
         return sslNotificationTemplateService.createTemplate(data as CreateUpdateSslNotificationTemplateData);
       case 'server_threshold':
         return serverThresholdService.createServerThreshold(data as CreateUpdateServerThresholdData);
+      case 'security':
+        return securityNotificationTemplateService.createTemplate(data as CreateUpdateSecurityNotificationTemplateData);
       default:
         throw new Error(`Unknown template type: ${type}`);
     }
@@ -85,6 +96,8 @@ export const templateService = {
         return sslNotificationTemplateService.updateTemplate(id, data as Partial<CreateUpdateSslNotificationTemplateData>);
       case 'server_threshold':
         return serverThresholdService.updateServerThreshold(id, data as Partial<CreateUpdateServerThresholdData>);
+      case 'security':
+        return securityNotificationTemplateService.updateTemplate(id, data as Partial<CreateUpdateSecurityNotificationTemplateData>);
       default:
         throw new Error(`Unknown template type: ${type}`);
     }
@@ -100,6 +113,8 @@ export const templateService = {
         return sslNotificationTemplateService.deleteTemplate(id);
       case 'server_threshold':
         return serverThresholdService.deleteServerThreshold(id);
+      case 'security':
+        return securityNotificationTemplateService.deleteTemplate(id);
       default:
         throw new Error(`Unknown template type: ${type}`);
     }
@@ -112,7 +127,7 @@ export const templateTypeConfigs = {
     label: 'Server Monitoring',
     description: 'Templates for server resource monitoring alerts',
     placeholders: [
-      '${server_name}', '${cpu_usage}', '${ram_usage}', '${disk_usage}', 
+      '${server_name}', '${cpu_usage}', '${ram_usage}', '${disk_usage}',
       '${network_usage}', '${cpu_temp}', '${disk_io}', '${threshold}', '${time}'
     ]
   },
@@ -120,8 +135,8 @@ export const templateTypeConfigs = {
     label: 'Service Uptime',
     description: 'Templates for service uptime monitoring alerts',
     placeholders: [
-      '${service_name}', '${status}', '${response_time}', '${url}', 
-      '${host}', '${service_type}', '${port}', '${domain}', 
+      '${service_name}', '${status}', '${response_time}', '${url}',
+      '${host}', '${service_type}', '${port}', '${domain}',
       '${region_name}', '${agent_id}', '${uptime}', '${time}'
     ]
   },
@@ -129,7 +144,7 @@ export const templateTypeConfigs = {
     label: 'SSL Certificate',
     description: 'Templates for SSL certificate monitoring alerts',
     placeholders: [
-      '${domain}', '${certificate_name}', '${expiry_date}', '${days_left}', 
+      '${domain}', '${certificate_name}', '${expiry_date}', '${days_left}',
       '${issuer}', '${serial_number}', '${time}'
     ]
   },
@@ -138,6 +153,17 @@ export const templateTypeConfigs = {
     description: 'Templates for server resource threshold configurations',
     placeholders: [
       '${name}', '${cpu_threshold}', '${ram_threshold}', '${disk_threshold}', '${network_threshold}'
+    ]
+  },
+  security: {
+    label: 'Security Scanning',
+    description: 'Templates for security vulnerability scan alerts',
+    placeholders: [
+      '${scan_name}', '${target_url}', '${template_id}', '${template_name}',
+      '${severity}', '${host}', '${matched_url}', '${description}',
+      '${solution}', '${cve_ids}', '${timestamp}', '${time}', '${date}',
+      '${total_findings}', '${critical_count}', '${high_count}',
+      '${medium_count}', '${low_count}', '${info_count}'
     ]
   }
 };

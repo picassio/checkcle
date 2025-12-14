@@ -71,6 +71,15 @@ func (q *SecurityQueue) AddToQueue(scanID string, source string, priority int) (
 	return &item, nil
 }
 
+// doGet is a helper to perform authenticated GET requests
+func (q *SecurityQueue) doGet(reqURL string) (*http.Response, error) {
+	req, err := http.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	return q.pbClient.GetHTTPClient().Do(req)
+}
+
 // GetNextPending gets the next pending item from the queue
 func (q *SecurityQueue) GetNextPending() (*SecurityQueueItem, error) {
 	filter := "(status='pending')"
@@ -78,7 +87,7 @@ func (q *SecurityQueue) GetNextPending() (*SecurityQueueItem, error) {
 		q.pbClient.GetBaseURL(),
 		url.QueryEscape(filter))
 
-	resp, err := http.Get(reqURL)
+	resp, err := q.doGet(reqURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch next pending item: %w", err)
 	}
@@ -107,7 +116,7 @@ func (q *SecurityQueue) GetPendingForScan(scanID string) (*SecurityQueueItem, er
 		q.pbClient.GetBaseURL(),
 		url.QueryEscape(filter))
 
-	resp, err := http.Get(reqURL)
+	resp, err := q.doGet(reqURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch pending item: %w", err)
 	}
@@ -221,7 +230,7 @@ func (q *SecurityQueue) GetQueueStatus() (*QueueStatus, error) {
 			q.pbClient.GetBaseURL(),
 			url.QueryEscape(filter))
 
-		resp, err := http.Get(reqURL)
+		resp, err := q.doGet(reqURL)
 		if err != nil {
 			continue
 		}
@@ -269,7 +278,7 @@ func (q *SecurityQueue) GetCurrentProcessing() (*SecurityQueueItem, error) {
 		q.pbClient.GetBaseURL(),
 		url.QueryEscape(filter))
 
-	resp, err := http.Get(reqURL)
+	resp, err := q.doGet(reqURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch processing item: %w", err)
 	}
@@ -296,7 +305,7 @@ func (q *SecurityQueue) GetRecentItems(limit int) ([]SecurityQueueItem, error) {
 	reqURL := fmt.Sprintf("%s/api/collections/security_queue/records?sort=-created&perPage=%d",
 		q.pbClient.GetBaseURL(), limit)
 
-	resp, err := http.Get(reqURL)
+	resp, err := q.doGet(reqURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch recent items: %w", err)
 	}
@@ -319,7 +328,7 @@ func (q *SecurityQueue) GetQueueItem(itemID string) (*SecurityQueueItem, error) 
 	reqURL := fmt.Sprintf("%s/api/collections/security_queue/records/%s",
 		q.pbClient.GetBaseURL(), itemID)
 
-	resp, err := http.Get(reqURL)
+	resp, err := q.doGet(reqURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch queue item: %w", err)
 	}
@@ -346,7 +355,7 @@ func (q *SecurityQueue) CleanupOldItems(olderThan time.Duration) error {
 		q.pbClient.GetBaseURL(),
 		url.QueryEscape(filter))
 
-	resp, err := http.Get(reqURL)
+	resp, err := q.doGet(reqURL)
 	if err != nil {
 		return fmt.Errorf("failed to fetch old items: %w", err)
 	}

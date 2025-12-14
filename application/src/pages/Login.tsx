@@ -92,14 +92,16 @@ const Login = () => {
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
       <div className="w-full max-w-md p-4 sm:p-8 space-y-6 rounded-xl bg-card shadow-xl border border-border/20">
         <div className="text-center">
-          {/* Logo */}
-          <div className="mb-4">
-            <img
-              src={branding.loginLogoUrl || "/checkcle_logo.svg"}
-              alt={`${branding.appName} Logo`}
-              className="mx-auto h-16 w-auto"
-            />
-          </div>
+          {/* Logo - conditionally rendered based on showLoginLogo setting */}
+          {branding.showLoginLogo && (
+            <div className="mb-4">
+              <img
+                src={branding.loginLogoUrl || "/checkcle_logo.svg"}
+                alt={`${branding.appName} Logo`}
+                className="mx-auto h-16 w-auto"
+              />
+            </div>
+          )}
 
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">{t("signInToYourAccount")}</h1>
         </div>

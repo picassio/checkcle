@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,18 +7,18 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Palette, Link, Mail, Eye, EyeOff, ShieldAlert, Image } from "lucide-react";
+import { Palette, Link, Mail, ShieldAlert, Image, Loader2 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { useBranding } from "@/contexts/BrandingContext";
+import { brandingService, BrandingData } from "@/services/brandingService";
 import { authService } from "@/services/authService";
 import { toast } from "@/components/ui/use-toast";
 
 const BrandingSettings: React.FC = () => {
   const { t } = useLanguage();
-  const { settings, updateSettings, isUpdating } = useSystemSettings();
   const branding = useBranding();
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("appearance");
 
   // Check if user is super admin
@@ -27,12 +26,14 @@ const BrandingSettings: React.FC = () => {
   const isSuperAdmin = currentUser?.role === "superadmin";
 
   // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<BrandingData>({
     appName: '',
     appDescription: '',
-    logoUrl: '',
-    faviconUrl: '',
-    loginLogoUrl: '',
+    logoUrl: null,
+    faviconUrl: null,
+    loginLogoUrl: null,
+    showSidebarLogo: true,
+    showLoginLogo: true,
     showSocialLinks: true,
     githubUrl: '',
     twitterUrl: '',
@@ -48,67 +49,43 @@ const BrandingSettings: React.FC = () => {
     emailFooterText: '',
   });
 
-  // Initialize form data from settings
+  // Initialize form data from branding context
   useEffect(() => {
-    if (settings && isSuperAdmin) {
+    if (branding && isSuperAdmin) {
       setFormData({
-        appName: settings.meta?.appName || settings.system_name || 'CheckCle',
-        appDescription: settings.branding?.appDescription || '',
-        logoUrl: settings.branding?.logoUrl || settings.logo_url || '',
-        faviconUrl: settings.branding?.faviconUrl || '',
-        loginLogoUrl: settings.branding?.loginLogoUrl || '',
-        showSocialLinks: settings.branding?.showSocialLinks ?? true,
-        githubUrl: settings.branding?.githubUrl || 'https://github.com/operacle/checkcle',
-        twitterUrl: settings.branding?.twitterUrl || 'https://x.com/checkcle_oss',
-        discordUrl: settings.branding?.discordUrl || 'https://discord.gg/xs9gbubGwX',
-        docsUrl: settings.branding?.docsUrl || 'https://docs.checkcle.io',
-        showGithubLink: settings.branding?.showGithubLink ?? true,
-        showTwitterLink: settings.branding?.showTwitterLink ?? true,
-        showDiscordLink: settings.branding?.showDiscordLink ?? true,
-        showDocsLink: settings.branding?.showDocsLink ?? true,
-        showLoginSocialLinks: settings.branding?.showLoginSocialLinks ?? true,
-        showHeaderSocialLinks: settings.branding?.showHeaderSocialLinks ?? true,
-        emailSenderName: settings.branding?.emailSenderName || 'CheckCle Monitoring System',
-        emailFooterText: settings.branding?.emailFooterText || 'Sent from CheckCle Monitoring System',
+        appName: branding.appName || 'CheckCle',
+        appDescription: branding.appDescription || '',
+        logoUrl: branding.logoUrl || null,
+        faviconUrl: branding.faviconUrl || null,
+        loginLogoUrl: branding.loginLogoUrl || null,
+        showSidebarLogo: branding.showSidebarLogo ?? true,
+        showLoginLogo: branding.showLoginLogo ?? true,
+        showSocialLinks: branding.showSocialLinks ?? true,
+        githubUrl: branding.githubUrl || 'https://github.com/operacle/checkcle',
+        twitterUrl: branding.twitterUrl || 'https://x.com/checkcle_oss',
+        discordUrl: branding.discordUrl || 'https://discord.gg/xs9gbubGwX',
+        docsUrl: branding.docsUrl || 'https://docs.checkcle.io',
+        showGithubLink: branding.showGithubLink ?? true,
+        showTwitterLink: branding.showTwitterLink ?? true,
+        showDiscordLink: branding.showDiscordLink ?? true,
+        showDocsLink: branding.showDocsLink ?? true,
+        showLoginSocialLinks: branding.showLoginSocialLinks ?? true,
+        showHeaderSocialLinks: branding.showHeaderSocialLinks ?? true,
+        emailSenderName: branding.emailSenderName || 'CheckCle Monitoring System',
+        emailFooterText: branding.emailFooterText || 'Sent from CheckCle Monitoring System',
       });
     }
-  }, [settings, isSuperAdmin]);
+  }, [branding, isSuperAdmin]);
 
-  const handleInputChange = (field: string, value: string | boolean) => {
+  const handleInputChange = (field: string, value: string | boolean | null) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSave = async () => {
     try {
-      const updatedSettings = {
-        ...settings,
-        meta: {
-          ...settings?.meta,
-          appName: formData.appName,
-        },
-        system_name: formData.appName,
-        branding: {
-          appDescription: formData.appDescription,
-          logoUrl: formData.logoUrl,
-          faviconUrl: formData.faviconUrl,
-          loginLogoUrl: formData.loginLogoUrl,
-          showSocialLinks: formData.showSocialLinks,
-          githubUrl: formData.githubUrl,
-          twitterUrl: formData.twitterUrl,
-          discordUrl: formData.discordUrl,
-          docsUrl: formData.docsUrl,
-          showGithubLink: formData.showGithubLink,
-          showTwitterLink: formData.showTwitterLink,
-          showDiscordLink: formData.showDiscordLink,
-          showDocsLink: formData.showDocsLink,
-          showLoginSocialLinks: formData.showLoginSocialLinks,
-          showHeaderSocialLinks: formData.showHeaderSocialLinks,
-          emailSenderName: formData.emailSenderName,
-          emailFooterText: formData.emailFooterText,
-        },
-      };
+      setIsSaving(true);
+      await brandingService.saveBranding(formData);
 
-      await updateSettings(updatedSettings);
       setIsEditing(false);
 
       // Refresh branding context
@@ -116,7 +93,7 @@ const BrandingSettings: React.FC = () => {
 
       toast({
         title: t("settingsUpdated", "settings"),
-        description: t("brandingSettingsSaved", "settings"),
+        description: t("brandingSettingsSaved", "settings") || "Branding settings saved successfully",
       });
     } catch (error) {
       console.error("Error saving branding settings:", error);
@@ -125,32 +102,36 @@ const BrandingSettings: React.FC = () => {
         description: error instanceof Error ? error.message : String(error),
         variant: "destructive",
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleCancel = () => {
     setIsEditing(false);
-    // Reset form data
-    if (settings) {
+    // Reset form data from branding context
+    if (branding) {
       setFormData({
-        appName: settings.meta?.appName || settings.system_name || 'CheckCle',
-        appDescription: settings.branding?.appDescription || '',
-        logoUrl: settings.branding?.logoUrl || settings.logo_url || '',
-        faviconUrl: settings.branding?.faviconUrl || '',
-        loginLogoUrl: settings.branding?.loginLogoUrl || '',
-        showSocialLinks: settings.branding?.showSocialLinks ?? true,
-        githubUrl: settings.branding?.githubUrl || 'https://github.com/operacle/checkcle',
-        twitterUrl: settings.branding?.twitterUrl || 'https://x.com/checkcle_oss',
-        discordUrl: settings.branding?.discordUrl || 'https://discord.gg/xs9gbubGwX',
-        docsUrl: settings.branding?.docsUrl || 'https://docs.checkcle.io',
-        showGithubLink: settings.branding?.showGithubLink ?? true,
-        showTwitterLink: settings.branding?.showTwitterLink ?? true,
-        showDiscordLink: settings.branding?.showDiscordLink ?? true,
-        showDocsLink: settings.branding?.showDocsLink ?? true,
-        showLoginSocialLinks: settings.branding?.showLoginSocialLinks ?? true,
-        showHeaderSocialLinks: settings.branding?.showHeaderSocialLinks ?? true,
-        emailSenderName: settings.branding?.emailSenderName || 'CheckCle Monitoring System',
-        emailFooterText: settings.branding?.emailFooterText || 'Sent from CheckCle Monitoring System',
+        appName: branding.appName || 'CheckCle',
+        appDescription: branding.appDescription || '',
+        logoUrl: branding.logoUrl || null,
+        faviconUrl: branding.faviconUrl || null,
+        loginLogoUrl: branding.loginLogoUrl || null,
+        showSidebarLogo: branding.showSidebarLogo ?? true,
+        showLoginLogo: branding.showLoginLogo ?? true,
+        showSocialLinks: branding.showSocialLinks ?? true,
+        githubUrl: branding.githubUrl || 'https://github.com/operacle/checkcle',
+        twitterUrl: branding.twitterUrl || 'https://x.com/checkcle_oss',
+        discordUrl: branding.discordUrl || 'https://discord.gg/xs9gbubGwX',
+        docsUrl: branding.docsUrl || 'https://docs.checkcle.io',
+        showGithubLink: branding.showGithubLink ?? true,
+        showTwitterLink: branding.showTwitterLink ?? true,
+        showDiscordLink: branding.showDiscordLink ?? true,
+        showDocsLink: branding.showDocsLink ?? true,
+        showLoginSocialLinks: branding.showLoginSocialLinks ?? true,
+        showHeaderSocialLinks: branding.showHeaderSocialLinks ?? true,
+        emailSenderName: branding.emailSenderName || 'CheckCle Monitoring System',
+        emailFooterText: branding.emailFooterText || 'Sent from CheckCle Monitoring System',
       });
     }
   };
@@ -225,24 +206,44 @@ const BrandingSettings: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="logoUrl">{t("sidebarLogoUrl", "settings")}</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="logoUrl">{t("sidebarLogoUrl", "settings")}</Label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">{t("show", "common")}</span>
+                      <Switch
+                        checked={formData.showSidebarLogo}
+                        onCheckedChange={(checked) => handleInputChange('showSidebarLogo', checked)}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                  </div>
                   <Input
                     id="logoUrl"
-                    value={formData.logoUrl}
-                    onChange={(e) => handleInputChange('logoUrl', e.target.value)}
-                    disabled={!isEditing}
+                    value={formData.logoUrl || ''}
+                    onChange={(e) => handleInputChange('logoUrl', e.target.value || null)}
+                    disabled={!isEditing || !formData.showSidebarLogo}
                     placeholder="https://example.com/logo.png"
                   />
                   <p className="text-xs text-muted-foreground">{t("sidebarLogoUrlDesc", "settings")}</p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="loginLogoUrl">{t("loginLogoUrl", "settings")}</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="loginLogoUrl">{t("loginLogoUrl", "settings")}</Label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">{t("show", "common")}</span>
+                      <Switch
+                        checked={formData.showLoginLogo}
+                        onCheckedChange={(checked) => handleInputChange('showLoginLogo', checked)}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                  </div>
                   <Input
                     id="loginLogoUrl"
-                    value={formData.loginLogoUrl}
-                    onChange={(e) => handleInputChange('loginLogoUrl', e.target.value)}
-                    disabled={!isEditing}
+                    value={formData.loginLogoUrl || ''}
+                    onChange={(e) => handleInputChange('loginLogoUrl', e.target.value || null)}
+                    disabled={!isEditing || !formData.showLoginLogo}
                     placeholder="https://example.com/login-logo.svg"
                   />
                   <p className="text-xs text-muted-foreground">{t("loginLogoUrlDesc", "settings")}</p>
@@ -252,8 +253,8 @@ const BrandingSettings: React.FC = () => {
                   <Label htmlFor="faviconUrl">{t("faviconUrl", "settings")}</Label>
                   <Input
                     id="faviconUrl"
-                    value={formData.faviconUrl}
-                    onChange={(e) => handleInputChange('faviconUrl', e.target.value)}
+                    value={formData.faviconUrl || ''}
+                    onChange={(e) => handleInputChange('faviconUrl', e.target.value || null)}
                     disabled={!isEditing}
                     placeholder="https://example.com/favicon.ico"
                   />
@@ -482,11 +483,12 @@ const BrandingSettings: React.FC = () => {
 
           {isEditing && (
             <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2 mt-6">
-              <Button type="button" variant="outline" onClick={handleCancel} disabled={isUpdating} className="w-full sm:w-auto">
+              <Button type="button" variant="outline" onClick={handleCancel} disabled={isSaving} className="w-full sm:w-auto">
                 {t("cancel", "common")}
               </Button>
-              <Button onClick={handleSave} disabled={isUpdating} className="w-full sm:w-auto">
-                {isUpdating ? t("saving", "settings") : t("save", "settings")}
+              <Button onClick={handleSave} disabled={isSaving} className="w-full sm:w-auto">
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSaving ? t("saving", "settings") : t("save", "settings")}
               </Button>
             </div>
           )}

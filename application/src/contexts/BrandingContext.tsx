@@ -1,6 +1,5 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { settingsService } from '@/services/settingsService';
+import { brandingService, BrandingData } from '@/services/brandingService';
 
 export interface BrandingSettings {
   // Basic branding
@@ -9,6 +8,10 @@ export interface BrandingSettings {
   logoUrl: string | null;
   faviconUrl: string | null;
   loginLogoUrl: string | null;
+
+  // Logo visibility toggles
+  showSidebarLogo: boolean;
+  showLoginLogo: boolean;
 
   // Social links (can be hidden/shown)
   showSocialLinks: boolean;
@@ -42,6 +45,9 @@ const defaultBranding: BrandingSettings = {
   faviconUrl: null,
   loginLogoUrl: null,
 
+  showSidebarLogo: true,
+  showLoginLogo: true,
+
   showSocialLinks: true,
   githubUrl: 'https://github.com/operacle/checkcle',
   twitterUrl: 'https://x.com/checkcle_oss',
@@ -68,43 +74,58 @@ export const BrandingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const fetchBranding = useCallback(async () => {
     try {
       setIsLoading(true);
-      const settings = await settingsService.getGeneralSettings();
 
-      if (settings) {
+      // Fetch branding from data_settings collection
+      const brandingData = await brandingService.getBranding();
+
+      // Fetch app name from PocketBase system settings
+      const appName = await brandingService.getAppName();
+
+      if (brandingData) {
         setBranding({
-          appName: settings.meta?.appName || settings.system_name || defaultBranding.appName,
-          appDescription: settings.branding?.appDescription || defaultBranding.appDescription,
-          logoUrl: settings.branding?.logoUrl || settings.logo_url || null,
-          faviconUrl: settings.branding?.faviconUrl || null,
-          loginLogoUrl: settings.branding?.loginLogoUrl || null,
+          appName: brandingData.appName || appName || defaultBranding.appName,
+          appDescription: brandingData.appDescription || defaultBranding.appDescription,
+          logoUrl: brandingData.logoUrl || null,
+          faviconUrl: brandingData.faviconUrl || null,
+          loginLogoUrl: brandingData.loginLogoUrl || null,
 
-          showSocialLinks: settings.branding?.showSocialLinks ?? defaultBranding.showSocialLinks,
-          githubUrl: settings.branding?.githubUrl || defaultBranding.githubUrl,
-          twitterUrl: settings.branding?.twitterUrl || defaultBranding.twitterUrl,
-          discordUrl: settings.branding?.discordUrl || defaultBranding.discordUrl,
-          docsUrl: settings.branding?.docsUrl || defaultBranding.docsUrl,
+          showSidebarLogo: brandingData.showSidebarLogo ?? defaultBranding.showSidebarLogo,
+          showLoginLogo: brandingData.showLoginLogo ?? defaultBranding.showLoginLogo,
 
-          showGithubLink: settings.branding?.showGithubLink ?? defaultBranding.showGithubLink,
-          showTwitterLink: settings.branding?.showTwitterLink ?? defaultBranding.showTwitterLink,
-          showDiscordLink: settings.branding?.showDiscordLink ?? defaultBranding.showDiscordLink,
-          showDocsLink: settings.branding?.showDocsLink ?? defaultBranding.showDocsLink,
-          showLoginSocialLinks: settings.branding?.showLoginSocialLinks ?? defaultBranding.showLoginSocialLinks,
-          showHeaderSocialLinks: settings.branding?.showHeaderSocialLinks ?? defaultBranding.showHeaderSocialLinks,
+          showSocialLinks: brandingData.showSocialLinks ?? defaultBranding.showSocialLinks,
+          githubUrl: brandingData.githubUrl || defaultBranding.githubUrl,
+          twitterUrl: brandingData.twitterUrl || defaultBranding.twitterUrl,
+          discordUrl: brandingData.discordUrl || defaultBranding.discordUrl,
+          docsUrl: brandingData.docsUrl || defaultBranding.docsUrl,
 
-          emailSenderName: settings.branding?.emailSenderName || defaultBranding.emailSenderName,
-          emailFooterText: settings.branding?.emailFooterText || defaultBranding.emailFooterText,
+          showGithubLink: brandingData.showGithubLink ?? defaultBranding.showGithubLink,
+          showTwitterLink: brandingData.showTwitterLink ?? defaultBranding.showTwitterLink,
+          showDiscordLink: brandingData.showDiscordLink ?? defaultBranding.showDiscordLink,
+          showDocsLink: brandingData.showDocsLink ?? defaultBranding.showDocsLink,
+          showLoginSocialLinks: brandingData.showLoginSocialLinks ?? defaultBranding.showLoginSocialLinks,
+          showHeaderSocialLinks: brandingData.showHeaderSocialLinks ?? defaultBranding.showHeaderSocialLinks,
+
+          emailSenderName: brandingData.emailSenderName || defaultBranding.emailSenderName,
+          emailFooterText: brandingData.emailFooterText || defaultBranding.emailFooterText,
         });
 
         // Update document title
-        document.title = settings.meta?.appName || settings.system_name || defaultBranding.appName;
+        document.title = brandingData.appName || appName || defaultBranding.appName;
 
         // Update favicon if custom one is provided
-        if (settings.branding?.faviconUrl) {
+        if (brandingData.faviconUrl) {
           const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
           if (link) {
-            link.href = settings.branding.faviconUrl;
+            link.href = brandingData.faviconUrl;
           }
         }
+      } else {
+        // No branding saved yet, use app name from system settings
+        setBranding({
+          ...defaultBranding,
+          appName: appName || defaultBranding.appName,
+        });
+        document.title = appName || defaultBranding.appName;
       }
     } catch (error) {
       console.error('Failed to fetch branding settings:', error);

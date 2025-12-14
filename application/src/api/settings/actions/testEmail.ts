@@ -167,11 +167,12 @@ export const testEmail = async (data: any): Promise<SettingsApiResponse> => {
       };
     }
 
-    // Extract branding from settings
+    // Extract branding from settings (stored in meta.branding)
+    const branding = settingsData?.meta?.branding || settingsData?.branding;
     const brandingData: BrandingData = {
       appName: settingsData?.meta?.appName || settingsData?.system_name,
-      emailSenderName: settingsData?.branding?.emailSenderName,
-      emailFooterText: settingsData?.branding?.emailFooterText,
+      emailSenderName: branding?.emailSenderName,
+      emailFooterText: branding?.emailFooterText,
     };
 
     // Create test email content based on template

@@ -10,6 +10,8 @@ echo "=========================================="
 
 # Start XVFB for headless browser support
 echo "[ENTRYPOINT] Starting Xvfb..."
+# Clean up any stale lock files from previous runs
+rm -f /tmp/.X99-lock /tmp/.X11-unix/X99 2>/dev/null || true
 Xvfb :99 -screen 0 1920x1080x24 -nolisten tcp &
 XVFB_PID=$!
 export DISPLAY=:99

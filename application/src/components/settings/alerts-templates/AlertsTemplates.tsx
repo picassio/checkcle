@@ -66,10 +66,11 @@ export const AlertsTemplates = () => {
       <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TemplateType)}>
           <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
-            <TabsList className="inline-flex w-auto min-w-full md:w-full md:grid md:grid-cols-4 mb-4">
+            <TabsList className="inline-flex w-auto min-w-full md:w-full md:grid md:grid-cols-5 mb-4">
               <TabsTrigger value="service" className="text-xs md:text-sm whitespace-nowrap">Service</TabsTrigger>
               <TabsTrigger value="server" className="text-xs md:text-sm whitespace-nowrap">Server</TabsTrigger>
               <TabsTrigger value="ssl" className="text-xs md:text-sm whitespace-nowrap">SSL</TabsTrigger>
+              <TabsTrigger value="security" className="text-xs md:text-sm whitespace-nowrap">Security</TabsTrigger>
               <TabsTrigger value="server_threshold" className="text-xs md:text-sm whitespace-nowrap">Threshold</TabsTrigger>
             </TabsList>
           </div>
@@ -121,16 +122,35 @@ export const AlertsTemplates = () => {
                 </Button>
               </div>
             ) : (
-              <TemplateList 
-                templates={templates} 
-                isLoading={isLoading} 
+              <TemplateList
+                templates={templates}
+                isLoading={isLoading}
                 onEdit={(id) => handleEditTemplate(id, 'ssl')}
                 refetchTemplates={refetch}
                 templateType="ssl"
               />
             )}
           </TabsContent>
-          
+
+          <TabsContent value="security" className="mt-4">
+            {error ? (
+              <div className="text-center p-6">
+                <p className="text-destructive mb-4">Error loading security templates</p>
+                <Button variant="outline" onClick={() => refetch()}>
+                  Try Again
+                </Button>
+              </div>
+            ) : (
+              <TemplateList
+                templates={templates}
+                isLoading={isLoading}
+                onEdit={(id) => handleEditTemplate(id, 'security')}
+                refetchTemplates={refetch}
+                templateType="security"
+              />
+            )}
+          </TabsContent>
+
           <TabsContent value="server_threshold" className="mt-4">
             {error ? (
               <div className="text-center p-6">

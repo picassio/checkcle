@@ -115,7 +115,12 @@ func (qc *QueueClient) GetNextPendingItem() (*QueueItem, error) {
 		url.QueryEscape(filter),
 		url.QueryEscape(sort))
 
-	resp, err := http.Get(reqURL)
+	req, err := http.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create GET request: %w", err)
+	}
+
+	resp, err := qc.pbClient.GetHTTPClient().Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch next pending item: %w", err)
 	}
@@ -225,6 +230,15 @@ func (qc *QueueClient) updateQueueItem(itemID string, data map[string]interface{
 	return nil
 }
 
+// doGet is a helper to perform authenticated GET requests
+func (qc *QueueClient) doGet(reqURL string) (*http.Response, error) {
+	req, err := http.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	return qc.pbClient.GetHTTPClient().Do(req)
+}
+
 // IsTestAlreadyQueued checks if a test is already pending or processing in the queue
 func (qc *QueueClient) IsTestAlreadyQueued(testID string) (bool, error) {
 	filter := fmt.Sprintf("(test_id='%s' && (status='pending' || status='processing'))", testID)
@@ -233,7 +247,7 @@ func (qc *QueueClient) IsTestAlreadyQueued(testID string) (bool, error) {
 		qc.pbClient.GetBaseURL(),
 		url.QueryEscape(filter))
 
-	resp, err := http.Get(reqURL)
+	resp, err := qc.doGet(reqURL)
 	if err != nil {
 		return false, fmt.Errorf("failed to check queued status: %w", err)
 	}
@@ -261,7 +275,7 @@ func (qc *QueueClient) GetQueueStatus() (*QueueStatus, error) {
 		qc.pbClient.GetBaseURL(),
 		url.QueryEscape(processingFilter))
 
-	resp, err := http.Get(processingURL)
+	resp, err := qc.doGet(processingURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch processing item: %w", err)
 	}
@@ -282,7 +296,7 @@ func (qc *QueueClient) GetQueueStatus() (*QueueStatus, error) {
 		url.QueryEscape(pendingFilter),
 		url.QueryEscape(pendingSort))
 
-	resp2, err := http.Get(pendingURL)
+	resp2, err := qc.doGet(pendingURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch pending items: %w", err)
 	}
@@ -307,7 +321,7 @@ func (qc *QueueClient) GetQueuePositionForTest(testID string) (int, error) {
 		qc.pbClient.GetBaseURL(),
 		url.QueryEscape(processingFilter))
 
-	resp, err := http.Get(processingURL)
+	resp, err := qc.doGet(processingURL)
 	if err != nil {
 		return 0, fmt.Errorf("failed to check processing status: %w", err)
 	}
@@ -321,7 +335,7 @@ func (qc *QueueClient) GetQueuePositionForTest(testID string) (int, error) {
 		url.QueryEscape(pendingFilter),
 		url.QueryEscape(pendingSort))
 
-	resp2, err := http.Get(pendingURL)
+	resp2, err := qc.doGet(pendingURL)
 	if err != nil {
 		return 0, fmt.Errorf("failed to fetch pending items: %w", err)
 	}
@@ -351,7 +365,7 @@ func (qc *QueueClient) GetQueueItemByID(itemID string) (*QueueItem, error) {
 	reqURL := fmt.Sprintf("%s/api/collections/performance_queue/records/%s",
 		qc.pbClient.GetBaseURL(), itemID)
 
-	resp, err := http.Get(reqURL)
+	resp, err := qc.doGet(reqURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch queue item: %w", err)
 	}
@@ -377,7 +391,7 @@ func (qc *QueueClient) GetPendingItemForTest(testID string) (*QueueItem, error) 
 		qc.pbClient.GetBaseURL(),
 		url.QueryEscape(filter))
 
-	resp, err := http.Get(reqURL)
+	resp, err := qc.doGet(reqURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch pending item: %w", err)
 	}
@@ -408,7 +422,7 @@ func (qc *QueueClient) CleanupOldQueueItems(maxAge time.Duration) error {
 		qc.pbClient.GetBaseURL(),
 		url.QueryEscape(filter))
 
-	resp, err := http.Get(reqURL)
+	resp, err := qc.doGet(reqURL)
 	if err != nil {
 		return fmt.Errorf("failed to fetch old queue items: %w", err)
 	}
@@ -452,7 +466,7 @@ func (qc *QueueClient) ResetStuckProcessingItems(maxProcessingTime time.Duration
 		qc.pbClient.GetBaseURL(),
 		url.QueryEscape(filter))
 
-	resp, err := http.Get(reqURL)
+	resp, err := qc.doGet(reqURL)
 	if err != nil {
 		return fmt.Errorf("failed to fetch stuck items: %w", err)
 	}
@@ -485,7 +499,7 @@ func (qc *QueueClient) ResetProcessingItemsOnStartup() error {
 		qc.pbClient.GetBaseURL(),
 		url.QueryEscape(filter))
 
-	resp, err := http.Get(reqURL)
+	resp, err := qc.doGet(reqURL)
 	if err != nil {
 		return fmt.Errorf("failed to fetch processing items: %w", err)
 	}

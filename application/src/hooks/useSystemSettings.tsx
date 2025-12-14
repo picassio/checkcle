@@ -157,7 +157,7 @@ export function useSystemSettings() {
     isLoading,
     error,
     refetch,
-    updateSettings: updateSettingsMutation.mutate,
+    updateSettings: updateSettingsMutation.mutateAsync,
     isUpdating: updateSettingsMutation.isPending,
     testEmailConnection: testEmailConnectionMutation.mutate,
     isTestingConnection: testEmailConnectionMutation.isPending,
