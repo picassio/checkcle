@@ -191,42 +191,43 @@ export const SSLDomainContent = () => {
   }
 
   return (
-    <main className="flex-1 flex flex-col overflow-auto bg-background p-6 pb-0">
-      <div className="flex flex-col flex-1">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-foreground">{t('sslDomainManagement')}</h2>
-            <p className="text-sm text-muted-foreground mt-1">{t('monitorSSLCertificates')}</p>
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline"
-              onClick={handleRefreshAll}
-              disabled={isRefreshingAll || refreshingId !== null}
-              className="relative"
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshingAll ? 'animate-spin' : ''}`} /> 
-              {t('refreshAll')}
-              {isRefreshingAll && (
-                <span className="absolute top-0 right-0 -mt-2 -mr-2 bg-primary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  ...
-                </span>
-              )}
-            </Button>
-            <Button 
-              className="text-primary-foreground"
-              onClick={() => setIsAddDialogOpen(true)}
-            >
-              <Plus className="w-4 h-4 mr-2" /> {t('addDomain')}
-            </Button>
-          </div>
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div className="min-w-0">
+          <h2 className="text-xl md:text-2xl font-bold text-foreground">{t('sslDomainManagement')}</h2>
+          <p className="text-xs md:text-sm text-muted-foreground mt-1">{t('monitorSSLCertificates')}</p>
         </div>
-        
-        <SSLCertificateStatusCards certificates={certificates} />
-        
-        <div className="mt-6 flex-1 flex flex-col pb-6">
-          <SSLCertificatesTable />
+        <div className="flex gap-2 flex-shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefreshAll}
+            disabled={isRefreshingAll || refreshingId !== null}
+            className="relative"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshingAll ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline ml-2">{t('refreshAll')}</span>
+            {isRefreshingAll && (
+              <span className="absolute top-0 right-0 -mt-2 -mr-2 bg-primary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                ...
+              </span>
+            )}
+          </Button>
+          <Button
+            className="text-primary-foreground"
+            size="sm"
+            onClick={() => setIsAddDialogOpen(true)}
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline ml-2">{t('addDomain')}</span>
+          </Button>
         </div>
+      </div>
+
+      <SSLCertificateStatusCards certificates={certificates} />
+
+      <div className="flex-1">
+        <SSLCertificatesTable />
       </div>
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -263,6 +264,6 @@ export const SSLDomainContent = () => {
           </DialogContent>
         </Dialog>
       )}
-    </main>
+    </div>
   );
 };

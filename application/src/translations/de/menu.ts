@@ -11,6 +11,7 @@ export const menuTranslations: MenuTranslations = {
   reports: "Berichte",
   regionalMonitoring: "Regional Monitoring",
   performanceMonitoring: "Leistung",
+  securityScanning: "Sicherheitsscan",
   // Einstellungen-Panel
   settingPanel: "Einstellungsbereich",
   generalSettings: "Allgemeine Einstellungen",

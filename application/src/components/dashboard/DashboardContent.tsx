@@ -39,12 +39,13 @@ export const DashboardContent = ({ services, isLoading, error }: DashboardConten
   }
 
   return (
-    <main className="flex-1 flex flex-col overflow-auto bg-background p-6 pb-0 min-w-0">
+    <main className="flex-1 flex flex-col overflow-auto bg-background p-4 md:p-6 pb-0 min-w-0">
       <div className="flex flex-col flex-1 min-w-0">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-foreground">{t('overview')}</h2>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 md:mb-6">
+          <h2 className="text-xl md:text-2xl font-bold text-foreground">{t('overview')}</h2>
           <Button
-            className="text-primary-foreground"
+            className="text-primary-foreground w-full sm:w-auto"
+            size="sm"
             onClick={() => setIsAddDialogOpen(true)}
           >
             <Plus className="w-4 h-4 mr-2" /> {t('newService')}

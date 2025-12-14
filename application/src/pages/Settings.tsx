@@ -14,7 +14,7 @@ import { useSidebar } from "@/contexts/SidebarContext";
 
 const Settings = () => {
   // Use shared sidebar state
-  const { sidebarCollapsed, toggleSidebar } = useSidebar();
+  const { sidebarCollapsed, toggleSidebar, mobileOpen, setMobileOpen, toggleMobile } = useSidebar();
 
   // Get current user
   const currentUser = authService.getCurrentUser();
@@ -45,23 +45,24 @@ const Settings = () => {
   };
 
   return (
-    <div className="flex h-screen bg-background text-foreground">
-      <Sidebar collapsed={sidebarCollapsed} />
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <Header 
-          currentUser={currentUser} 
-          onLogout={handleLogout} 
-          sidebarCollapsed={sidebarCollapsed} 
-          toggleSidebar={toggleSidebar} 
+    <div className="flex h-screen overflow-hidden bg-background text-foreground">
+      <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
+      <div className="flex flex-col flex-1 min-w-0">
+        <Header
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          sidebarCollapsed={sidebarCollapsed}
+          toggleSidebar={toggleSidebar}
+          toggleMobile={toggleMobile}
         />
-        <div className="flex-1 overflow-auto p-6 space-y-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
           {activePanel === "general" && <GeneralSettingsPanel />}
           {activePanel === "users" && <UserManagement />}
           {activePanel === "notifications" && <NotificationSettings />}
           {activePanel === "templates" && <AlertsTemplates />}
           {activePanel === "data-retention" && <DataRetentionSettings />}
           {activePanel === "about" && <AboutSystem />}
-        </div>
+        </main>
       </div>
     </div>
   );

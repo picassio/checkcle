@@ -10,6 +10,7 @@ export const menuTranslations: MenuTranslations = {
   reports: "报告",
   regionalMonitoring: "区域监控",
   performanceMonitoring: "性能",
+  securityScanning: "安全扫描",
   settingPanel: "设置面板",
   generalSettings: "一般设置",
   userManagement: "用户管理",

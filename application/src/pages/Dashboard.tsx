@@ -11,7 +11,7 @@ import { useSidebar } from "@/contexts/SidebarContext";
 
 const Dashboard = () => {
   // Use shared sidebar state
-  const { sidebarCollapsed, toggleSidebar } = useSidebar();
+  const { sidebarCollapsed, toggleSidebar, mobileOpen, setMobileOpen, toggleMobile } = useSidebar();
 
   // Get current user
   const currentUser = authService.getCurrentUser();
@@ -64,13 +64,14 @@ const Dashboard = () => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background text-foreground">
-      <Sidebar collapsed={sidebarCollapsed} />
+      <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
       <div className="flex flex-col flex-1 min-w-0">
         <Header
           currentUser={currentUser}
           onLogout={handleLogout}
           sidebarCollapsed={sidebarCollapsed}
           toggleSidebar={toggleSidebar}
+          toggleMobile={toggleMobile}
         />
         <DashboardContent
           services={services}

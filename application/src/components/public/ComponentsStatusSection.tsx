@@ -159,12 +159,12 @@ export const ComponentsStatusSection = ({ components, services, uptimeData }: Co
               
               return (
                 <div key={component.id} className="space-y-4">
-                  <div className="flex items-center justify-between p-5 rounded-lg border border-border bg-background/50 hover:bg-background/80 transition-all duration-200">
-                    <div className="flex items-center gap-4">
-                      {getStatusIcon(status)}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-foreground text-lg">{component.name}</h3>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 md:p-5 rounded-lg border border-border bg-background/50 hover:bg-background/80 transition-all duration-200">
+                    <div className="flex items-start sm:items-center gap-3 md:gap-4 min-w-0 flex-1">
+                      <div className="flex-shrink-0">{getStatusIcon(status)}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <h3 className="font-semibold text-foreground text-base md:text-lg truncate">{component.name}</h3>
                           {service?.responseTime && service.responseTime > 0 && (
                             <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
                               <Clock className="h-3 w-3" />
@@ -173,26 +173,26 @@ export const ComponentsStatusSection = ({ components, services, uptimeData }: Co
                           )}
                         </div>
                         {component.description && (
-                          <p className="text-sm text-muted-foreground mb-2">{component.description}</p>
+                          <p className="text-xs md:text-sm text-muted-foreground mb-2 line-clamp-2">{component.description}</p>
                         )}
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs text-muted-foreground">
                           <div className="flex items-center gap-2">
                             <div className={`h-2 w-2 rounded-full ${getStatusDotColor(status)}`}></div>
-                            <span className="font-medium">{uptime}% uptime (90 days)</span>
+                            <span className="font-medium">{uptime}% uptime</span>
                           </div>
                           {service?.lastChecked && (
-                            <span>Last checked: {format(new Date(service.lastChecked), 'HH:mm:ss')}</span>
+                            <span className="hidden sm:inline">Last checked: {format(new Date(service.lastChecked), 'HH:mm:ss')}</span>
                           )}
                         </div>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
+                    <div className="flex flex-col items-start sm:items-end gap-2 flex-shrink-0">
                       {getStatusBadge(status)}
                     </div>
                   </div>
                   
                   {component.service_id && (
-                    <div className="ml-9">
+                    <div className="ml-0 sm:ml-9">
                       <div className="text-xs text-muted-foreground mb-2">90-day uptime history</div>
                       <UptimeHistoryRenderer 
                         serviceId={component.service_id} 

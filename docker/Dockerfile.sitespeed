@@ -75,10 +75,25 @@ RUN npm install -g sitespeed.io \
     @sitespeed.io/plugin-gpsi \
     @sitespeed.io/plugin-influxdb
 
+# Install nuclei vulnerability scanner and templates
+RUN apt-get update && apt-get install -y unzip \
+    && curl -sL https://github.com/projectdiscovery/nuclei/releases/latest/download/nuclei_$(curl -s https://api.github.com/repos/projectdiscovery/nuclei/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')_linux_amd64.zip -o nuclei.zip \
+    && unzip nuclei.zip -d /usr/local/bin/ \
+    && rm nuclei.zip \
+    && chmod +x /usr/local/bin/nuclei \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download nuclei templates (full library ~9000+ templates)
+RUN nuclei -update-templates
+
 # Environment variables for sitespeed.io
 ENV SITESPEED_IO_BROWSERTIME__XVFB=true
 ENV SITESPEED_IO_BROWSERTIME__DOCKER=false
 ENV DISPLAY=:99
+
+# Environment variables for nuclei
+ENV NUCLEI_RESULTS_DIR=/opt/nuclei-results
+ENV NUCLEI_TEMPLATES_DIR=/root/nuclei-templates
 
 WORKDIR /app
 
@@ -101,10 +116,10 @@ COPY scripts/entrypoint-sitespeed.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 # Create directories
-RUN mkdir -p /mnt/pb_data /opt/sitespeed-results
+RUN mkdir -p /mnt/pb_data /opt/sitespeed-results /opt/nuclei-results
 
 # Set proper permissions
-RUN chmod 755 /opt/sitespeed-results
+RUN chmod 755 /opt/sitespeed-results /opt/nuclei-results
 
 EXPOSE 8090 8091
 

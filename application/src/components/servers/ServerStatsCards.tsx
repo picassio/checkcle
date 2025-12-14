@@ -49,9 +49,9 @@ export const ServerStatsCards = ({ stats }: ServerStatsCardsProps) => {
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 w-full">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-4 md:mb-8 w-full">
       {cards.map((card, index) => (
-        <Card 
+        <Card
           key={index}
           className={`border-none rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1 ${
             theme === 'dark' ? 'dark-card' : ''
@@ -62,21 +62,21 @@ export const ServerStatsCards = ({ stats }: ServerStatsCardsProps) => {
         >
           {/* Grid Pattern Overlay */}
           <div className="absolute inset-0 z-0 opacity-10">
-            <div className="w-full h-full" 
-              style={{ 
-                backgroundImage: `linear-gradient(#000 1px, transparent 1px), 
+            <div className="w-full h-full"
+              style={{
+                backgroundImage: `linear-gradient(#000 1px, transparent 1px),
                                   linear-gradient(90deg, #fff 1px, transparent 1px)`,
                 backgroundSize: '20px 20px'
               }}
             ></div>
           </div>
-          <CardHeader className="pb-2 relative z-10">
-            <CardTitle className="text-sm font-medium text-white">{card.title}</CardTitle>
+          <CardHeader className="pb-2 relative z-10 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium text-white">{card.title}</CardTitle>
           </CardHeader>
-          <CardContent className="flex items-center justify-between relative z-10">
-            <span className="text-5xl font-bold text-white">{card.value}</span>
-            <div className="rounded-full p-3 bg-white/25 backdrop-blur-sm">
-              <card.icon className="h-6 w-6 text-white" />
+          <CardContent className="flex items-center justify-between relative z-10 p-3 md:p-6 pt-0">
+            <span className="text-3xl md:text-5xl font-bold text-white">{card.value}</span>
+            <div className="rounded-full p-2 md:p-3 bg-white/25 backdrop-blur-sm">
+              <card.icon className="h-5 w-5 md:h-6 md:w-6 text-white" />
             </div>
           </CardContent>
         </Card>

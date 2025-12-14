@@ -8,6 +8,9 @@ interface SidebarContextType {
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
   toggleSidebar: () => void;
+  mobileOpen: boolean;
+  setMobileOpen: (open: boolean) => void;
+  toggleMobile: () => void;
   appName: string;
   appLogo: string | null;
 }
@@ -23,6 +26,7 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   });
 
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [appName, setAppName] = useState('CheckCle');
   const [appLogo, setAppLogo] = useState<string | null>(null);
 
@@ -37,6 +41,10 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed);
+  };
+
+  const toggleMobile = () => {
+    setMobileOpen(!mobileOpen);
   };
 
   // Fetch app name from settings
@@ -65,6 +73,9 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({ child
     sidebarCollapsed,
     setSidebarCollapsed,
     toggleSidebar,
+    mobileOpen,
+    setMobileOpen,
+    toggleMobile,
     appName,
     appLogo
   };

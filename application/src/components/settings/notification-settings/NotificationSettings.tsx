@@ -125,36 +125,38 @@ const NotificationSettings = () => {
 
   return (
     <Card className="w-full">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>{t("titleNotification")}</CardTitle>
-            <CardDescription>
+      <CardHeader className="p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="min-w-0">
+            <CardTitle className="text-lg md:text-xl">{t("titleNotification")}</CardTitle>
+            <CardDescription className="text-xs md:text-sm mt-1">
               {t("descriptionChannelsServices")}
             </CardDescription>
           </div>
-          <Button onClick={handleAddNew}>
+          <Button onClick={handleAddNew} size="sm" className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" /> {t("addChannel")}
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
-        <Tabs 
-          defaultValue="all" 
+      <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
+        <Tabs
+          defaultValue="all"
           value={currentTab}
           onValueChange={setCurrentTab}
           className="w-full"
         >
-          <TabsList className="mb-4">
-            <TabsTrigger value="all">{t("all")}</TabsTrigger>
-            <TabsTrigger value="telegram">{t("telegram")}</TabsTrigger>
-            <TabsTrigger value="discord">{t("discord")}</TabsTrigger>
-            <TabsTrigger value="slack">{t("slack")}</TabsTrigger>
-            <TabsTrigger value="signal">{t("signal")}</TabsTrigger>
-            <TabsTrigger value="google_chat">{t("googleChat")}</TabsTrigger>
-            <TabsTrigger value="email">{t("email")}</TabsTrigger>
-            <TabsTrigger value="webhook">{t("webhook")}</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+            <TabsList className="mb-4 inline-flex w-auto min-w-full md:w-full md:grid md:grid-cols-8">
+              <TabsTrigger value="all" className="text-xs md:text-sm whitespace-nowrap">{t("all")}</TabsTrigger>
+              <TabsTrigger value="telegram" className="text-xs md:text-sm whitespace-nowrap">{t("telegram")}</TabsTrigger>
+              <TabsTrigger value="discord" className="text-xs md:text-sm whitespace-nowrap">{t("discord")}</TabsTrigger>
+              <TabsTrigger value="slack" className="text-xs md:text-sm whitespace-nowrap">{t("slack")}</TabsTrigger>
+              <TabsTrigger value="signal" className="text-xs md:text-sm whitespace-nowrap">{t("signal")}</TabsTrigger>
+              <TabsTrigger value="google_chat" className="text-xs md:text-sm whitespace-nowrap">{t("googleChat")}</TabsTrigger>
+              <TabsTrigger value="email" className="text-xs md:text-sm whitespace-nowrap">{t("email")}</TabsTrigger>
+              <TabsTrigger value="webhook" className="text-xs md:text-sm whitespace-nowrap">{t("webhook")}</TabsTrigger>
+            </TabsList>
+          </div>
           
           <TabsContent value={currentTab} className="mt-0">
             {isLoading ? (

@@ -19,7 +19,7 @@ export const SSLCertificateStatusCards = ({ certificates }: SSLCertificateStatus
   const expiredCount = certificates.filter(cert => cert.status === "expired").length;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 w-full">
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6 mb-4 md:mb-8 w-full">
       {/* Valid Certificates */}
       <Card
         className="border-none rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1 relative z-10"
@@ -40,15 +40,15 @@ export const SSLCertificateStatusCards = ({ certificates }: SSLCertificateStatus
             }}
           />
         </div>
-        <CardHeader className="pb-2 relative z-10">
-          <CardTitle className="text-sm font-medium text-white">
+        <CardHeader className="pb-2 relative z-10 p-3 md:p-6">
+          <CardTitle className="text-xs md:text-sm font-medium text-white">
             {t("validCertificates")}
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex items-center justify-between relative z-10">
-          <span className="text-5xl font-bold text-white">{validCount}</span>
-          <div className="rounded-full p-3 bg-white/25 backdrop-blur-sm">
-            <Shield className="h-6 w-6 text-white" />
+        <CardContent className="flex items-center justify-between relative z-10 p-3 md:p-6 pt-0">
+          <span className="text-3xl md:text-5xl font-bold text-white">{validCount}</span>
+          <div className="rounded-full p-2 md:p-3 bg-white/25 backdrop-blur-sm">
+            <Shield className="h-5 w-5 md:h-6 md:w-6 text-white" />
           </div>
         </CardContent>
       </Card>
@@ -73,15 +73,15 @@ export const SSLCertificateStatusCards = ({ certificates }: SSLCertificateStatus
             }}
           />
         </div>
-        <CardHeader className="pb-2 relative z-10">
-          <CardTitle className="text-sm font-medium text-white">
+        <CardHeader className="pb-2 relative z-10 p-3 md:p-6">
+          <CardTitle className="text-xs md:text-sm font-medium text-white">
             {t("expiringSoon")}
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex items-center justify-between relative z-10">
-          <span className="text-5xl font-bold text-white">{expiringCount}</span>
-          <div className="rounded-full p-3 bg-white/25 backdrop-blur-sm">
-            <ShieldAlert className="h-6 w-6 text-white" />
+        <CardContent className="flex items-center justify-between relative z-10 p-3 md:p-6 pt-0">
+          <span className="text-3xl md:text-5xl font-bold text-white">{expiringCount}</span>
+          <div className="rounded-full p-2 md:p-3 bg-white/25 backdrop-blur-sm">
+            <ShieldAlert className="h-5 w-5 md:h-6 md:w-6 text-white" />
           </div>
         </CardContent>
       </Card>
@@ -106,15 +106,15 @@ export const SSLCertificateStatusCards = ({ certificates }: SSLCertificateStatus
             }}
           />
         </div>
-        <CardHeader className="pb-2 relative z-10">
-          <CardTitle className="text-sm font-medium text-white">
+        <CardHeader className="pb-2 relative z-10 p-3 md:p-6">
+          <CardTitle className="text-xs md:text-sm font-medium text-white">
             {t("expired")}
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex items-center justify-between relative z-10">
-          <span className="text-5xl font-bold text-white">{expiredCount}</span>
-          <div className="rounded-full p-3 bg-white/25 backdrop-blur-sm">
-            <ShieldX className="h-6 w-6 text-white" />
+        <CardContent className="flex items-center justify-between relative z-10 p-3 md:p-6 pt-0">
+          <span className="text-3xl md:text-5xl font-bold text-white">{expiredCount}</span>
+          <div className="rounded-full p-2 md:p-3 bg-white/25 backdrop-blur-sm">
+            <ShieldX className="h-5 w-5 md:h-6 md:w-6 text-white" />
           </div>
         </CardContent>
       </Card>

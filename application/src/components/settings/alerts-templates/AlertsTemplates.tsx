@@ -49,27 +49,30 @@ export const AlertsTemplates = () => {
 
   return (
     <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Alert Templates</CardTitle>
-        <div className="flex space-x-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
-            <RefreshCcw className="h-4 w-4 mr-2" />
-            Refresh
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 md:p-6">
+        <CardTitle className="text-lg md:text-xl">Alert Templates</CardTitle>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button variant="outline" onClick={handleRefresh} disabled={isLoading} size="sm" className="flex-1 sm:flex-none">
+            <RefreshCcw className="h-4 w-4 mr-1 md:mr-2" />
+            <span className="hidden sm:inline">Refresh</span>
           </Button>
-          <Button onClick={() => handleAddTemplate(activeTab)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Template
+          <Button onClick={() => handleAddTemplate(activeTab)} size="sm" className="flex-1 sm:flex-none">
+            <Plus className="h-4 w-4 mr-1 md:mr-2" />
+            <span className="hidden sm:inline">Add Template</span>
+            <span className="sm:hidden">Add</span>
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TemplateType)}>
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="service">Service Uptime</TabsTrigger>
-            <TabsTrigger value="server">Server Monitoring</TabsTrigger>
-            <TabsTrigger value="ssl">SSL Certificate</TabsTrigger>
-            <TabsTrigger value="server_threshold">Server Threshold</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+            <TabsList className="inline-flex w-auto min-w-full md:w-full md:grid md:grid-cols-4 mb-4">
+              <TabsTrigger value="service" className="text-xs md:text-sm whitespace-nowrap">Service</TabsTrigger>
+              <TabsTrigger value="server" className="text-xs md:text-sm whitespace-nowrap">Server</TabsTrigger>
+              <TabsTrigger value="ssl" className="text-xs md:text-sm whitespace-nowrap">SSL</TabsTrigger>
+              <TabsTrigger value="server_threshold" className="text-xs md:text-sm whitespace-nowrap">Threshold</TabsTrigger>
+            </TabsList>
+          </div>
           
           <TabsContent value="service" className="mt-4">
             {error ? (

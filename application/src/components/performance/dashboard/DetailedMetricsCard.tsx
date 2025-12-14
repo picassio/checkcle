@@ -229,7 +229,7 @@ export function DetailedMetricsCard({ current, previous }: DetailedMetricsCardPr
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
           {metrics.map((category) => (
             <div key={category.category} className={`p-4 rounded-lg ${subCardClass}`}>
               <h3 className="font-medium mb-4">{category.category}</h3>

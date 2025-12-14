@@ -8,6 +8,7 @@ export interface MenuTranslations {
   reports: string;
   regionalMonitoring: string;
   performanceMonitoring: string;
+  securityScanning: string;
   settingPanel: string;
   generalSettings: string;
   userManagement: string;

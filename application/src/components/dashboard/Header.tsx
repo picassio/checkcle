@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { AuthUser } from "@/services/authService";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Moon, PanelLeft, PanelLeftClose, Sun, Globe, FileText, Github, Twitter, MessageSquare, Bell, User, Settings, LogOut } from "lucide-react";
+import { Moon, PanelLeft, PanelLeftClose, Sun, Globe, FileText, Github, Twitter, MessageSquare, Bell, User, Settings, LogOut, Menu } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useEffect, useState } from "react";
@@ -14,13 +14,15 @@ interface HeaderProps {
   onLogout: () => void;
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
+  toggleMobile?: () => void;
 }
 
 export const Header = ({
   currentUser,
   onLogout,
   sidebarCollapsed,
-  toggleSidebar
+  toggleSidebar,
+  toggleMobile
 }: HeaderProps) => {
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
@@ -63,13 +65,13 @@ export const Header = ({
   }
 
   return (
-    <header className="relative bg-background border-b border-border px-6 flex justify-between items-center py-[12px] overflow-hidden">
+    <header className="relative bg-background border-b border-border px-3 md:px-6 flex justify-between items-center py-[12px] overflow-hidden">
       {/* Grid Pattern Overlay - Similar to StatusCards */}
       <div className="absolute inset-0 z-0">
-        <div 
+        <div
           className="w-full h-full"
-          style={{ 
-            backgroundImage: `linear-gradient(${theme === 'dark' ? '#ffffff10' : '#00000010'} 1px, transparent 1px), 
+          style={{
+            backgroundImage: `linear-gradient(${theme === 'dark' ? '#ffffff10' : '#00000010'} 1px, transparent 1px),
                               linear-gradient(90deg, ${theme === 'dark' ? '#ffffff10' : '#00000010'} 1px, transparent 1px)`,
             backgroundSize: '20px 20px'
           }}
@@ -77,19 +79,28 @@ export const Header = ({
           <div className="w-full h-full backdrop-blur-[1px]"></div>
         </div>
       </div>
-      
+
       {/* Header Content */}
-      <div className="flex items-center gap-4 z-10">
-        <Button variant="ghost" size="icon" onClick={toggleSidebar} className="mr-2">
+      <div className="flex items-center gap-2 md:gap-4 z-10 min-w-0">
+        {/* Mobile menu button */}
+        <Button variant="ghost" size="icon" onClick={toggleMobile} className="flex-shrink-0 md:hidden">
+          <Menu className="h-5 w-5" />
+        </Button>
+        {/* Desktop sidebar toggle */}
+        <Button variant="ghost" size="icon" onClick={toggleSidebar} className="flex-shrink-0 hidden md:flex">
           {sidebarCollapsed ? <PanelLeft className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
         </Button>
-        
-        <div className="flex items-center space-x-2">
-          <h1 className="text-lg font-medium">{greeting}, {currentUser?.name || currentUser?.email?.split('@')[0] || 'User'} 👋 ✨</h1>
+
+        <div className="flex items-center min-w-0">
+          <h1 className="text-sm md:text-lg font-medium truncate">
+            <span className="hidden sm:inline">{greeting}, </span>
+            {currentUser?.name || currentUser?.email?.split('@')[0] || 'User'}
+            <span className="hidden sm:inline"> 👋 ✨</span>
+          </h1>
         </div>
       </div>
-      
-      <div className="flex items-center space-x-4 z-10">
+
+      <div className="flex items-center space-x-1 md:space-x-4 z-10 flex-shrink-0">
         <Button variant="outline" size="icon" className="rounded-full w-8 h-8 border-border" onClick={toggleTheme}>
           <span className="sr-only">Toggle theme</span>
           {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -124,50 +135,50 @@ export const Header = ({
           </DropdownMenuContent>
         </DropdownMenu>
         
-        {/* Documentation */}
-        <Button 
-          variant="outline" 
-          size="icon" 
-          className="rounded-full w-8 h-8 border-border"
+        {/* Documentation - hidden on mobile */}
+        <Button
+          variant="outline"
+          size="icon"
+          className="hidden md:flex rounded-full w-8 h-8 border-border"
           onClick={() => window.open("https://docs.checkcle.io", "_blank")}
         >
           <span className="sr-only">{t("documentation")}</span>
           <FileText className="w-4 h-4" />
         </Button>
-        
-        {/* GitHub */}
-        <Button 
-          variant="outline" 
-          size="icon" 
-          className="rounded-full w-8 h-8 border-border"
+
+        {/* GitHub - hidden on mobile */}
+        <Button
+          variant="outline"
+          size="icon"
+          className="hidden md:flex rounded-full w-8 h-8 border-border"
           onClick={() => window.open("https://github.com/operacle/checkcle", "_blank")}
         >
           <span className="sr-only">GitHub</span>
           <Github className="w-4 h-4" />
         </Button>
-        
-        {/* X (Twitter) */}
-        <Button 
-          variant="outline" 
-          size="icon" 
-          className="rounded-full w-8 h-8 border-border"
+
+        {/* X (Twitter) - hidden on mobile */}
+        <Button
+          variant="outline"
+          size="icon"
+          className="hidden lg:flex rounded-full w-8 h-8 border-border"
           onClick={() => window.open("https://x.com/checkcle_oss", "_blank")}
         >
           <span className="sr-only">X (Twitter)</span>
           <Twitter className="w-4 h-4" />
         </Button>
-        
-        {/* Discord */}
-        <Button 
-          variant="outline" 
-          size="icon" 
-          className="rounded-full w-8 h-8 border-border"
+
+        {/* Discord - hidden on mobile */}
+        <Button
+          variant="outline"
+          size="icon"
+          className="hidden lg:flex rounded-full w-8 h-8 border-border"
           onClick={() => window.open("https://discord.gg/xs9gbubGwX", "_blank")}
         >
           <span className="sr-only">Discord</span>
           <MessageSquare className="w-4 h-4" />
         </Button>
-        
+
         {/* Notifications */}
         <Button variant="outline" size="icon" className="rounded-full w-8 h-8 border-border">
           <span className="sr-only">{t("notifications")}</span>

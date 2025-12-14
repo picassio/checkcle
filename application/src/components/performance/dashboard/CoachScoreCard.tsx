@@ -149,7 +149,7 @@ export function CoachScoreCard({ data }: CoachScoreCardProps) {
           />
 
           {/* Sub-scores */}
-          <div className="mt-6 grid grid-cols-3 gap-6 w-full">
+          <div className="mt-4 md:mt-6 grid grid-cols-3 gap-2 md:gap-6 w-full">
             <ScoreGauge
               score={performanceScore}
               label={t("performance") || "Performance"}

@@ -22,7 +22,7 @@ export const StatusCards = ({ services }: StatusCardsProps) => {
   const { theme } = useTheme();
   
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 w-full">
+    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-4 md:mb-8 w-full">
       {/* Up Services Card */}
       <Card 
         className={`border-none rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1 ${
@@ -48,7 +48,7 @@ export const StatusCards = ({ services }: StatusCardsProps) => {
           <CardTitle className="text-sm font-medium text-white">{t("upServices")}</CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-between relative z-10">
-          <span className="text-5xl font-bold text-white">{upServices}</span>
+          <span className="text-3xl md:text-5xl font-bold text-white">{upServices}</span>
           <div className="rounded-full p-3 bg-white/25 backdrop-blur-sm">
             <ArrowUp className="h-6 w-6 text-white" />
           </div>
@@ -80,7 +80,7 @@ export const StatusCards = ({ services }: StatusCardsProps) => {
           <CardTitle className="text-sm font-medium text-white">{t("downServices")}</CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-between relative z-10">
-          <span className="text-5xl font-bold text-white">{downServices}</span>
+          <span className="text-3xl md:text-5xl font-bold text-white">{downServices}</span>
           <div className="rounded-full p-3 bg-white/25 backdrop-blur-sm">
             <ArrowDown className="h-6 w-6 text-white" />
           </div>
@@ -112,7 +112,7 @@ export const StatusCards = ({ services }: StatusCardsProps) => {
           <CardTitle className="text-sm font-medium text-white">{t("pausedServices")}</CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-between relative z-10">
-          <span className="text-5xl font-bold text-white">{pausedServices}</span>
+          <span className="text-3xl md:text-5xl font-bold text-white">{pausedServices}</span>
           <div className="rounded-full p-3 bg-white/25 backdrop-blur-sm">
             <Pause className="h-6 w-6 text-white" />
           </div>
@@ -144,7 +144,7 @@ export const StatusCards = ({ services }: StatusCardsProps) => {
           <CardTitle className="text-sm font-medium text-white">{t("warningServices")}</CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-between relative z-10">
-          <span className="text-5xl font-bold text-white">{warningServices}</span>
+          <span className="text-3xl md:text-5xl font-bold text-white">{warningServices}</span>
           <div className="rounded-full p-3 bg-white/25 backdrop-blur-sm">
             <AlertTriangle className="h-6 w-6 text-white" />
           </div>

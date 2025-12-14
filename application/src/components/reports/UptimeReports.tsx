@@ -146,9 +146,9 @@ export function UptimeReports() {
   return (
     <div className="space-y-6">
       {/* Controls */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Select time range" />
           </SelectTrigger>
           <SelectContent>
@@ -160,11 +160,11 @@ export function UptimeReports() {
         </Select>
 
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportCSV}>
+          <Button variant="outline" size="sm" onClick={handleExportCSV} className="flex-1 sm:flex-none">
             <Download className="h-4 w-4 mr-2" />
             CSV
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExportPDF}>
+          <Button variant="outline" size="sm" onClick={handleExportPDF} className="flex-1 sm:flex-none">
             <FileText className="h-4 w-4 mr-2" />
             PDF
           </Button>
@@ -172,7 +172,7 @@ export function UptimeReports() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -235,52 +235,85 @@ export function UptimeReports() {
               {t("noDataAvailable") || "No data available for the selected time range"}
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t("service") || "Service"}</TableHead>
-                  <TableHead>{t("type") || "Type"}</TableHead>
-                  <TableHead className="text-right">{t("uptime") || "Uptime"}</TableHead>
-                  <TableHead className="text-right">{t("checks") || "Checks"}</TableHead>
-                  <TableHead className="text-right">{t("incidents") || "Incidents"}</TableHead>
-                  <TableHead className="text-right">{t("avgResponse") || "Avg Response"}</TableHead>
-                  <TableHead>{t("lastDowntime") || "Last Downtime"}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-3">
                 {uptimeStats.map((stat) => (
-                  <TableRow key={stat.service.id}>
-                    <TableCell className="font-medium">{stat.service.name}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{stat.service.service_type?.toUpperCase()}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Badge variant={getUptimeBadge(stat.uptimePercentage)}>
-                        {stat.uptimePercentage.toFixed(2)}%
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">{stat.totalChecks}</TableCell>
-                    <TableCell className="text-right">
-                      {stat.downChecks > 0 ? (
-                        <span className="text-red-500">{stat.downChecks}</span>
-                      ) : (
-                        <span className="text-green-500">0</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">{stat.avgResponseTime.toFixed(0)}ms</TableCell>
-                    <TableCell>
-                      {stat.lastDowntime ? (
-                        <span className="text-sm text-muted-foreground">
-                          {new Date(stat.lastDowntime).toLocaleString()}
-                        </span>
-                      ) : (
-                        <span className="text-green-500 text-sm">No downtime</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
+                  <Card key={stat.service.id} className="p-4">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium truncate">{stat.service.name}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="text-xs">{stat.service.service_type?.toUpperCase()}</Badge>
+                          <Badge variant={getUptimeBadge(stat.uptimePercentage)} className="text-xs">
+                            {stat.uptimePercentage.toFixed(2)}%
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs mt-3">
+                      <div><span className="text-muted-foreground">Checks:</span> {stat.totalChecks}</div>
+                      <div><span className="text-muted-foreground">Incidents:</span> {stat.downChecks > 0 ? <span className="text-red-500">{stat.downChecks}</span> : <span className="text-green-500">0</span>}</div>
+                      <div><span className="text-muted-foreground">Avg Response:</span> {stat.avgResponseTime.toFixed(0)}ms</div>
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground">Last Downtime:</span>{' '}
+                        {stat.lastDowntime ? new Date(stat.lastDowntime).toLocaleString() : <span className="text-green-500">No downtime</span>}
+                      </div>
+                    </div>
+                  </Card>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t("service") || "Service"}</TableHead>
+                      <TableHead>{t("type") || "Type"}</TableHead>
+                      <TableHead className="text-right">{t("uptime") || "Uptime"}</TableHead>
+                      <TableHead className="text-right">{t("checks") || "Checks"}</TableHead>
+                      <TableHead className="text-right">{t("incidents") || "Incidents"}</TableHead>
+                      <TableHead className="text-right">{t("avgResponse") || "Avg Response"}</TableHead>
+                      <TableHead>{t("lastDowntime") || "Last Downtime"}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {uptimeStats.map((stat) => (
+                      <TableRow key={stat.service.id}>
+                        <TableCell className="font-medium">{stat.service.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{stat.service.service_type?.toUpperCase()}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant={getUptimeBadge(stat.uptimePercentage)}>
+                            {stat.uptimePercentage.toFixed(2)}%
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">{stat.totalChecks}</TableCell>
+                        <TableCell className="text-right">
+                          {stat.downChecks > 0 ? (
+                            <span className="text-red-500">{stat.downChecks}</span>
+                          ) : (
+                            <span className="text-green-500">0</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">{stat.avgResponseTime.toFixed(0)}ms</TableCell>
+                        <TableCell>
+                          {stat.lastDowntime ? (
+                            <span className="text-sm text-muted-foreground">
+                              {new Date(stat.lastDowntime).toLocaleString()}
+                            </span>
+                          ) : (
+                            <span className="text-green-500 text-sm">No downtime</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

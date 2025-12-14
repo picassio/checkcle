@@ -10,6 +10,7 @@ export const menuTranslations: MenuTranslations = {
   reports: "របាយការណ៍",
   regionalMonitoring: "ត្រួតពិនិត្យតំបន់",
   performanceMonitoring: "ដំណើរការ",
+  securityScanning: "ស្កេនសុវត្ថិភាព",
   settingPanel: "ផ្ទាំងការកំណត់",
   generalSettings: "ការកំណត់ទូទៅ",
   userManagement: "ការគ្រប់គ្រងអ្នកប្រើប្រាស់",

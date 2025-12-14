@@ -20,7 +20,7 @@ const ContainerMonitoring = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
   const { t } = useLanguage();
-  const { sidebarCollapsed, toggleSidebar } = useSidebar();
+  const { sidebarCollapsed, toggleSidebar, mobileOpen, setMobileOpen, toggleMobile } = useSidebar();
   const [stats, setStats] = useState<DockerStats>({
     total: 0,
     running: 0,
@@ -75,13 +75,14 @@ const ContainerMonitoring = () => {
   //  console.error('Container monitoring error:', error);
     return (
       <div className="flex h-screen overflow-hidden bg-background text-foreground">
-        <Sidebar collapsed={sidebarCollapsed} />
-        <div className="flex flex-col flex-1">
-          <Header 
-            currentUser={currentUser} 
-            onLogout={handleLogout} 
-            sidebarCollapsed={sidebarCollapsed} 
-            toggleSidebar={toggleSidebar} 
+        <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
+        <div className="flex flex-col flex-1 min-w-0">
+          <Header
+            currentUser={currentUser}
+            onLogout={handleLogout}
+            sidebarCollapsed={sidebarCollapsed}
+            toggleSidebar={toggleSidebar}
+            toggleMobile={toggleMobile}
           />
           <main className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6">
             <div className="text-center max-w-md w-full">
@@ -109,16 +110,17 @@ const ContainerMonitoring = () => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background text-foreground">
-      <Sidebar collapsed={sidebarCollapsed} />
-      <div className="flex flex-col flex-1">
-        <Header 
-          currentUser={currentUser} 
-          onLogout={handleLogout} 
-          sidebarCollapsed={sidebarCollapsed} 
-          toggleSidebar={toggleSidebar} 
+      <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
+      <div className="flex flex-col flex-1 min-w-0">
+        <Header
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          sidebarCollapsed={sidebarCollapsed}
+          toggleSidebar={toggleSidebar}
+          toggleMobile={toggleMobile}
         />
         <main className="flex-1 overflow-auto">
-          <div className="mx-[20px] my-[20px]">
+          <div className="p-4 md:p-6">
             {/* Header Section */}
             <div className="mb-6 lg:mb-8">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

@@ -77,42 +77,43 @@ export function PerformanceDetailView({ test, onBack }: PerformanceDetailViewPro
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={onBack}>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 min-w-0">
+          <Button variant="ghost" size="sm" onClick={onBack} className="self-start">
             <ArrowLeft className="h-4 w-4 mr-2" />
             {t("back") || "Back"}
           </Button>
-          <div>
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              {test.name}
+          <div className="min-w-0">
+            <h2 className="text-lg md:text-xl font-semibold flex flex-wrap items-center gap-2">
+              <span className="truncate">{test.name}</span>
               <Badge variant={test.status === "active" ? "default" : "secondary"}>
                 {test.status}
               </Badge>
             </h2>
-            <p className="text-sm text-muted-foreground flex items-center gap-2">
+            <p className="text-xs md:text-sm text-muted-foreground flex items-center gap-2 truncate">
               <a
                 href={test.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:underline flex items-center gap-1"
+                className="hover:underline flex items-center gap-1 truncate"
               >
-                {test.url}
-                <ExternalLink className="h-3 w-3" />
+                <span className="truncate">{test.url}</span>
+                <ExternalLink className="h-3 w-3 flex-shrink-0" />
               </a>
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {latestMetrics && getReportUrlFromMetric(latestMetrics) && (
-            <Button variant="outline" onClick={() => openReport(latestMetrics)}>
-              <FileText className="h-4 w-4 mr-2" />
-              {t("viewReport") || "View Report"}
+            <Button variant="outline" size="sm" onClick={() => openReport(latestMetrics)} className="text-xs md:text-sm">
+              <FileText className="h-4 w-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">{t("viewReport") || "View Report"}</span>
+              <span className="sm:hidden">Report</span>
             </Button>
           )}
           <Select value={timeRange} onValueChange={(v) => setTimeRange(v as typeof timeRange)}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-24 md:w-32">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -140,29 +141,29 @@ export function PerformanceDetailView({ test, onBack }: PerformanceDetailViewPro
         </Card>
       ) : (
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-4 lg:w-[400px]">
+            <TabsTrigger value="overview" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
               <LayoutDashboard className="h-4 w-4" />
-              {t("overview") || "Overview"}
+              <span className="hidden sm:inline">{t("overview") || "Overview"}</span>
             </TabsTrigger>
-            <TabsTrigger value="charts" className="flex items-center gap-2">
+            <TabsTrigger value="charts" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
               <BarChart3 className="h-4 w-4" />
-              {t("trends") || "Trends"}
+              <span className="hidden sm:inline">{t("trends") || "Trends"}</span>
             </TabsTrigger>
-            <TabsTrigger value="details" className="flex items-center gap-2">
+            <TabsTrigger value="details" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
               <Gauge className="h-4 w-4" />
-              {t("details") || "Details"}
+              <span className="hidden sm:inline">{t("details") || "Details"}</span>
             </TabsTrigger>
-            <TabsTrigger value="history" className="flex items-center gap-2">
+            <TabsTrigger value="history" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
               <Calendar className="h-4 w-4" />
-              {t("history") || "History"}
+              <span className="hidden sm:inline">{t("history") || "History"}</span>
             </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
+          <TabsContent value="overview" className="space-y-4 md:space-y-6">
             {/* Summary Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               <Card className={theme === "dark" ? "bg-gray-900 border-gray-800" : ""}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium">{t("testsRun") || "Tests Run"}</CardTitle>

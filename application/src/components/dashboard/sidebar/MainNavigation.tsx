@@ -5,9 +5,10 @@ import { mainMenuItems } from "./navigationData";
 
 interface MainNavigationProps {
   collapsed: boolean;
+  onItemClick?: () => void;
 }
 
-export const MainNavigation: React.FC<MainNavigationProps> = ({ collapsed }) => {
+export const MainNavigation: React.FC<MainNavigationProps> = ({ collapsed, onItemClick }) => {
   return (
     <nav className="my-2 mx-1 py-1 px-1">
       {mainMenuItems.map((item) => (
@@ -20,6 +21,7 @@ export const MainNavigation: React.FC<MainNavigationProps> = ({ collapsed }) => 
           color={item.color}
           hasNavigation={item.hasNavigation}
           collapsed={collapsed}
+          onItemClick={onItemClick}
         />
       ))}
     </nav>

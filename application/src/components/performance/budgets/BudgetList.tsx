@@ -62,14 +62,14 @@ export function BudgetList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-lg font-semibold">{t("performanceBudgets") || "Performance Budgets"}</h2>
-          <p className="text-sm text-muted-foreground">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+        <div className="min-w-0">
+          <h2 className="text-base md:text-lg font-semibold">{t("performanceBudgets") || "Performance Budgets"}</h2>
+          <p className="text-xs md:text-sm text-muted-foreground">
             {t("budgetsDescription") || "Set performance thresholds to monitor your websites."}
           </p>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)}>
+        <Button onClick={() => setCreateDialogOpen(true)} size="sm" className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           {t("createBudget") || "Create Budget"}
         </Button>
@@ -124,8 +124,8 @@ export function BudgetList() {
                   </DropdownMenu>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <CardContent className="p-3 md:p-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-4">
                   <div>
                     <p className="text-xs text-muted-foreground">LCP</p>
                     <Badge variant="outline" className="mt-1">

@@ -168,9 +168,9 @@ export function PerformanceTestList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold">{t("performanceTests") || "Performance Tests"}</h2>
-        <Button onClick={() => setCreateDialogOpen(true)}>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+        <h2 className="text-base md:text-lg font-semibold">{t("performanceTests") || "Performance Tests"}</h2>
+        <Button onClick={() => setCreateDialogOpen(true)} size="sm" className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           {t("addTest") || "Add Test"}
         </Button>
@@ -206,36 +206,36 @@ export function PerformanceTestList() {
               }`}
               onClick={() => setSelectedTest(test)}
             >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <h3 className="font-semibold">{test.name}</h3>
+              <CardContent className="p-3 md:p-4">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-semibold text-sm md:text-base truncate">{test.name}</h3>
                       {getStatusBadge(test.status)}
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1 truncate max-w-lg">
+                    <p className="text-xs md:text-sm text-muted-foreground mt-1 truncate">
                       {test.url}
                     </p>
-                    <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-2 md:gap-4 mt-2 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {formatInterval(test.schedule_interval)}
                       </span>
-                      <span>
+                      <span className="hidden sm:inline">
                         {BROWSER_OPTIONS.find((b) => b.value === test.browser)?.label || test.browser}
                       </span>
-                      <span>
+                      <span className="hidden sm:inline">
                         {CONNECTIVITY_OPTIONS.find((c) => c.value === test.connectivity)?.label || test.connectivity}
                       </span>
                       {test.last_run && (
-                        <span>
+                        <span className="hidden md:inline">
                           {t("lastRun") || "Last run"}: {format(new Date(test.last_run), "MMM d, HH:mm")}
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-2 self-end md:self-center" onClick={(e) => e.stopPropagation()}>
                     {(() => {
                       const queueInfo = getTestQueueStatus(test.id);
                       const isDisabled = queueInfo.isQueued || test.status === "running" || runTestMutation.isPending;

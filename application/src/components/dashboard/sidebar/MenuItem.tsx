@@ -11,6 +11,7 @@ interface MenuItemProps {
   color: string;
   hasNavigation: boolean;
   collapsed: boolean;
+  onItemClick?: () => void;
 }
 export const MenuItem: React.FC<MenuItemProps> = ({
   id,
@@ -19,7 +20,8 @@ export const MenuItem: React.FC<MenuItemProps> = ({
   translationKey,
   color,
   hasNavigation,
-  collapsed
+  collapsed,
+  onItemClick
 }) => {
   const {
     theme
@@ -36,6 +38,7 @@ export const MenuItem: React.FC<MenuItemProps> = ({
       navigate(path, {
         replace: false
       });
+      onItemClick?.();
     }
   };
   const isActive = path && location.pathname === path;

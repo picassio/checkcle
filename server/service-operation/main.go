@@ -16,6 +16,7 @@ import (
 	"service-operation/monitoring"
 	performancemonitoring "service-operation/performance-monitoring"
 	"service-operation/pocketbase"
+	securityscanning "service-operation/security-scanning"
 	servermonitoring "service-operation/server-monitoring"
 	sslmonitoring "service-operation/ssl-monitoring"
 	uptimemonitoring "service-operation/uptime-monitoring"
@@ -41,6 +42,7 @@ func main() {
 	var uptimeMonitoringService *uptimemonitoring.UptimeMonitor
 	var dataRetentionScheduler *dataretention.Scheduler
 	var performanceMonitoringService *performancemonitoring.PerformanceMonitor
+	var securityScanningService *securityscanning.SecurityMonitor
 	
 	if cfg.PocketBaseEnabled {
 		//log.Println("🔧 Initializing PocketBase client...")
@@ -98,6 +100,12 @@ func main() {
 				performanceMonitoringService = performancemonitoring.NewPerformanceMonitor(pbClient)
 				go performanceMonitoringService.Start()
 				//log.Println("✅ Performance monitoring started with sitespeed.io support")
+
+				// Initialize and start security scanning service
+				//log.Println("🔧 Initializing security scanning...")
+				securityScanningService = securityscanning.NewSecurityMonitor(pbClient, nil)
+				go securityScanningService.Start()
+				//log.Println("✅ Security scanning started with nuclei support")
 			}
 		}
 	}
@@ -153,6 +161,37 @@ func main() {
 	router.HandleFunc("/performance/queue", handler.HandlePerformanceQueueStatus).Methods("GET", "OPTIONS")
 	router.HandleFunc("/performance/queue/test/{testId}", handler.HandlePerformanceQueuePosition).Methods("GET", "OPTIONS")
 	router.HandleFunc("/performance/queue/{itemId}/cancel", handler.HandlePerformanceCancelQueue).Methods("POST", "OPTIONS")
+
+	// Security scanning endpoints
+	router.HandleFunc("/security/scans", handler.HandleSecurityScans).Methods("GET", "POST", "OPTIONS")
+	router.HandleFunc("/security/scan/{scanId}", handler.HandleSecurityScan).Methods("GET", "PATCH", "DELETE", "OPTIONS")
+	router.HandleFunc("/security/results/{scanId}", handler.HandleSecurityResults).Methods("GET", "OPTIONS")
+	router.HandleFunc("/security/result/{resultId}", handler.HandleSecurityResult).Methods("GET", "OPTIONS")
+	router.HandleFunc("/security/queue", handler.HandleSecurityQueueStatus).Methods("GET", "OPTIONS")
+	router.HandleFunc("/security/queue/{itemId}/cancel", handler.HandleSecurityCancelQueue).Methods("POST", "OPTIONS")
+	router.HandleFunc("/security/summary", handler.HandleSecuritySummary).Methods("GET", "OPTIONS")
+
+	// Security scan run endpoint (needs access to securityScanningService)
+	if securityScanningService != nil {
+		router.HandleFunc("/security/scan/{scanId}/run", func(w http.ResponseWriter, r *http.Request) {
+			vars := mux.Vars(r)
+			scanID := vars["scanId"]
+
+			if scanID == "" {
+				http.Error(w, "Missing scanId", http.StatusBadRequest)
+				return
+			}
+
+			queueItem, err := securityScanningService.RunScanNow(scanID)
+			if err != nil {
+				http.Error(w, "Failed to queue scan: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(queueItem)
+		}).Methods("POST", "OPTIONS")
+	}
 
 	// Run test endpoint (needs access to performanceMonitoringService)
 	// Now adds to queue instead of running directly
@@ -213,6 +252,9 @@ func main() {
 	if performanceMonitoringService != nil {
 		log.Printf("✓Performance monitoring enabled with sitespeed.io support")
 	}
+	if securityScanningService != nil {
+		log.Printf("✓Security scanning enabled with nuclei support")
+	}
 	
 
 	// Setup graceful shutdown
@@ -251,6 +293,10 @@ func main() {
 		if performanceMonitoringService != nil {
 			log.Println("🛑 Stopping performance monitoring...")
 			performanceMonitoringService.Stop()
+		}
+		if securityScanningService != nil {
+			log.Println("🛑 Stopping security scanning...")
+			securityScanningService.Stop()
 		}
 
 		log.Println("✅ All services stopped gracefully")

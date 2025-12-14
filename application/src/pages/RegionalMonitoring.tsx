@@ -8,7 +8,7 @@ import { useSidebar } from "@/contexts/SidebarContext";
 import { RegionalMonitoringContent } from "@/components/regional-monitoring/RegionalMonitoringContent";
 
 const RegionalMonitoring = () => {
-  const { sidebarCollapsed, toggleSidebar } = useSidebar();
+  const { sidebarCollapsed, toggleSidebar, mobileOpen, setMobileOpen, toggleMobile } = useSidebar();
   const currentUser = authService.getCurrentUser();
   const navigate = useNavigate();
 
@@ -18,18 +18,19 @@ const RegionalMonitoring = () => {
   };
 
   return (
-    <div className="flex h-screen bg-background text-foreground">
-      <Sidebar collapsed={sidebarCollapsed} />
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <Header 
-          currentUser={currentUser} 
-          onLogout={handleLogout} 
-          sidebarCollapsed={sidebarCollapsed} 
-          toggleSidebar={toggleSidebar} 
+    <div className="flex h-screen overflow-hidden bg-background text-foreground">
+      <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
+      <div className="flex flex-col flex-1 min-w-0">
+        <Header
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          sidebarCollapsed={sidebarCollapsed}
+          toggleSidebar={toggleSidebar}
+          toggleMobile={toggleMobile}
         />
-        <div className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-y-auto">
           <RegionalMonitoringContent />
-        </div>
+        </main>
       </div>
     </div>
   );

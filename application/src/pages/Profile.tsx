@@ -16,7 +16,7 @@ const Profile = () => {
 	const { t } = useLanguage()
 
   // Use shared sidebar state
-  const { sidebarCollapsed, toggleSidebar } = useSidebar();
+  const { sidebarCollapsed, toggleSidebar, mobileOpen, setMobileOpen, toggleMobile } = useSidebar();
 
   // Get current user
   const currentUser = authService.getCurrentUser();
@@ -100,16 +100,17 @@ const Profile = () => {
   }
 
   return (
-    <div className="flex h-screen bg-background text-foreground">
-      <Sidebar collapsed={sidebarCollapsed} />
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <Header 
-          currentUser={currentUser} 
-          onLogout={handleLogout} 
-          sidebarCollapsed={sidebarCollapsed} 
-          toggleSidebar={toggleSidebar} 
+    <div className="flex h-screen overflow-hidden bg-background text-foreground">
+      <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
+      <div className="flex flex-col flex-1 min-w-0">
+        <Header
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          sidebarCollapsed={sidebarCollapsed}
+          toggleSidebar={toggleSidebar}
+          toggleMobile={toggleMobile}
         />
-        <div className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -128,12 +129,12 @@ const Profile = () => {
               </button>
             </div>
           ) : (
-            <ProfileContent 
-              currentUser={userData} 
+            <ProfileContent
+              currentUser={userData}
               onUserUpdated={fetchUserData}
             />
           )}
-        </div>
+        </main>
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ export const menuTranslations: MenuTranslations = {
   reports: "Reports",
   regionalMonitoring: "Regional Monitoring",
   performanceMonitoring: "Performance",
+  securityScanning: "Security Scanning",
   settingPanel: "Setting Panel",
   generalSettings: "General Settings",
   userManagement: "User Management",

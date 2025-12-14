@@ -44,16 +44,16 @@ const UserManagement = () => {
   return <div className="space-y-4">
       <Accordion type="single" collapsible className="w-full" defaultValue="user-management">
         <AccordionItem value="user-management">
-          <AccordionTrigger className="py-4 px-5 bg-card hover:bg-card/90 hover:no-underline rounded-lg text-lg font-medium flex items-center w-full">
+          <AccordionTrigger className="py-3 md:py-4 px-3 md:px-5 bg-card hover:bg-card/90 hover:no-underline rounded-lg text-base md:text-lg font-medium flex items-center w-full">
             <div className="flex items-center">
               <UserCog className="h-5 w-5 mr-2 text-green-500" />
               <span>{t("userManagement")}</span>
             </div>
           </AccordionTrigger>
-          <AccordionContent className="p-4 pt-6 bg-background rounded-b-lg">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">{t("userManagement")}</h2>
-              {isSuperAdmin && <button onClick={() => setIsAddUserDialogOpen(true)} className="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-md flex items-center">
+          <AccordionContent className="p-3 md:p-4 pt-4 md:pt-6 bg-background rounded-b-lg">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 md:mb-6">
+              <h2 className="text-xl md:text-2xl font-bold">{t("userManagement")}</h2>
+              {isSuperAdmin && <button onClick={() => setIsAddUserDialogOpen(true)} className="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-md flex items-center justify-center w-full sm:w-auto">
                   <span className="mr-1">+</span> {t("addUser")}
                 </button>}
             </div>

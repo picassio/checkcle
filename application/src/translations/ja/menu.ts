@@ -9,6 +9,7 @@ export const menuTranslations: MenuTranslations = {
   reports: "レポート",
   regionalMonitoring: "地域監視",
   performanceMonitoring: "パフォーマンス",
+  securityScanning: "セキュリティスキャン",
   settingPanel: "設定パネル",
   generalSettings: "一般設定",
   userManagement: "ユーザー管理",

@@ -184,21 +184,21 @@ const DataRetentionSettings = () => {
   }
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="p-3 md:p-4 space-y-4 md:space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="p-4 md:p-6">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
             <Database className="h-5 w-5" />
             {t("dataRetention")}
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-xs md:text-sm">
             {t("dataRetentionDescription")}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
+        <CardContent className="space-y-4 md:space-y-6 p-4 md:p-6 pt-0 md:pt-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="uptimeRetention">{t("uptimeRetentionLabel")}</Label>
+              <Label htmlFor="uptimeRetention" className="text-sm">{t("uptimeRetentionLabel")}</Label>
               <Input
                 id="uptimeRetention"
                 type="number"
@@ -217,13 +217,13 @@ const DataRetentionSettings = () => {
                 }}
                 className="mt-1"
               />
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs md:text-sm text-muted-foreground mt-1">
                 {t("uptimeRetentionHelp")}
               </p>
             </div>
 
             <div>
-              <Label htmlFor="serverRetention">{t("serverRetentionLabel")}</Label>
+              <Label htmlFor="serverRetention" className="text-sm">{t("serverRetentionLabel")}</Label>
               <Input
                 id="serverRetention"
                 type="number"
@@ -242,7 +242,7 @@ const DataRetentionSettings = () => {
                 }}
                 className="mt-1"
               />
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs md:text-sm text-muted-foreground mt-1">
                 {t("serverRetentionHelp")}
               </p>
             </div>
@@ -251,17 +251,17 @@ const DataRetentionSettings = () => {
           {lastCleanup && (
             <Alert>
               <Database className="h-4 w-4" />
-              <AlertDescription>
+              <AlertDescription className="text-xs md:text-sm">
                 {t("lastCleanup")}: {new Date(lastCleanup).toLocaleString()}
               </AlertDescription>
             </Alert>
           )}
         </CardContent>
-        <CardFooter className="flex justify-end">
+        <CardFooter className="flex justify-end p-4 md:p-6 pt-0 md:pt-0">
           <Button
             onClick={handleSave}
             disabled={isSaving}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 w-full sm:w-auto"
           >
             {isSaving ? (
               <Loader2 className="h-4 w-4 animate-spin" />

@@ -281,35 +281,35 @@ export const AboutSystem: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t('aboutSystem')}</h1>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t('aboutSystem')}</h1>
       </div>
-      
+
       <Separator />
-      
-      <div className="grid gap-8 md:grid-cols-2">
+
+      <div className="grid gap-4 md:gap-8 grid-cols-1 md:grid-cols-2">
         <Card className="overflow-hidden border border-border transition-all duration-300 hover:shadow-md">
-          <CardHeader className="bg-muted/50 pb-4">
+          <CardHeader className="bg-muted/50 pb-3 md:pb-4 p-4 md:p-6">
             <CardTitle className="flex items-center gap-2">
               <ServerIcon className={`h-5 w-5 ${theme === 'dark' ? 'text-sky-400' : 'text-sky-600'}`} />
-              <span className="font-thin text-xl">{t('systemDescription')}</span>
+              <span className="font-thin text-lg md:text-xl">{t('systemDescription')}</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6 pt-6">
+          <CardContent className="space-y-4 md:space-y-6 pt-4 md:pt-6 p-4 md:p-6">
             <div className="flex flex-col space-y-4">
               <div className="flex flex-col space-y-3 pt-2">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center text-sm md:text-base">
                   <span className="text-muted-foreground">{t('systemVersion')}</span>
                   <span className="text-foreground font-medium">{t('version')} 1.5.1</span>
                 </div>
                 <Separator className="my-1" />
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center text-sm md:text-base">
                   <span className="text-muted-foreground">{t('license')}</span>
                   <span className="text-foreground font-medium">{t('mitLicense')}</span>
                 </div>
                 <Separator className="my-1" />
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center text-sm md:text-base">
                   <span className="text-muted-foreground">{t('releasedOn')}</span>
                   <span className="text-foreground font-medium">Auguest 21, 2025</span>
                 </div>
@@ -317,31 +317,31 @@ export const AboutSystem: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="overflow-hidden border border-border transition-all duration-300 hover:shadow-md">
-          <CardHeader className="bg-muted/50 pb-4">
-            <CardTitle className="flex items-center gap-2">
+          <CardHeader className="bg-muted/50 pb-3 md:pb-4 p-4 md:p-6">
+            <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
               <Code2 className={`h-5 w-5 ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'}`} />
               <span>{t('links')}</span>
             </CardTitle>
-            <CardDescription className="font-medium text-base">{systemName || 'CheckCle'} {t('resources').toLowerCase()}</CardDescription>
+            <CardDescription className="font-medium text-sm md:text-base">{systemName || 'CheckCle'} {t('resources').toLowerCase()}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 pt-6">
-            <div className="grid grid-cols-1 gap-3">
-              <Button variant="outline" className="flex items-center justify-start gap-3 h-12 hover:bg-muted/50 transition-all duration-200" onClick={() => window.open("https://github.com/operacle/checkcle", "_blank")}>
-                <Github className={`h-5 w-5 ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`} />
+          <CardContent className="space-y-3 md:space-y-4 pt-4 md:pt-6 p-4 md:p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 gap-2 md:gap-3">
+              <Button variant="outline" className="flex items-center justify-start gap-2 md:gap-3 h-10 md:h-12 hover:bg-muted/50 transition-all duration-200 text-sm md:text-base" onClick={() => window.open("https://github.com/operacle/checkcle", "_blank")}>
+                <Github className={`h-4 w-4 md:h-5 md:w-5 ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`} />
                 <span>{t('viewOnGithub')}</span>
               </Button>
-              <Button variant="outline" className="flex items-center justify-start gap-3 h-12 hover:bg-muted/50 transition-all duration-200" onClick={() => window.open("https://docs.checkcle.io", "_blank")}>
-                <FileText className={`h-5 w-5 ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`} />
+              <Button variant="outline" className="flex items-center justify-start gap-2 md:gap-3 h-10 md:h-12 hover:bg-muted/50 transition-all duration-200 text-sm md:text-base" onClick={() => window.open("https://docs.checkcle.io", "_blank")}>
+                <FileText className={`h-4 w-4 md:h-5 md:w-5 ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`} />
                 <span>{t('viewDocumentation')}</span>
               </Button>
-              <Button variant="outline" className="flex items-center justify-start gap-3 h-12 hover:bg-muted/50 transition-all duration-200" onClick={() => window.open("https://x.com/checkcle_oss", "_blank")}>
-                <Twitter className={`h-5 w-5 ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`} />
+              <Button variant="outline" className="flex items-center justify-start gap-2 md:gap-3 h-10 md:h-12 hover:bg-muted/50 transition-all duration-200 text-sm md:text-base" onClick={() => window.open("https://x.com/checkcle_oss", "_blank")}>
+                <Twitter className={`h-4 w-4 md:h-5 md:w-5 ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`} />
                 <span>{t('followOnX')}</span>
               </Button>
-              <Button variant="outline" className="flex items-center justify-start gap-3 h-12 hover:bg-muted/50 transition-all duration-200" onClick={() => window.open("https://discord.gg/xs9gbubGwX", "_blank")}>
-                <MessageCircle className={`h-5 w-5 ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`} />
+              <Button variant="outline" className="flex items-center justify-start gap-2 md:gap-3 h-10 md:h-12 hover:bg-muted/50 transition-all duration-200 text-sm md:text-base" onClick={() => window.open("https://discord.gg/xs9gbubGwX", "_blank")}>
+                <MessageCircle className={`h-4 w-4 md:h-5 md:w-5 ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`} />
                 <span>{t('joinDiscord')}</span>
               </Button>
             </div>
@@ -352,14 +352,14 @@ export const AboutSystem: React.FC = () => {
       <Separator />
 
       <Card className="overflow-hidden border border-border transition-all duration-300 hover:shadow-md">
-        <CardHeader className="bg-muted/50 pb-4">
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="bg-muted/50 pb-3 md:pb-4 p-4 md:p-6">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
             <Database className={`h-5 w-5 ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`} />
             <span>{t('updateSchema')}</span>
           </CardTitle>
-          <CardDescription className="font-medium text-base">{t('updateSchemaDesc')}</CardDescription>
+          <CardDescription className="font-medium text-sm md:text-base">{t('updateSchemaDesc')}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4 pt-6">
+        <CardContent className="space-y-4 pt-4 md:pt-6 p-4 md:p-6">
           <div className="space-y-3">
             <div className="flex items-center space-x-2">
               <Checkbox
@@ -367,17 +367,18 @@ export const AboutSystem: React.FC = () => {
                 checked={mergeFields}
                 onCheckedChange={(checked) => setMergeFields(checked === true)}
               />
-              <Label htmlFor="merge-fields" className="text-sm font-medium">
+              <Label htmlFor="merge-fields" className="text-xs md:text-sm font-medium">
 	              {t('mergeFieldsLabel')}
               </Label>
             </div>
           </div>
-          
+
           <div className="flex gap-2 flex-wrap">
             <Button
               onClick={handleLoadLocalSchema}
               disabled={isImporting}
-              className={`flex items-center gap-2 transition-all duration-200 ${
+              size="sm"
+              className={`flex items-center gap-2 transition-all duration-200 w-full sm:w-auto ${
                 isImporting ? 'animate-pulse' : ''
               }`}
             >

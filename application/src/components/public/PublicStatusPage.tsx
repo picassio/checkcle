@@ -104,7 +104,7 @@ export const PublicStatusPage = () => {
       <StatusPageHeader page={page} />
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="max-w-4xl mx-auto px-3 md:px-4 py-4 md:py-8">
         {/* Current Status */}
         <CurrentStatusSection page={page} components={components} services={services} />
 

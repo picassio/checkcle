@@ -267,9 +267,9 @@ export function IncidentReports() {
   return (
     <div className="space-y-6">
       {/* Controls */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Select time range" />
           </SelectTrigger>
           <SelectContent>
@@ -280,11 +280,11 @@ export function IncidentReports() {
         </Select>
 
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportCSV}>
+          <Button variant="outline" size="sm" onClick={handleExportCSV} className="flex-1 sm:flex-none">
             <Download className="h-4 w-4 mr-2" />
             CSV
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExportPDF}>
+          <Button variant="outline" size="sm" onClick={handleExportPDF} className="flex-1 sm:flex-none">
             <FileText className="h-4 w-4 mr-2" />
             PDF
           </Button>
@@ -292,7 +292,7 @@ export function IncidentReports() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -361,7 +361,7 @@ export function IncidentReports() {
       </div>
 
       {/* Charts */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
         <Card>
           <CardHeader>
             <CardTitle>{t("incidentsByDay") || "Incidents by Day"}</CardTitle>

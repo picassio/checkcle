@@ -16,7 +16,7 @@ const SslDomain = () => {
   const { t } = useLanguage();
   
   // Use shared sidebar state
-  const { sidebarCollapsed, toggleSidebar } = useSidebar();
+  const { sidebarCollapsed, toggleSidebar, mobileOpen, setMobileOpen, toggleMobile } = useSidebar();
 
   // Get current user
   const currentUser = authService.getCurrentUser();
@@ -67,15 +67,18 @@ const SslDomain = () => {
   if (isLoading) {
     return (
       <div className="flex h-screen overflow-hidden bg-background text-foreground">
-        <Sidebar collapsed={sidebarCollapsed} />
-        <div className="flex flex-col flex-1">
-          <Header 
-            currentUser={currentUser} 
-            onLogout={handleLogout} 
-            sidebarCollapsed={sidebarCollapsed} 
-            toggleSidebar={toggleSidebar} 
+        <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
+        <div className="flex flex-col flex-1 min-w-0">
+          <Header
+            currentUser={currentUser}
+            onLogout={handleLogout}
+            sidebarCollapsed={sidebarCollapsed}
+            toggleSidebar={toggleSidebar}
+            toggleMobile={toggleMobile}
           />
-          <LoadingState />
+          <main className="flex-1 overflow-y-auto">
+            <LoadingState />
+          </main>
         </div>
       </div>
     );
@@ -85,26 +88,27 @@ const SslDomain = () => {
   if (error) {
     return (
       <div className="flex h-screen overflow-hidden bg-background text-foreground">
-        <Sidebar collapsed={sidebarCollapsed} />
-        <div className="flex flex-col flex-1">
-          <Header 
-            currentUser={currentUser} 
-            onLogout={handleLogout} 
-            sidebarCollapsed={sidebarCollapsed} 
-            toggleSidebar={toggleSidebar} 
+        <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
+        <div className="flex flex-col flex-1 min-w-0">
+          <Header
+            currentUser={currentUser}
+            onLogout={handleLogout}
+            sidebarCollapsed={sidebarCollapsed}
+            toggleSidebar={toggleSidebar}
+            toggleMobile={toggleMobile}
           />
-          <div className="flex flex-col items-center justify-center h-full p-6">
+          <main className="flex-1 overflow-y-auto flex flex-col items-center justify-center p-4 md:p-6">
             <h2 className="text-xl font-bold mb-2">{t('failedToLoadCertificates')}</h2>
-            <p className="text-muted-foreground mb-4">
+            <p className="text-muted-foreground mb-4 text-sm md:text-base">
               {error instanceof Error ? error.message : t('unknown')}
             </p>
-            <button 
+            <button
               className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
               onClick={() => refetch()}
             >
               {t('check')}
             </button>
-          </div>
+          </main>
         </div>
       </div>
     );
@@ -113,15 +117,18 @@ const SslDomain = () => {
   // Render with data
   return (
     <div className="flex h-screen overflow-hidden bg-background text-foreground">
-      <Sidebar collapsed={sidebarCollapsed} />
-      <div className="flex flex-col flex-1">
-        <Header 
-          currentUser={currentUser} 
-          onLogout={handleLogout} 
-          sidebarCollapsed={sidebarCollapsed} 
-          toggleSidebar={toggleSidebar} 
+      <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
+      <div className="flex flex-col flex-1 min-w-0">
+        <Header
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          sidebarCollapsed={sidebarCollapsed}
+          toggleSidebar={toggleSidebar}
+          toggleMobile={toggleMobile}
         />
-        <SSLDomainContent />
+        <main className="flex-1 overflow-y-auto">
+          <SSLDomainContent />
+        </main>
       </div>
     </div>
   );

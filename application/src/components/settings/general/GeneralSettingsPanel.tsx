@@ -161,23 +161,25 @@ const GeneralSettingsPanel: React.FC<GeneralSettingsPanelProps> = () => {
   }
 
   return (
-    <div className="p-4">
+    <div className="p-3 md:p-4">
       <Card>
-        <CardHeader>
-          <CardTitle>{t("generalSettings", "menu")}</CardTitle>
+        <CardHeader className="p-4 md:p-6">
+          <CardTitle className="text-lg md:text-xl">{t("generalSettings", "menu")}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-4 md:p-6 pt-0 md:pt-0">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSave)}>
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="w-full mb-4">
-                  <TabsTrigger value="system" className="flex items-center gap-2 flex-1">
+                <TabsList className="w-full mb-4 grid grid-cols-2">
+                  <TabsTrigger value="system" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
                     <Settings className="h-4 w-4" />
-                    {t("systemSettings", "settings")}
+                    <span className="hidden sm:inline">{t("systemSettings", "settings")}</span>
+                    <span className="sm:hidden">System</span>
                   </TabsTrigger>
-                  <TabsTrigger value="mail" className="flex items-center gap-2 flex-1">
+                  <TabsTrigger value="mail" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
                     <Mail className="h-4 w-4" />
-                    {t("mailSettings", "settings")}
+                    <span className="hidden sm:inline">{t("mailSettings", "settings")}</span>
+                    <span className="sm:hidden">Mail</span>
                   </TabsTrigger>
                 </TabsList>
                 
@@ -199,11 +201,11 @@ const GeneralSettingsPanel: React.FC<GeneralSettingsPanelProps> = () => {
               </Tabs>
               
               {isEditing && (
-                <div className="flex justify-between mt-6">
-                  <Button type="button" variant="outline" onClick={handleCancelClick} disabled={isUpdating}>
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2 mt-6">
+                  <Button type="button" variant="outline" onClick={handleCancelClick} disabled={isUpdating} className="w-full sm:w-auto">
                     {t("cancel", "common")}
                   </Button>
-                  <Button type="submit" disabled={isUpdating}>
+                  <Button type="submit" disabled={isUpdating} className="w-full sm:w-auto">
                     {isUpdating ? t("saving", "settings") : t("save", "settings")}
                   </Button>
                 </div>

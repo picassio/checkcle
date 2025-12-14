@@ -98,10 +98,10 @@ export function PerformanceReports() {
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <div className="flex flex-wrap gap-4 items-center">
-        <div className="flex-1 min-w-[200px]">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
+        <div className="flex-1 min-w-0">
           <Select value={selectedTestId} onValueChange={setSelectedTestId}>
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder={t("selectTest") || "Select a test"} />
             </SelectTrigger>
             <SelectContent>
@@ -114,23 +114,26 @@ export function PerformanceReports() {
           </Select>
         </div>
 
-        <Select value={timeRange} onValueChange={(v) => setTimeRange(v as typeof timeRange)}>
-          <SelectTrigger className="w-32">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7d">7 {t("days") || "Days"}</SelectItem>
-            <SelectItem value="30d">30 {t("days") || "Days"}</SelectItem>
-            <SelectItem value="90d">90 {t("days") || "Days"}</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex gap-2">
+          <Select value={timeRange} onValueChange={(v) => setTimeRange(v as typeof timeRange)}>
+            <SelectTrigger className="w-24 md:w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7d">7 {t("days") || "Days"}</SelectItem>
+              <SelectItem value="30d">30 {t("days") || "Days"}</SelectItem>
+              <SelectItem value="90d">90 {t("days") || "Days"}</SelectItem>
+            </SelectContent>
+          </Select>
 
-        {metrics.length > 0 && (
-          <Button variant="outline" onClick={exportCSV}>
-            <Download className="h-4 w-4 mr-2" />
-            {t("exportCSV") || "Export CSV"}
-          </Button>
-        )}
+          {metrics.length > 0 && (
+            <Button variant="outline" size="sm" onClick={exportCSV} className="flex-shrink-0">
+              <Download className="h-4 w-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">{t("exportCSV") || "Export CSV"}</span>
+              <span className="sm:hidden">CSV</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       {!selectedTestId ? (
@@ -158,7 +161,7 @@ export function PerformanceReports() {
       ) : (
         <>
           {/* Summary */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             <Card className={theme === "dark" ? "bg-gray-900 border-gray-800" : ""}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">{t("testsRun") || "Tests Run"}</CardTitle>

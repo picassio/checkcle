@@ -109,10 +109,10 @@ export const NotificationChannelList = ({
 
   if (channels.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-10 text-center">
-        <Bell className="h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium">No notification channels configured</h3>
-        <p className="text-muted-foreground mt-2">
+      <div className="flex flex-col items-center justify-center py-8 md:py-10 text-center">
+        <Bell className="h-10 w-10 md:h-12 md:w-12 text-muted-foreground mb-3 md:mb-4" />
+        <h3 className="text-base md:text-lg font-medium">No notification channels configured</h3>
+        <p className="text-sm md:text-base text-muted-foreground mt-2">
           Add a notification channel to get alerts when your services go down.
         </p>
       </div>
@@ -120,70 +120,128 @@ export const NotificationChannelList = ({
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Details</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {channels.map((channel) => (
-            <TableRow key={channel.id}>
-              <TableCell className="font-medium">{channel.notify_name}</TableCell>
-              <TableCell>
-                <Badge variant="outline">{getChannelTypeLabel(channel.notification_type)}</Badge>
-              </TableCell>
-              <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
-                {getChannelDetails(channel)}
-              </TableCell>
-               <TableCell>
-                <Switch 
-                  checked={
-                    channel.id && optimisticStates.hasOwnProperty(channel.id)
-                      ? optimisticStates[channel.id]
-                      : typeof channel.enabled === 'string'
-                        ? channel.enabled === "true" || channel.enabled === "on"
-                        : !!channel.enabled
-                  }
-                  onCheckedChange={() => toggleEnabled(channel)}
-                />
-              </TableCell>
-              <TableCell>
+    <>
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-3">
+        {channels.map((channel) => (
+          <div key={channel.id} className="border rounded-lg p-3 space-y-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="font-medium text-sm truncate">{channel.notify_name}</div>
+                <Badge variant="outline" className="mt-1 text-xs">{getChannelTypeLabel(channel.notification_type)}</Badge>
+              </div>
+              <Switch
+                checked={
+                  channel.id && optimisticStates.hasOwnProperty(channel.id)
+                    ? optimisticStates[channel.id]
+                    : typeof channel.enabled === 'string'
+                      ? channel.enabled === "true" || channel.enabled === "on"
+                      : !!channel.enabled
+                }
+                onCheckedChange={() => toggleEnabled(channel)}
+              />
+            </div>
+            <div className="text-xs text-muted-foreground truncate">
+              {getChannelDetails(channel)}
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t">
+              <span className="text-xs text-muted-foreground">
                 {channel.created ? new Date(channel.created).toLocaleDateString() : "-"}
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => onEdit(channel as AlertConfiguration)}
-                    disabled={channel.isWebhook} 
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => {
-                      if (channel.id && confirm("Are you sure you want to delete this notification channel?")) {
-                        onDelete(channel.id)
-                      }
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </TableCell>
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onEdit(channel as AlertConfiguration)}
+                  disabled={channel.isWebhook}
+                  className="h-8 px-2"
+                >
+                  <Edit className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-2"
+                  onClick={() => {
+                    if (channel.id && confirm("Are you sure you want to delete this notification channel?")) {
+                      onDelete(channel.id)
+                    }
+                  }}
+                >
+                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Details</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {channels.map((channel) => (
+              <TableRow key={channel.id}>
+                <TableCell className="font-medium">{channel.notify_name}</TableCell>
+                <TableCell>
+                  <Badge variant="outline">{getChannelTypeLabel(channel.notification_type)}</Badge>
+                </TableCell>
+                <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
+                  {getChannelDetails(channel)}
+                </TableCell>
+                 <TableCell>
+                  <Switch
+                    checked={
+                      channel.id && optimisticStates.hasOwnProperty(channel.id)
+                        ? optimisticStates[channel.id]
+                        : typeof channel.enabled === 'string'
+                          ? channel.enabled === "true" || channel.enabled === "on"
+                          : !!channel.enabled
+                    }
+                    onCheckedChange={() => toggleEnabled(channel)}
+                  />
+                </TableCell>
+                <TableCell>
+                  {channel.created ? new Date(channel.created).toLocaleDateString() : "-"}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onEdit(channel as AlertConfiguration)}
+                      disabled={channel.isWebhook}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (channel.id && confirm("Are you sure you want to delete this notification channel?")) {
+                          onDelete(channel.id)
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </>
   );
 };

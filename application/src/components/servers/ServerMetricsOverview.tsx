@@ -117,7 +117,7 @@ export const ServerMetricsOverview = ({ server }: ServerMetricsOverviewProps) =>
   );
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-6">
       {/* Status Card */}
       <Card 
         className="border-none rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1 relative"

@@ -1,5 +1,3 @@
-version: '3.9'
-
 # Docker Compose for CheckCle with integrated sitespeed.io
 # This version includes sitespeed.io, Chrome, and Firefox directly in the container
 # No Docker-in-Docker required - simpler and more efficient

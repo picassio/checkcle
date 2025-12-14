@@ -91,34 +91,34 @@ export function CoreWebVitalsCard({ lcp, fcp, cls, tbt }: CoreWebVitalsCardProps
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           {vitals.map((vital) => {
             const Icon = vital.icon;
             const progressValue = getProgressValue(vital.value, vital.thresholds.good, vital.thresholds.poor);
 
             return (
-              <div key={vital.name} className="space-y-3">
-                <div className="flex items-center justify-between">
+              <div key={vital.name} className="space-y-2 md:space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                   <div className="flex items-center gap-2">
-                    <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'}`}>
-                      <Icon className={`h-4 w-4 ${
+                    <div className={`p-1.5 md:p-2 rounded-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                      <Icon className={`h-3 w-3 md:h-4 md:w-4 ${
                         vital.status === 'good' ? 'text-green-500' :
                         vital.status === 'needs-improvement' ? 'text-yellow-500' : 'text-red-500'
                       }`} />
                     </div>
-                    <span className="font-medium">{vital.name}</span>
+                    <span className="font-medium text-sm md:text-base">{vital.name}</span>
                   </div>
                   <Badge
                     variant={vital.status === 'good' ? 'default' : vital.status === 'needs-improvement' ? 'secondary' : 'destructive'}
-                    className="text-xs"
+                    className="text-xs self-start sm:self-auto"
                   >
                     {vital.status}
                   </Badge>
                 </div>
 
                 <div>
-                  <div className="text-3xl font-bold">{vital.displayValue}</div>
-                  <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <div className="text-xl md:text-3xl font-bold">{vital.displayValue}</div>
+                  <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} line-clamp-1`}>
                     {vital.fullName}
                   </p>
                 </div>
@@ -128,13 +128,13 @@ export function CoreWebVitalsCard({ lcp, fcp, cls, tbt }: CoreWebVitalsCardProps
                     value={progressValue}
                     className={`h-2 ${getProgressColor(vital.status)}`}
                   />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>{t('good') || 'Good'}: &lt;{vital.name === 'CLS' ? vital.thresholds.good : formatMs(vital.thresholds.good)}</span>
-                    <span>{t('poor') || 'Poor'}: &gt;{vital.name === 'CLS' ? vital.thresholds.poor : formatMs(vital.thresholds.poor)}</span>
+                  <div className="flex justify-between text-[10px] md:text-xs text-muted-foreground">
+                    <span>&lt;{vital.name === 'CLS' ? vital.thresholds.good : formatMs(vital.thresholds.good)}</span>
+                    <span>&gt;{vital.name === 'CLS' ? vital.thresholds.poor : formatMs(vital.thresholds.poor)}</span>
                   </div>
                 </div>
 
-                <p className={`text-xs ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
+                <p className={`text-xs ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'} hidden md:block`}>
                   {vital.description}
                 </p>
               </div>

@@ -67,36 +67,39 @@ export const ScheduleIncidentContent = () => {
   };
 
   return (
-    <main className="flex-1 flex flex-col overflow-auto bg-background p-6">
-      <div className="flex flex-col gap-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-foreground">
-            {t('scheduleIncidentManagement')}
-          </h2>
-          <Button 
-            className="text-primary-foreground"
-            onClick={handleCreateButtonClick}
-          >
-            <Plus className="w-4 h-4 mr-2" /> 
-            {activeTab === "maintenance" ? t('createMaintenanceWindow') : t('createIncident')}
-          </Button>
-        </div>
-        
-        <Tabs 
-          defaultValue="maintenance" 
-          className="w-full"
-          onValueChange={(value) => setActiveTab(value)}
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h2 className="text-xl md:text-2xl font-bold text-foreground">
+          {t('scheduleIncidentManagement')}
+        </h2>
+        <Button
+          className="text-primary-foreground w-full sm:w-auto"
+          onClick={handleCreateButtonClick}
         >
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="maintenance">
-              <CalendarClock className="w-4 h-4 mr-2" />
-              {t('scheduledMaintenance')}
-            </TabsTrigger>
-            <TabsTrigger value="incidents">
-              <AlertCircle className="w-4 h-4 mr-2" />
-              {t('incidentManagement')}
-            </TabsTrigger>
-          </TabsList>
+          <Plus className="w-4 h-4 mr-2" />
+          <span className="truncate">
+            {activeTab === "maintenance" ? t('createMaintenanceWindow') : t('createIncident')}
+          </span>
+        </Button>
+      </div>
+
+      <Tabs
+        defaultValue="maintenance"
+        className="w-full"
+        onValueChange={(value) => setActiveTab(value)}
+      >
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="maintenance" className="text-xs md:text-sm">
+            <CalendarClock className="w-4 h-4 mr-1 md:mr-2" />
+            <span className="hidden sm:inline">{t('scheduledMaintenance')}</span>
+            <span className="sm:hidden">Maintenance</span>
+          </TabsTrigger>
+          <TabsTrigger value="incidents" className="text-xs md:text-sm">
+            <AlertCircle className="w-4 h-4 mr-1 md:mr-2" />
+            <span className="hidden sm:inline">{t('incidentManagement')}</span>
+            <span className="sm:hidden">Incidents</span>
+          </TabsTrigger>
+        </TabsList>
           
           <TabsContent value="maintenance" className="space-y-4">
             <ScheduledMaintenanceTab refreshTrigger={refreshTrigger} />
@@ -106,7 +109,6 @@ export const ScheduleIncidentContent = () => {
             <IncidentManagementTab refreshTrigger={incidentRefreshTrigger} />
           </TabsContent>
         </Tabs>
-      </div>
 
       {/* Maintenance creation dialog */}
       <CreateMaintenanceDialog 
@@ -116,11 +118,11 @@ export const ScheduleIncidentContent = () => {
       />
 
       {/* Incident creation dialog */}
-      <CreateIncidentDialog 
+      <CreateIncidentDialog
         open={createIncidentDialogOpen}
         onOpenChange={setCreateIncidentDialogOpen}
         onIncidentCreated={handleIncidentCreated}
       />
-    </main>
+    </div>
   );
 };

@@ -1,8 +1,9 @@
 
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Plus, Shield, Calendar, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -140,6 +141,58 @@ export const SSLCertificatesTable = () => {
     setShowDeleteDialog(true);
   };
 
+  // Mobile SSL Certificate Card Component
+  const MobileSSLCard = ({ certificate }: { certificate: SSLCertificate }) => {
+    const getDaysLeftColor = (days: number) => {
+      if (days <= 7) return 'text-red-600 bg-red-50 dark:bg-red-900/20';
+      if (days <= 30) return 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20';
+      return 'text-green-600 bg-green-50 dark:bg-green-900/20';
+    };
+
+    return (
+      <Card className="mb-3" onClick={() => openViewDialog(certificate)}>
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <div className="min-w-0 flex-1">
+              <div className="font-medium truncate flex items-center gap-2">
+                <Shield className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                {certificate.domain}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1 truncate">
+                {certificate.issuer_o || certificate.issuer_cn || 'Unknown Issuer'}
+              </div>
+            </div>
+            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+              <SSLStatusBadge status={certificate.status} />
+              <SSLCertificateActions
+                certificate={certificate}
+                onView={openViewDialog}
+                onEdit={openEditDialog}
+                onDelete={openDeleteDialog}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Calendar className="h-3 w-3" />
+              <span className="text-xs">
+                {certificate.valid_till ? new Date(certificate.valid_till).toLocaleDateString() : 'N/A'}
+              </span>
+            </div>
+            <div className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${getDaysLeftColor(certificate.days_left)}`}>
+              {certificate.days_left} {t('days')} left
+            </div>
+            <div className="flex items-center gap-1 text-muted-foreground col-span-2">
+              <Clock className="h-3 w-3" />
+              <span className="text-xs">Check every {certificate.check_interval || 1} {t('days')}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full">
       {certificates.length === 0 ? (
@@ -148,7 +201,15 @@ export const SSLCertificatesTable = () => {
         </div>
       ) : (
         <>
-          <div className={`${theme === 'dark' ? 'bg-gray-900' : 'bg-white'} rounded-lg border border-border shadow-sm`}>
+          {/* Mobile View */}
+          <div className="md:hidden">
+            {paginatedCertificates.map((certificate) => (
+              <MobileSSLCard key={certificate.id} certificate={certificate} />
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className={`hidden md:block ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'} rounded-lg border border-border shadow-sm`}>
             <Table>
               <TableHeader className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}>
                 <TableRow className={`${theme === 'dark' ? 'border-gray-700 hover:bg-gray-800' : 'border-gray-200 hover:bg-gray-100'}`}>

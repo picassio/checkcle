@@ -268,33 +268,135 @@ export const ServerTable = ({ servers, isLoading, onRefresh }: ServerTableProps)
     );
   }
 
+  // Mobile Server Card Component
+  const MobileServerCard = ({ server }: { server: Server }) => {
+    const cpuUsage = server.cpu_usage || 0;
+    const memoryUsage = server.ram_total > 0 ? (server.ram_used / server.ram_total) * 100 : 0;
+    const diskUsage = server.disk_total > 0 ? (server.disk_used / server.disk_total) * 100 : 0;
+    const isPaused = server.status === "paused";
+    const isProcessing = pausingServers.has(server.id);
+    const isSelected = selectedServerIds.has(server.id);
+
+    return (
+      <Card className={`mb-3 ${isSelected ? 'ring-2 ring-primary' : ''}`}>
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={(v) => toggleSelectOne(server.id, Boolean(v))}
+                onClick={(e) => e.stopPropagation()}
+              />
+              <div className="min-w-0 flex-1" onClick={() => handleViewDetails(server.id)}>
+                <div className="font-medium truncate">{server.name}</div>
+                <code className="text-xs bg-muted px-1 py-0.5 rounded">{server.ip_address}</code>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <ServerStatusBadge status={server.status} />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" disabled={isProcessing}>
+                    {isProcessing ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <MoreHorizontal className="h-4 w-4" />
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleViewDetails(server.id)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    {t('viewServerDetail')}
+                  </DropdownMenuItem>
+                  {server.docker === 'true' && (
+                    <DropdownMenuItem onClick={() => handleViewContainers(server.id)}>
+                      <Activity className="mr-2 h-4 w-4" />
+                      {t('containerMonitoring')}
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handlePauseResume(server)} disabled={isProcessing}>
+                    {isPaused ? <><Play className="mr-2 h-4 w-4" />{t('resumeMonitoring')}</> : <><Pause className="mr-2 h-4 w-4" />{t('pauseMonitoring')}</>}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleEdit(server)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    {t('editServer')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDelete(server)} className="text-red-600">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {t('deleteServer')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 mb-3 text-sm text-muted-foreground">
+            <OSTypeIcon osType={server.os_type} />
+            <span className="truncate">{server.os_type}</span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <div className="text-center p-2 bg-muted/50 rounded">
+              <div className="text-xs text-muted-foreground">CPU</div>
+              <div className={`text-sm font-semibold ${cpuUsage > 80 ? 'text-red-500' : cpuUsage > 60 ? 'text-yellow-500' : 'text-green-500'}`}>
+                {cpuUsage.toFixed(0)}%
+              </div>
+            </div>
+            <div className="text-center p-2 bg-muted/50 rounded">
+              <div className="text-xs text-muted-foreground">RAM</div>
+              <div className={`text-sm font-semibold ${memoryUsage > 80 ? 'text-red-500' : memoryUsage > 60 ? 'text-yellow-500' : 'text-blue-500'}`}>
+                {memoryUsage.toFixed(0)}%
+              </div>
+            </div>
+            <div className="text-center p-2 bg-muted/50 rounded">
+              <div className="text-xs text-muted-foreground">Disk</div>
+              <div className={`text-sm font-semibold ${diskUsage > 90 ? 'text-red-500' : diskUsage > 75 ? 'text-yellow-500' : 'text-orange-500'}`}>
+                {diskUsage.toFixed(0)}%
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Uptime: {server.uptime || 'N/A'}</span>
+            <span>{new Date(server.last_checked).toLocaleString()}</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <>
       <Card className="bg-transparent border-0 shadow-none">
         <CardHeader className="pb-4 px-0">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <CardTitle className="text-xl font-semibold">{t('servers')}</CardTitle>
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1 sm:w-64">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <CardTitle className="text-lg md:text-xl font-semibold">{t('servers')}</CardTitle>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative flex-1 min-w-[150px] sm:w-64">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder={t('searchServersPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8"
+                  className="pl-8 text-sm"
                 />
               </div>
               {selectedServerIds.size > 0 && (
-                <div className="hidden sm:block text-sm text-muted-foreground mr-2">
+                <Badge variant="secondary" className="hidden sm:flex">
                   {selectedServerIds.size} selected
-                </div>
+                </Badge>
               )}
               <Button
                 onClick={() => setBulkDeleteDialogOpen(true)}
                 variant="destructive"
+                size="sm"
                 disabled={selectedServerIds.size === 0}
               >
-                Delete Selected
+                <Trash2 className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Delete</span>
               </Button>
               <Button onClick={onRefresh} variant="outline" size="icon">
                 <RefreshCw className="h-4 w-4" />
@@ -308,7 +410,16 @@ export const ServerTable = ({ servers, isLoading, onRefresh }: ServerTableProps)
               <p className="text-muted-foreground">{t('noServersFound')}</p>
             </div>
           ) : (
-            <div className={`${theme === 'dark' ? 'bg-gray-900' : 'bg-white'} rounded-lg border border-border shadow-sm`}>
+            <>
+              {/* Mobile View */}
+              <div className="md:hidden px-1">
+                {filteredServers.map((server) => (
+                  <MobileServerCard key={server.id} server={server} />
+                ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className={`hidden md:block ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'} rounded-lg border border-border shadow-sm`}>
               <Table>
                 <TableHeader className={`${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'}`}>
                   <TableRow className={`${theme === 'dark' ? 'border-gray-700 hover:bg-gray-800' : 'border-gray-200 hover:bg-gray-100'}`}>
@@ -471,7 +582,8 @@ export const ServerTable = ({ servers, isLoading, onRefresh }: ServerTableProps)
                   })}
                 </TableBody>
               </Table>
-            </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

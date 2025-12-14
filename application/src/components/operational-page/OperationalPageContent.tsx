@@ -66,13 +66,13 @@ export const OperationalPageContent = () => {
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
+      <div className="p-4 md:p-6">
+        <div className="text-center py-8">
           <div className="mb-4">
-            <Activity className="h-12 w-12 text-muted-foreground mx-auto" />
+            <Activity className="h-10 w-10 md:h-12 md:w-12 text-muted-foreground mx-auto" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">{t('failedToLoadOperationalPages')}</h3>
-          <p className="text-muted-foreground mb-4">
+          <h3 className="text-base md:text-lg font-semibold mb-2">{t('failedToLoadOperationalPages')}</h3>
+          <p className="text-sm md:text-base text-muted-foreground mb-4">
             {t('loadingoperationalPages')}
           </p>
           <Button onClick={() => refetch()} variant="outline">
@@ -85,25 +85,25 @@ export const OperationalPageContent = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="p-4 md:p-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2"> {t('operationalPages')}</h1>
-          <p className="text-muted-foreground">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div className="min-w-0">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1">{t('operationalPages')}</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             {t('describeOperation')}
           </p>
         </div>
-        
-        <div className="flex items-center gap-2 mt-4 sm:mt-0">
+
+        <div className="flex items-center gap-2 flex-shrink-0">
           <Button
             variant="outline"
             size="sm"
             onClick={() => refetch()}
             disabled={isRefetching}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
-            {t('refresh')}
+            <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline ml-2">{t('refresh')}</span>
           </Button>
           <CreateOperationalPageDialog />
         </div>
@@ -111,7 +111,7 @@ export const OperationalPageContent = () => {
 
       {/* Loading State */}
       {isLoading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {[...Array(6)].map((_, i) => (
             <Card key={i}>
               <div className="p-6">
@@ -149,7 +149,7 @@ export const OperationalPageContent = () => {
 
       {/* Pages Grid */}
       {!isLoading && pages && pages.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {pages.map((page) => (
             <OperationalPageCard
               key={page.id}

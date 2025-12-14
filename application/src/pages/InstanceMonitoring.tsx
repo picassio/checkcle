@@ -19,7 +19,7 @@ import { Plus } from "lucide-react";
 const InstanceMonitoring = () => {
   const { theme } = useTheme();
   const { t } = useLanguage();
-  const { sidebarCollapsed, toggleSidebar } = useSidebar();
+  const { sidebarCollapsed, toggleSidebar, mobileOpen, setMobileOpen, toggleMobile } = useSidebar();
   const navigate = useNavigate();
   
   const [stats, setStats] = useState<ServerStats>({
@@ -60,13 +60,14 @@ const InstanceMonitoring = () => {
   if (error) {
     return (
       <div className="flex h-screen overflow-hidden bg-background text-foreground">
-        <Sidebar collapsed={sidebarCollapsed} />
+        <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
         <div className="flex flex-col flex-1 min-w-0">
-          <Header 
-            currentUser={currentUser} 
-            onLogout={handleLogout} 
-            sidebarCollapsed={sidebarCollapsed} 
-            toggleSidebar={toggleSidebar} 
+          <Header
+            currentUser={currentUser}
+            onLogout={handleLogout}
+            sidebarCollapsed={sidebarCollapsed}
+            toggleSidebar={toggleSidebar}
+            toggleMobile={toggleMobile}
           />
           <main className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6">
             <div className="text-center max-w-md w-full">
@@ -89,13 +90,14 @@ const InstanceMonitoring = () => {
   
   return (
     <div className="flex h-screen overflow-hidden bg-background text-foreground">
-      <Sidebar collapsed={sidebarCollapsed} />
+      <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
       <div className="flex flex-col flex-1 min-w-0">
-        <Header 
-          currentUser={currentUser} 
-          onLogout={handleLogout} 
-          sidebarCollapsed={sidebarCollapsed} 
-          toggleSidebar={toggleSidebar} 
+        <Header
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          sidebarCollapsed={sidebarCollapsed}
+          toggleSidebar={toggleSidebar}
+          toggleMobile={toggleMobile}
         />
         <main className="flex-1 overflow-auto">
           <div className="p-4 sm:p-6 lg:p-8 space-y-6">

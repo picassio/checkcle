@@ -69,3 +69,8 @@ func (nm *NotificationManager) SendUptimeServiceNotification(payload *Notificati
 func (nm *NotificationManager) SendSSLNotification(payload *NotificationPayload, notificationID, templateID string) error {
 	return nm.sslManager.SendSSLNotification(payload, notificationID, templateID)
 }
+
+// GetServices returns the notification services map for use by other managers
+func (nm *NotificationManager) GetServices() map[string]NotificationService {
+	return nm.services
+}
