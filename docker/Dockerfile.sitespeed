@@ -83,6 +83,12 @@ RUN apt-get update && apt-get install -y unzip \
     && chmod +x /usr/local/bin/nuclei \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Katana web crawler for deep scanning
+RUN curl -sL https://github.com/projectdiscovery/katana/releases/latest/download/katana_$(curl -s https://api.github.com/repos/projectdiscovery/katana/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')_linux_amd64.zip -o katana.zip \
+    && unzip -o katana.zip -d /usr/local/bin/ \
+    && rm katana.zip \
+    && chmod +x /usr/local/bin/katana
+
 # Download nuclei templates (full library ~9000+ templates)
 RUN nuclei -update-templates
 
@@ -94,6 +100,11 @@ ENV DISPLAY=:99
 # Environment variables for nuclei
 ENV NUCLEI_RESULTS_DIR=/opt/nuclei-results
 ENV NUCLEI_TEMPLATES_DIR=/root/nuclei-templates
+
+# Tell rod (used by Katana/Nuclei for headless browsing) to use system Chrome
+# This prevents downloading a separate Chromium binary
+ENV ROD_BROWSER=/usr/bin/google-chrome-stable
+ENV CHROME_PATH=/usr/bin/google-chrome-stable
 
 WORKDIR /app
 

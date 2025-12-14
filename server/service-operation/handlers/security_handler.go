@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -367,18 +368,22 @@ func (h *OperationHandler) HandleSecurityCancelQueue(w http.ResponseWriter, r *h
 
 	var queueItem struct {
 		Status string `json:"status"`
+		ScanID string `json:"scan_id"`
 	}
 	itemBody, _ := io.ReadAll(itemResp.Body)
 	json.Unmarshal(itemBody, &queueItem)
 
-	if queueItem.Status != "pending" {
-		http.Error(w, "Can only cancel pending items", http.StatusBadRequest)
+	// Allow cancelling both pending and processing items
+	if queueItem.Status != "pending" && queueItem.Status != "processing" {
+		http.Error(w, "Can only cancel pending or processing items", http.StatusBadRequest)
 		return
 	}
 
-	// Update to cancelled
+	// Update to cancelled with error message and completion time
 	updateData := map[string]interface{}{
-		"status": "cancelled",
+		"status":       "cancelled",
+		"error":        "Manually cancelled by user",
+		"completed_at": time.Now().UTC().Format("2006-01-02 15:04:05.000Z"),
 	}
 	updateBody, _ := json.Marshal(updateData)
 
@@ -395,6 +400,21 @@ func (h *OperationHandler) HandleSecurityCancelQueue(w http.ResponseWriter, r *h
 		return
 	}
 	defer updateResp.Body.Close()
+
+	// If the item was processing, also reset the scan status back to active
+	if queueItem.Status == "processing" && queueItem.ScanID != "" {
+		scanURL := fmt.Sprintf("%s/api/collections/security_scans/records/%s",
+			h.pbClient.GetBaseURL(), queueItem.ScanID)
+		scanUpdateData := map[string]interface{}{
+			"status": "active",
+		}
+		scanUpdateBody, _ := json.Marshal(scanUpdateData)
+		scanReq, err := http.NewRequest("PATCH", scanURL, bytes.NewBuffer(scanUpdateBody))
+		if err == nil {
+			scanReq.Header.Set("Content-Type", "application/json")
+			h.pbClient.GetHTTPClient().Do(scanReq)
+		}
+	}
 
 	result := map[string]interface{}{
 		"success": true,

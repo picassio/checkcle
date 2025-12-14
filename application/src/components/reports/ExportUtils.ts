@@ -1,5 +1,6 @@
 import { Service } from "@/types/service.types";
 import { PerformanceMetrics, PerformanceTest } from "@/types/performance.types";
+import { SecurityScan, SecurityResult } from "@/types/security.types";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -427,5 +428,345 @@ export const ExportUtils = {
     }
 
     doc.save(`performance-report-${timeRange}-${new Date().toISOString().split("T")[0]}.pdf`);
+  },
+
+  exportSecurityPDF(
+    results: SecurityResult[],
+    scans: SecurityScan[],
+    severityStats: { critical: number; high: number; medium: number; low: number; info: number; unknown: number },
+    overallStats: {
+      totalFindings: number;
+      criticalAndHigh: number;
+      uniqueHosts: number;
+      uniqueTemplates: number;
+      withCVE: number;
+    },
+    topVulnerabilities: { count: number; severity: string; name: string; templateId: string }[],
+    hostStats: { host: string; total: number; critical: number; high: number; medium: number; low: number; info: number }[],
+    timeRange: string,
+    scanName: string
+  ) {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    const getSeverityColor = (severity: string): [number, number, number] => {
+      switch (severity.toLowerCase()) {
+        case "critical": return [220, 38, 38];
+        case "high": return [249, 115, 22];
+        case "medium": return [234, 179, 8];
+        case "low": return [59, 130, 246];
+        case "info": return [107, 114, 128];
+        default: return [156, 163, 175];
+      }
+    };
+
+    // ==================== PAGE 1: Executive Summary ====================
+
+    // Header
+    doc.setFontSize(22);
+    doc.setTextColor(33, 33, 33);
+    doc.text("CHECKCLE SECURITY REPORT", pageWidth / 2, 20, { align: "center" });
+
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, 28, { align: "center" });
+    doc.text(`Time Range: ${timeRange} | Scan: ${scanName}`, pageWidth / 2, 34, { align: "center" });
+
+    // Executive Summary Section
+    doc.setFontSize(16);
+    doc.setTextColor(33, 33, 33);
+    doc.text("Executive Summary", 14, 48);
+
+    doc.setFontSize(10);
+    doc.setTextColor(60, 60, 60);
+
+    // Summary box
+    doc.setDrawColor(200, 200, 200);
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(14, 52, pageWidth - 28, 40, 3, 3, "FD");
+
+    doc.text(`Total Vulnerabilities Found: ${overallStats.totalFindings}`, 20, 62);
+    doc.text(`Critical + High Severity: ${overallStats.criticalAndHigh}`, 20, 70);
+    doc.text(`Affected Hosts: ${overallStats.uniqueHosts}`, 20, 78);
+    doc.text(`Unique Vulnerability Types: ${overallStats.uniqueTemplates}`, 20, 86);
+
+    doc.text(`Vulnerabilities with CVE: ${overallStats.withCVE}`, pageWidth / 2 + 10, 62);
+    doc.text(`Scans Analyzed: ${scans.length}`, pageWidth / 2 + 10, 70);
+
+    // Risk Assessment
+    let riskLevel = "Low";
+    let riskColor: [number, number, number] = [34, 197, 94];
+    if (severityStats.critical > 0) {
+      riskLevel = "Critical";
+      riskColor = [220, 38, 38];
+    } else if (severityStats.high > 0) {
+      riskLevel = "High";
+      riskColor = [249, 115, 22];
+    } else if (severityStats.medium > 0) {
+      riskLevel = "Medium";
+      riskColor = [234, 179, 8];
+    }
+
+    doc.setFontSize(12);
+    doc.text("Overall Risk Level:", pageWidth / 2 + 10, 78);
+    doc.setTextColor(...riskColor);
+    doc.setFontSize(14);
+    doc.text(riskLevel.toUpperCase(), pageWidth / 2 + 10, 86);
+    doc.setTextColor(60, 60, 60);
+
+    // Severity Breakdown Table
+    doc.setFontSize(14);
+    doc.setTextColor(33, 33, 33);
+    doc.text("Severity Breakdown", 14, 104);
+
+    const severityData = [
+      ["Critical", severityStats.critical.toString(), severityStats.critical > 0 ? "Immediate action required" : "None found"],
+      ["High", severityStats.high.toString(), severityStats.high > 0 ? "Address within 24-48 hours" : "None found"],
+      ["Medium", severityStats.medium.toString(), severityStats.medium > 0 ? "Address within 1-2 weeks" : "None found"],
+      ["Low", severityStats.low.toString(), severityStats.low > 0 ? "Address in next maintenance cycle" : "None found"],
+      ["Info", severityStats.info.toString(), "Informational findings"],
+    ];
+
+    autoTable(doc, {
+      startY: 110,
+      head: [["Severity", "Count", "Recommendation"]],
+      body: severityData,
+      theme: "striped",
+      headStyles: { fillColor: [59, 130, 246] },
+      styles: { fontSize: 9 },
+      columnStyles: {
+        0: { fontStyle: "bold" },
+      },
+      didParseCell: (data) => {
+        if (data.section === "body" && data.column.index === 0) {
+          const severity = data.cell.raw as string;
+          data.cell.styles.textColor = getSeverityColor(severity.toLowerCase());
+        }
+      }
+    });
+
+    // Scan Configuration Summary
+    const scanTableY = (doc as any).lastAutoTable.finalY + 10;
+    doc.setFontSize(14);
+    doc.setTextColor(33, 33, 33);
+    doc.text("Scan Configuration", 14, scanTableY);
+
+    const scanData = scans.map(scan => [
+      scan.name,
+      scan.target_url.length > 40 ? scan.target_url.substring(0, 37) + "..." : scan.target_url,
+      scan.status,
+      (scan.findings_count || 0).toString(),
+      (scan.critical_count || 0).toString(),
+      (scan.high_count || 0).toString(),
+    ]);
+
+    autoTable(doc, {
+      startY: scanTableY + 6,
+      head: [["Scan Name", "Target", "Status", "Total", "Critical", "High"]],
+      body: scanData,
+      theme: "striped",
+      headStyles: { fillColor: [59, 130, 246] },
+      styles: { fontSize: 8 },
+      columnStyles: {
+        4: { textColor: [220, 38, 38] },
+        5: { textColor: [249, 115, 22] },
+      }
+    });
+
+    // ==================== PAGE 2: Top Vulnerabilities ====================
+    doc.addPage();
+
+    doc.setFontSize(16);
+    doc.setTextColor(33, 33, 33);
+    doc.text("Top Vulnerabilities", 14, 20);
+
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text("Most frequently detected vulnerability types, sorted by severity and occurrence", 14, 28);
+
+    const vulnData = topVulnerabilities.map((vuln, index) => [
+      (index + 1).toString(),
+      vuln.name.length > 35 ? vuln.name.substring(0, 32) + "..." : vuln.name,
+      vuln.templateId.length > 25 ? vuln.templateId.substring(0, 22) + "..." : vuln.templateId,
+      vuln.severity,
+      vuln.count.toString(),
+    ]);
+
+    autoTable(doc, {
+      startY: 34,
+      head: [["#", "Vulnerability", "Template ID", "Severity", "Count"]],
+      body: vulnData,
+      theme: "striped",
+      headStyles: { fillColor: [59, 130, 246] },
+      styles: { fontSize: 9 },
+      columnStyles: {
+        0: { halign: "center", cellWidth: 15 },
+        4: { halign: "center", fontStyle: "bold" },
+      },
+      didParseCell: (data) => {
+        if (data.section === "body" && data.column.index === 3) {
+          const severity = data.cell.raw as string;
+          data.cell.styles.textColor = getSeverityColor(severity);
+          data.cell.styles.fontStyle = "bold";
+        }
+      }
+    });
+
+    // Host Statistics
+    const hostTableY = (doc as any).lastAutoTable.finalY + 15;
+    doc.setFontSize(16);
+    doc.setTextColor(33, 33, 33);
+    doc.text("Findings by Host", 14, hostTableY);
+
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text("Vulnerability distribution across scanned targets", 14, hostTableY + 8);
+
+    const hostData = hostStats.map(host => [
+      host.host.length > 40 ? host.host.substring(0, 37) + "..." : host.host,
+      host.total.toString(),
+      host.critical.toString(),
+      host.high.toString(),
+      host.medium.toString(),
+      host.low.toString(),
+      host.info.toString(),
+    ]);
+
+    autoTable(doc, {
+      startY: hostTableY + 14,
+      head: [["Host", "Total", "Critical", "High", "Medium", "Low", "Info"]],
+      body: hostData,
+      theme: "striped",
+      headStyles: { fillColor: [59, 130, 246] },
+      styles: { fontSize: 8 },
+      columnStyles: {
+        1: { halign: "center", fontStyle: "bold" },
+        2: { halign: "center", textColor: [220, 38, 38] },
+        3: { halign: "center", textColor: [249, 115, 22] },
+        4: { halign: "center", textColor: [202, 138, 4] },
+        5: { halign: "center", textColor: [59, 130, 246] },
+        6: { halign: "center", textColor: [107, 114, 128] },
+      }
+    });
+
+    // ==================== PAGE 3+: Detailed Findings ====================
+    doc.addPage();
+
+    doc.setFontSize(16);
+    doc.setTextColor(33, 33, 33);
+    doc.text("Detailed Vulnerability Findings", 14, 20);
+
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Showing ${Math.min(results.length, 50)} of ${results.length} findings (sorted by severity)`, 14, 28);
+
+    // Sort results by severity
+    const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4, unknown: 5 };
+    const sortedResults = [...results].sort((a, b) => {
+      const aOrder = severityOrder[a.severity?.toLowerCase()] ?? 5;
+      const bOrder = severityOrder[b.severity?.toLowerCase()] ?? 5;
+      return aOrder - bOrder;
+    }).slice(0, 50);
+
+    const detailData = sortedResults.map(result => [
+      result.severity?.toUpperCase() || "UNKNOWN",
+      result.template_name?.length > 30 ? result.template_name.substring(0, 27) + "..." : result.template_name,
+      result.host?.length > 30 ? result.host.substring(0, 27) + "..." : result.host,
+      result.cve_ids?.slice(0, 2).join(", ") || "-",
+      result.created ? new Date(result.created).toLocaleDateString() : "-",
+    ]);
+
+    autoTable(doc, {
+      startY: 34,
+      head: [["Severity", "Vulnerability", "Host", "CVEs", "Found"]],
+      body: detailData,
+      theme: "striped",
+      headStyles: { fillColor: [59, 130, 246] },
+      styles: { fontSize: 8 },
+      columnStyles: {
+        0: { cellWidth: 20, halign: "center" },
+      },
+      didParseCell: (data) => {
+        if (data.section === "body" && data.column.index === 0) {
+          const severity = (data.cell.raw as string).toLowerCase();
+          data.cell.styles.textColor = getSeverityColor(severity);
+          data.cell.styles.fontStyle = "bold";
+        }
+      }
+    });
+
+    // ==================== FINAL PAGE: Recommendations ====================
+    const currentY = (doc as any).lastAutoTable.finalY + 15;
+
+    // Check if we need a new page
+    if (currentY > pageHeight - 80) {
+      doc.addPage();
+      doc.setFontSize(16);
+      doc.setTextColor(33, 33, 33);
+      doc.text("Recommendations", 14, 20);
+    } else {
+      doc.setFontSize(16);
+      doc.setTextColor(33, 33, 33);
+      doc.text("Recommendations", 14, currentY);
+    }
+
+    const recStartY = currentY > pageHeight - 80 ? 28 : currentY + 8;
+    doc.setFontSize(10);
+    doc.setTextColor(60, 60, 60);
+
+    const recommendations: string[] = [];
+
+    if (severityStats.critical > 0) {
+      recommendations.push(`CRITICAL: ${severityStats.critical} critical vulnerabilities require immediate remediation. These pose the highest risk to your infrastructure.`);
+    }
+    if (severityStats.high > 0) {
+      recommendations.push(`HIGH: ${severityStats.high} high-severity issues should be addressed within 24-48 hours to prevent potential exploitation.`);
+    }
+    if (severityStats.medium > 0) {
+      recommendations.push(`MEDIUM: ${severityStats.medium} medium-severity findings should be scheduled for remediation within the next 1-2 weeks.`);
+    }
+    if (overallStats.withCVE > 0) {
+      recommendations.push(`CVE TRACKING: ${overallStats.withCVE} vulnerabilities have known CVE identifiers. Monitor vendor advisories for patches.`);
+    }
+    if (overallStats.uniqueHosts > 1) {
+      recommendations.push(`SCOPE: Vulnerabilities span ${overallStats.uniqueHosts} hosts. Consider prioritizing hosts with critical findings.`);
+    }
+
+    // Add general recommendations
+    recommendations.push("REGULAR SCANNING: Schedule automated security scans to detect new vulnerabilities promptly.");
+    recommendations.push("PATCH MANAGEMENT: Implement a robust patch management process for timely remediation.");
+    recommendations.push("DEFENSE IN DEPTH: Use multiple security layers including WAF, IDS/IPS, and network segmentation.");
+
+    if (recommendations.length === 0 || overallStats.totalFindings === 0) {
+      recommendations.length = 0;
+      recommendations.push("No critical or high-severity vulnerabilities detected. Continue regular security monitoring.");
+      recommendations.push("Maintain current security practices and stay updated on emerging threats.");
+    }
+
+    let recY = recStartY;
+    recommendations.forEach((rec, index) => {
+      // Check for page break
+      if (recY > pageHeight - 20) {
+        doc.addPage();
+        recY = 20;
+      }
+
+      const lines = doc.splitTextToSize(`${index + 1}. ${rec}`, pageWidth - 28);
+      doc.text(lines, 14, recY);
+      recY += lines.length * 5 + 3;
+    });
+
+    // Footer on last page
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text(
+      "Generated by CheckCle Security Scanning - https://checkcle.com",
+      pageWidth / 2,
+      pageHeight - 10,
+      { align: "center" }
+    );
+
+    doc.save(`security-report-${timeRange}-${new Date().toISOString().split("T")[0]}.pdf`);
   }
 };

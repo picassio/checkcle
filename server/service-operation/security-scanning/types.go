@@ -23,8 +23,20 @@ type SecurityScan struct {
 	BulkSize    int `json:"bulk_size"`    // templates per target (default 10)
 	Concurrency int `json:"concurrency"`  // concurrent hosts (default 10)
 	Timeout     int `json:"timeout"`      // scan timeout in seconds (default 3600)
-	Created     string `json:"created"`
-	Updated     string `json:"updated"`
+	// Deep scanning options
+	ScanMode        string `json:"scan_mode"`         // single, crawl, automatic, headless, dast
+	CrawlEnabled    bool   `json:"crawl_enabled"`     // Enable Katana crawling before scan
+	CrawlDepth      int    `json:"crawl_depth"`       // Max crawl depth (default 3)
+	CrawlMaxPages   int    `json:"crawl_max_pages"`   // Max pages to crawl (default 100)
+	HeadlessEnabled bool   `json:"headless_enabled"`  // Enable headless browser for JS-heavy sites
+	AutomaticScan   bool   `json:"automatic_scan"`    // Use Wappalyzer tech detection
+	DastEnabled     bool   `json:"dast_enabled"`      // Enable DAST/fuzzing mode
+	ScanAllIPs      bool   `json:"scan_all_ips"`      // Scan all IPs associated with DNS
+	// Request customization
+	UserAgent       string `json:"user_agent"`        // Custom user-agent string (default: Chrome)
+	// Additional settings
+	Created string `json:"created"`
+	Updated string `json:"updated"`
 }
 
 // SecurityScansResponse represents the response from PocketBase
@@ -133,10 +145,10 @@ type NucleiInfo struct {
 
 // NucleiClassification contains CVE and vulnerability classification
 type NucleiClassification struct {
-	CVEIDs    []string `json:"cve-id,omitempty"`
-	CWEID     []string `json:"cwe-id,omitempty"`
-	CVSS      string   `json:"cvss-score,omitempty"`
-	CVSSMetrics string `json:"cvss-metrics,omitempty"`
+	CVEIDs      []string    `json:"cve-id,omitempty"`
+	CWEID       []string    `json:"cwe-id,omitempty"`
+	CVSS        interface{} `json:"cvss-score,omitempty"` // Can be string or number
+	CVSSMetrics string      `json:"cvss-metrics,omitempty"`
 }
 
 // ScanRunStatus represents the status of a running scan

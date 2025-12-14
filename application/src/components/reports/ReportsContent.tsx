@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { UptimeReports } from "./UptimeReports";
 import { PerformanceReport } from "./PerformanceReport";
 import { IncidentReports } from "./IncidentReports";
-import { Activity, Gauge, AlertTriangle, LineChart } from "lucide-react";
+import { SecurityReport } from "./SecurityReport";
+import { Activity, Gauge, AlertTriangle, LineChart, Shield } from "lucide-react";
 
 export function ReportsContent() {
   const { t } = useLanguage();
@@ -26,7 +27,7 @@ export function ReportsContent() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+        <TabsList className="grid w-full grid-cols-4 lg:w-[500px]">
           <TabsTrigger value="uptime" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
             <Activity className="h-4 w-4" />
             <span className="hidden sm:inline">{t("uptimeReports") || "Uptime"}</span>
@@ -38,6 +39,10 @@ export function ReportsContent() {
           <TabsTrigger value="incidents" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
             <AlertTriangle className="h-4 w-4" />
             <span className="hidden sm:inline">{t("incidents") || "Incidents"}</span>
+          </TabsTrigger>
+          <TabsTrigger value="security" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+            <Shield className="h-4 w-4" />
+            <span className="hidden sm:inline">{t("security") || "Security"}</span>
           </TabsTrigger>
         </TabsList>
 
@@ -51,6 +56,10 @@ export function ReportsContent() {
 
         <TabsContent value="incidents" className="space-y-4">
           <IncidentReports />
+        </TabsContent>
+
+        <TabsContent value="security" className="space-y-4">
+          <SecurityReport />
         </TabsContent>
       </Tabs>
     </div>

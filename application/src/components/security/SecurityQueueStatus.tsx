@@ -133,7 +133,7 @@ export function SecurityQueueStatus({ showDetails = true }: SecurityQueueStatusP
             {getStatusBadge(item.status)}
             <Badge variant="outline" className="text-xs">{item.source}</Badge>
           </div>
-          {showCancel && item.status === 'pending' && (
+          {showCancel && (item.status === 'pending' || item.status === 'processing') && (
             <Button
               variant="ghost"
               size="sm"
@@ -207,9 +207,25 @@ export function SecurityQueueStatus({ showDetails = true }: SecurityQueueStatusP
                   </p>
                 </div>
               </div>
-              <Badge variant="default" className="bg-blue-500 w-fit">
-                {currently_running.source}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="default" className="bg-blue-500 w-fit">
+                  {currently_running.source}
+                </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => cancelMutation.mutate(currently_running.id)}
+                  disabled={cancelMutation.isPending}
+                  className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                >
+                  {cancelMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <XCircle className="h-4 w-4 mr-1" />
+                  )}
+                  <span className="hidden sm:inline">Cancel</span>
+                </Button>
+              </div>
             </div>
           </div>
         )}
