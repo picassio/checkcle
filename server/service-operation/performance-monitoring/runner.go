@@ -139,16 +139,18 @@ func (dr *SitespeedRunner) buildLocalArgs(test PerformanceTest, budget *Performa
 		args = append(args, "--connectivity.profile", test.Connectivity)
 	}
 
-	// Add headless mode for server environments
-	args = append(args, "--headless")
-
-	// Visual metrics (SpeedIndex, video recording) - requires ffmpeg and xvfb
+	// Visual metrics (SpeedIndex, video recording) - requires ffmpeg, python and xvfb
+	// Note: Cannot use headless mode with visual metrics - they need a display (Xvfb)
 	if test.VisualMetrics {
 		args = append(args, "--browsertime.video", "true")
 		args = append(args, "--visualMetrics", "true")
+		// Tell sitespeed.io not to start its own Xvfb - we have one running already
+		args = append(args, "--browsertime.xvfb", "false")
 	} else {
 		args = append(args, "--browsertime.video", "false")
 		args = append(args, "--visualMetrics", "false")
+		// Add headless mode only when visual metrics are disabled
+		args = append(args, "--headless")
 	}
 
 	// Enable CPU metrics collection for Chrome
@@ -203,16 +205,17 @@ func (dr *SitespeedRunner) buildDockerArgs(test PerformanceTest, budget *Perform
 		args = append(args, "--connectivity.profile", test.Connectivity)
 	}
 
-	// Add headless mode for server environments
-	args = append(args, "--headless")
-
 	// Visual metrics (SpeedIndex, video recording) - Docker image includes ffmpeg and xvfb
+	// Note: Cannot use headless mode with visual metrics - they need a display (Xvfb)
 	if test.VisualMetrics {
 		args = append(args, "--browsertime.video", "true")
 		args = append(args, "--visualMetrics", "true")
+		// Don't add --headless when visual metrics are enabled
 	} else {
 		args = append(args, "--browsertime.video", "false")
 		args = append(args, "--visualMetrics", "false")
+		// Add headless mode only when visual metrics are disabled
+		args = append(args, "--headless")
 	}
 
 	// Enable CPU metrics collection for Chrome

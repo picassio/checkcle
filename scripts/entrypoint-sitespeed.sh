@@ -52,9 +52,13 @@ else
     exit 1
 fi
 
+# Apply database migrations before starting
+echo "[ENTRYPOINT] Applying database migrations..."
+/app/pocketbase migrate up --dir /mnt/pb_data --migrationsDir /app/pb_migrations 2>&1 || true
+
 # Start PocketBase in background
 echo "[ENTRYPOINT] Starting PocketBase..."
-/app/pocketbase serve --http=0.0.0.0:8090 --dir=/mnt/pb_data &
+/app/pocketbase serve --http=0.0.0.0:8090 --dir=/mnt/pb_data --migrationsDir=/app/pb_migrations &
 PB_PID=$!
 
 # Wait for PocketBase to be ready

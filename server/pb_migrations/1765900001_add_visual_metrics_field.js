@@ -2,8 +2,8 @@
 migrate((app) => {
   const collection = app.findCollectionByNameOrId("pbc_performance_tests");
 
-  // Add visual_metrics boolean field
-  collection.fields.push({
+  // Add visual_metrics boolean field after runs field (index 12)
+  collection.fields.addAt(13, new Field({
     "hidden": false,
     "id": "bool_visual_metrics",
     "name": "visual_metrics",
@@ -11,17 +11,14 @@ migrate((app) => {
     "required": false,
     "system": false,
     "type": "bool"
-  });
+  }));
 
   return app.save(collection);
 }, (app) => {
   const collection = app.findCollectionByNameOrId("pbc_performance_tests");
 
   // Remove the visual_metrics field
-  const fieldIndex = collection.fields.findIndex(f => f.name === "visual_metrics");
-  if (fieldIndex !== -1) {
-    collection.fields.splice(fieldIndex, 1);
-  }
+  collection.fields.removeByName("visual_metrics");
 
   return app.save(collection);
 });
