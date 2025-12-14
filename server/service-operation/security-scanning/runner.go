@@ -68,10 +68,20 @@ func (r *NucleiRunner) ExecuteScan(scan SecurityScan) ([]SecurityResult, error) 
 	urlsFile := filepath.Join(outputDir, "urls.txt")
 
 	// Determine targets based on scan mode
-	targets := []string{scan.TargetURL}
+	var targets []string
 
-	// If crawl is enabled and katana is available, crawl first
-	if scan.CrawlEnabled && r.katanaEnabled {
+	// Check if user provided a list of URLs
+	if len(scan.TargetURLs) > 0 {
+		// Use the provided URL list
+		targets = scan.TargetURLs
+		log.Printf("[SecurityScanning] Using provided URL list with %d URLs", len(targets))
+	} else {
+		// Use single target URL
+		targets = []string{scan.TargetURL}
+	}
+
+	// If crawl is enabled and katana is available, crawl first (only for single URL mode)
+	if scan.CrawlEnabled && r.katanaEnabled && len(scan.TargetURLs) == 0 {
 		log.Printf("[SecurityScanning] Starting Katana crawl for %s", scan.TargetURL)
 		crawledURLs, err := r.runKatanaCrawl(scan, outputDir)
 		if err != nil {
@@ -177,12 +187,13 @@ func (r *NucleiRunner) runKatanaCrawl(scan SecurityScan, outputDir string) ([]st
 	}
 	args = append(args, "-d", fmt.Sprintf("%d", depth))
 
-	// Set max pages (default 100)
+	// Set max pages (default 100) - use -em (max endpoints) for limiting output
 	maxPages := scan.CrawlMaxPages
 	if maxPages <= 0 {
 		maxPages = 100
 	}
-	args = append(args, "-c", fmt.Sprintf("%d", maxPages)) // concurrency as proxy for max pages
+	args = append(args, "-c", "10") // concurrency (fixed at 10 for stability)
+	args = append(args, "-em", fmt.Sprintf("%d", maxPages)) // max endpoints to crawl
 
 	// Enable headless mode if configured
 	if scan.HeadlessEnabled {
@@ -194,6 +205,16 @@ func (r *NucleiRunner) runKatanaCrawl(scan SecurityScan, outputDir string) ([]st
 
 	// Add scope to stay within same domain
 	args = append(args, "-fs", "dn") // field scope: domain name
+
+	// Filter out static assets that aren't useful for vulnerability scanning
+	// -ef: extension filter (exclude these extensions)
+	args = append(args, "-ef", "js,css,png,jpg,jpeg,gif,svg,ico,woff,woff2,ttf,eot,mp4,mp3,avi,mov,webp,webm,pdf,zip,rar,gz,tar")
+
+	// Output only unique URLs
+	args = append(args, "-unique")
+
+	// Don't crawl external links
+	args = append(args, "-no-external")
 
 	log.Printf("[SecurityScanning] Running Katana: katana %s", strings.Join(args, " "))
 

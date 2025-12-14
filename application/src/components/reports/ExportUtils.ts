@@ -659,7 +659,7 @@ export const ExportUtils = {
 
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
-    doc.text(`Showing ${Math.min(results.length, 50)} of ${results.length} findings (sorted by severity)`, 14, 28);
+    doc.text(`Showing all ${results.length} findings (sorted by severity)`, 14, 28);
 
     // Sort results by severity
     const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4, unknown: 5 };
@@ -667,51 +667,290 @@ export const ExportUtils = {
       const aOrder = severityOrder[a.severity?.toLowerCase()] ?? 5;
       const bOrder = severityOrder[b.severity?.toLowerCase()] ?? 5;
       return aOrder - bOrder;
-    }).slice(0, 50);
+    });
 
-    const detailData = sortedResults.map(result => [
-      result.severity?.toUpperCase() || "UNKNOWN",
-      result.template_name?.length > 30 ? result.template_name.substring(0, 27) + "..." : result.template_name,
-      result.host?.length > 30 ? result.host.substring(0, 27) + "..." : result.host,
-      result.cve_ids?.slice(0, 2).join(", ") || "-",
-      result.created ? new Date(result.created).toLocaleDateString() : "-",
-    ]);
+    // Helper to wrap text
+    const wrapText = (text: string, maxWidth: number): string[] => {
+      if (!text) return [];
+      return doc.splitTextToSize(text, maxWidth);
+    };
 
-    autoTable(doc, {
-      startY: 34,
-      head: [["Severity", "Vulnerability", "Host", "CVEs", "Found"]],
-      body: detailData,
-      theme: "striped",
-      headStyles: { fillColor: [59, 130, 246] },
-      styles: { fontSize: 8 },
-      columnStyles: {
-        0: { cellWidth: 20, halign: "center" },
-      },
-      didParseCell: (data) => {
-        if (data.section === "body" && data.column.index === 0) {
-          const severity = (data.cell.raw as string).toLowerCase();
-          data.cell.styles.textColor = getSeverityColor(severity);
-          data.cell.styles.fontStyle = "bold";
-        }
+    // Helper to truncate URL for display
+    const truncateUrl = (url: string, maxLen: number = 80): string => {
+      if (!url || url.length <= maxLen) return url || "-";
+      return url.substring(0, maxLen - 3) + "...";
+    };
+
+    let currentY = 36;
+    const margin = 14;
+    const contentWidth = pageWidth - margin * 2;
+    const labelWidth = 30;
+    const valueWidth = contentWidth - labelWidth - 5;
+
+    // Render each finding with full details
+    sortedResults.forEach((result, index) => {
+      // Check if we need a new page
+      if (currentY > pageHeight - 60) {
+        doc.addPage();
+        currentY = 20;
       }
+
+      // Finding header with severity badge
+      const severityColor = getSeverityColor(result.severity?.toLowerCase() || "unknown");
+
+      // Draw severity badge background
+      doc.setFillColor(...severityColor);
+      doc.roundedRect(margin, currentY - 4, 55, 8, 1, 1, "F");
+
+      doc.setFontSize(9);
+      doc.setTextColor(255, 255, 255);
+      doc.text(`${(result.severity || "UNKNOWN").toUpperCase()}`, margin + 2, currentY + 1);
+
+      doc.setTextColor(33, 33, 33);
+      doc.setFontSize(11);
+      doc.setFont(undefined, "bold");
+      const titleLines = wrapText(`#${index + 1}: ${result.template_name || result.template_id || "Unknown Vulnerability"}`, contentWidth - 60);
+      doc.text(titleLines, margin + 60, currentY + 1);
+      doc.setFont(undefined, "normal");
+      currentY += Math.max(titleLines.length * 5, 8) + 4;
+
+      // Template ID
+      if (result.template_id) {
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Template: ${result.template_id}`, margin, currentY);
+        currentY += 5;
+      }
+
+      // Host
+      doc.setFontSize(9);
+      doc.setTextColor(33, 33, 33);
+      doc.setFont(undefined, "bold");
+      doc.text("Host:", margin, currentY);
+      doc.setFont(undefined, "normal");
+      doc.text(result.host || "-", margin + labelWidth, currentY);
+      currentY += 5;
+
+      // Matched URL
+      if (result.matched_url && result.matched_url !== result.host) {
+        doc.setFont(undefined, "bold");
+        doc.text("Matched URL:", margin, currentY);
+        doc.setFont(undefined, "normal");
+        const urlLines = wrapText(result.matched_url, valueWidth);
+        doc.text(urlLines, margin + labelWidth, currentY);
+        currentY += urlLines.length * 4 + 2;
+      }
+
+      // CVE IDs
+      if (result.cve_ids && result.cve_ids.length > 0) {
+        if (currentY > pageHeight - 30) { doc.addPage(); currentY = 20; }
+        doc.setFont(undefined, "bold");
+        doc.text("CVE IDs:", margin, currentY);
+        doc.setFont(undefined, "normal");
+        doc.setTextColor(59, 130, 246);
+        const cveText = result.cve_ids.join(", ");
+        const cveLines = wrapText(cveText, valueWidth);
+        doc.text(cveLines, margin + labelWidth, currentY);
+        doc.setTextColor(33, 33, 33);
+        currentY += cveLines.length * 4 + 2;
+      }
+
+      // Tags
+      if (result.tags && result.tags.length > 0) {
+        if (currentY > pageHeight - 30) { doc.addPage(); currentY = 20; }
+        doc.setFont(undefined, "bold");
+        doc.text("Tags:", margin, currentY);
+        doc.setFont(undefined, "normal");
+        const tagsText = result.tags.join(", ");
+        const tagsLines = wrapText(tagsText, valueWidth);
+        doc.text(tagsLines, margin + labelWidth, currentY);
+        currentY += tagsLines.length * 4 + 2;
+      }
+
+      // Description - full content
+      if (result.description) {
+        if (currentY > pageHeight - 20) { doc.addPage(); currentY = 20; }
+        doc.setFont(undefined, "bold");
+        doc.text("Description:", margin, currentY);
+        doc.setFont(undefined, "normal");
+        currentY += 5;
+        const descLines = wrapText(result.description, contentWidth);
+        // Print all lines with page breaks as needed
+        descLines.forEach((line: string) => {
+          if (currentY > pageHeight - 15) { doc.addPage(); currentY = 20; }
+          doc.text(line, margin, currentY);
+          currentY += 4;
+        });
+        currentY += 2;
+      }
+
+      // Solution - full content
+      if (result.solution) {
+        if (currentY > pageHeight - 20) { doc.addPage(); currentY = 20; }
+        doc.setFont(undefined, "bold");
+        doc.text("Solution:", margin, currentY);
+        doc.setFont(undefined, "normal");
+        currentY += 5;
+        const solLines = wrapText(result.solution, contentWidth);
+        solLines.forEach((line: string) => {
+          if (currentY > pageHeight - 15) { doc.addPage(); currentY = 20; }
+          doc.text(line, margin, currentY);
+          currentY += 4;
+        });
+        currentY += 2;
+      }
+
+      // References - all references
+      if (result.references && result.references.length > 0) {
+        if (currentY > pageHeight - 20) { doc.addPage(); currentY = 20; }
+        doc.setFont(undefined, "bold");
+        doc.text("References:", margin, currentY);
+        doc.setFont(undefined, "normal");
+        currentY += 5;
+        result.references.forEach(ref => {
+          if (currentY > pageHeight - 15) { doc.addPage(); currentY = 20; }
+          doc.setTextColor(59, 130, 246);
+          const refLines = wrapText(`• ${ref}`, contentWidth - 4);
+          refLines.forEach((line: string) => {
+            if (currentY > pageHeight - 15) { doc.addPage(); currentY = 20; }
+            doc.text(line, margin + 2, currentY);
+            currentY += 4;
+          });
+        });
+        doc.setTextColor(33, 33, 33);
+        currentY += 2;
+      }
+
+      // Extracted Results - full content
+      if (result.extracted_results) {
+        if (currentY > pageHeight - 20) { doc.addPage(); currentY = 20; }
+        doc.setFont(undefined, "bold");
+        doc.text("Extracted Results:", margin, currentY);
+        doc.setFont(undefined, "normal");
+        currentY += 5;
+        const extractedLines = wrapText(result.extracted_results, contentWidth);
+        doc.setFontSize(8);
+        extractedLines.forEach((line: string) => {
+          if (currentY > pageHeight - 15) { doc.addPage(); currentY = 20; }
+          doc.text(line, margin, currentY);
+          currentY += 3.5;
+        });
+        doc.setFontSize(9);
+        currentY += 2;
+      }
+
+      // cURL Command - full content (Reproduce section)
+      if (result.curl_command) {
+        if (currentY > pageHeight - 20) { doc.addPage(); currentY = 20; }
+        doc.setFont(undefined, "bold");
+        doc.text("Reproduce (cURL):", margin, currentY);
+        doc.setFont(undefined, "normal");
+        currentY += 5;
+        doc.setFontSize(7);
+        doc.setTextColor(60, 60, 60);
+        // Draw a light background for the code block
+        const curlLines = wrapText(result.curl_command, contentWidth - 4);
+        const codeBlockHeight = curlLines.length * 3.5 + 4;
+
+        // Check if we need a new page for the code block
+        if (currentY + codeBlockHeight > pageHeight - 15) {
+          doc.addPage();
+          currentY = 20;
+        }
+
+        doc.setFillColor(245, 245, 245);
+        doc.roundedRect(margin, currentY - 2, contentWidth, Math.min(codeBlockHeight, pageHeight - currentY - 10), 2, 2, "F");
+
+        curlLines.forEach((line: string) => {
+          if (currentY > pageHeight - 15) {
+            doc.addPage();
+            currentY = 20;
+            // Redraw background on new page
+            doc.setFillColor(245, 245, 245);
+            const remainingLines = curlLines.length;
+            doc.roundedRect(margin, currentY - 2, contentWidth, remainingLines * 3.5 + 4, 2, 2, "F");
+          }
+          doc.text(line, margin + 2, currentY);
+          currentY += 3.5;
+        });
+        doc.setFontSize(9);
+        doc.setTextColor(33, 33, 33);
+        currentY += 4;
+      }
+
+      // Raw Data JSON - full content
+      if (result.raw_data && Object.keys(result.raw_data).length > 0) {
+        if (currentY > pageHeight - 20) { doc.addPage(); currentY = 20; }
+        doc.setFont(undefined, "bold");
+        doc.text("Raw Data:", margin, currentY);
+        doc.setFont(undefined, "normal");
+        currentY += 5;
+        doc.setFontSize(6);
+        doc.setTextColor(60, 60, 60);
+
+        const rawJson = JSON.stringify(result.raw_data, null, 2);
+        const rawLines = wrapText(rawJson, contentWidth - 4);
+
+        // Draw background for JSON block
+        const jsonBlockHeight = Math.min(rawLines.length * 3, 100); // Cap at ~33 lines visible
+        if (currentY + 10 > pageHeight - 15) {
+          doc.addPage();
+          currentY = 20;
+        }
+        doc.setFillColor(250, 250, 250);
+        doc.roundedRect(margin, currentY - 2, contentWidth, jsonBlockHeight + 4, 2, 2, "F");
+
+        rawLines.forEach((line: string, idx: number) => {
+          if (currentY > pageHeight - 15) {
+            doc.addPage();
+            currentY = 20;
+          }
+          doc.text(line, margin + 2, currentY);
+          currentY += 3;
+        });
+        doc.setFontSize(9);
+        doc.setTextColor(33, 33, 33);
+        currentY += 4;
+      }
+
+      // Timestamps section
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      if (result.host) {
+        if (currentY > pageHeight - 20) { doc.addPage(); currentY = 20; }
+        doc.text(`Host: ${result.host}`, margin, currentY);
+        currentY += 4;
+      }
+      if (result.created) {
+        doc.text(`Found: ${new Date(result.created).toLocaleString()}`, margin, currentY);
+        currentY += 4;
+      }
+      if (result.matched_at) {
+        doc.text(`Matched at: ${new Date(result.matched_at).toLocaleString()}`, margin, currentY);
+        currentY += 4;
+      }
+      if (result.scan_id) {
+        doc.text(`Scan ID: ${result.scan_id}`, margin, currentY);
+        currentY += 4;
+      }
+      doc.setTextColor(33, 33, 33);
+      doc.setFontSize(9);
+
+      // Divider line between findings
+      doc.setDrawColor(220, 220, 220);
+      doc.line(margin, currentY + 2, pageWidth - margin, currentY + 2);
+      currentY += 10;
     });
 
     // ==================== FINAL PAGE: Recommendations ====================
-    const currentY = (doc as any).lastAutoTable.finalY + 15;
+    // Add a new page for recommendations after detailed findings
+    doc.addPage();
 
-    // Check if we need a new page
-    if (currentY > pageHeight - 80) {
-      doc.addPage();
-      doc.setFontSize(16);
-      doc.setTextColor(33, 33, 33);
-      doc.text("Recommendations", 14, 20);
-    } else {
-      doc.setFontSize(16);
-      doc.setTextColor(33, 33, 33);
-      doc.text("Recommendations", 14, currentY);
-    }
+    doc.setFontSize(16);
+    doc.setTextColor(33, 33, 33);
+    doc.text("Recommendations", 14, 20);
 
-    const recStartY = currentY > pageHeight - 80 ? 28 : currentY + 8;
+    const recStartY = 28;
     doc.setFontSize(10);
     doc.setTextColor(60, 60, 60);
 

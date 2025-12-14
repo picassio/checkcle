@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -46,6 +47,7 @@ export function CreateSecurityScanDialog({
   const [formData, setFormData] = useState({
     name: '',
     target_url: '',
+    target_urls_text: '', // Textarea input for multiple URLs (one per line)
     template_tags: [] as string[],
     exclude_tags: [] as string[],
     severity_filter: [] as string[],
@@ -89,9 +91,13 @@ export function CreateSecurityScanDialog({
         ? editScan.notification_id.split(',').filter(Boolean)
         : [];
 
+      // Convert target_urls array to text (one URL per line)
+      const targetUrlsText = editScan.target_urls?.join('\n') || '';
+
       setFormData({
         name: editScan.name,
         target_url: editScan.target_url,
+        target_urls_text: targetUrlsText,
         template_tags: editScan.template_tags || [],
         exclude_tags: editScan.exclude_tags || [],
         severity_filter: editScan.severity_filter || [],
@@ -121,6 +127,7 @@ export function CreateSecurityScanDialog({
       setFormData({
         name: '',
         target_url: '',
+        target_urls_text: '',
         template_tags: [],
         exclude_tags: [],
         severity_filter: ['critical', 'high'],
@@ -146,33 +153,44 @@ export function CreateSecurityScanDialog({
   }, [editScan, open]);
 
   // Transform form data to API format
-  const transformFormData = (data: typeof formData) => ({
-    name: data.name,
-    target_url: data.target_url,
-    template_tags: data.template_tags,
-    exclude_tags: data.exclude_tags,
-    severity_filter: data.severity_filter,
-    scan_interval: data.scan_interval,
-    status: data.status,
-    // Convert notification channels array to comma-separated string
-    notification_id: data.notification_enabled ? data.notification_channels.join(',') : '',
-    // Rate limit settings
-    rate_limit: data.rate_limit,
-    bulk_size: data.bulk_size,
-    concurrency: data.concurrency,
-    timeout: data.timeout,
-    // Deep scan settings
-    scan_mode: data.scan_mode,
-    crawl_enabled: data.crawl_enabled,
-    crawl_depth: data.crawl_depth,
-    crawl_max_pages: data.crawl_max_pages,
-    headless_enabled: data.headless_enabled,
-    automatic_scan: data.automatic_scan,
-    dast_enabled: data.dast_enabled,
-    scan_all_ips: data.scan_all_ips,
-    // Request customization
-    user_agent: data.user_agent,
-  });
+  const transformFormData = (data: typeof formData) => {
+    // Parse URL list from textarea (one URL per line)
+    const targetUrls = data.scan_mode === 'url_list' && data.target_urls_text
+      ? data.target_urls_text
+          .split('\n')
+          .map(url => url.trim())
+          .filter(url => url.length > 0 && (url.startsWith('http://') || url.startsWith('https://')))
+      : [];
+
+    return {
+      name: data.name,
+      target_url: data.target_url,
+      target_urls: targetUrls,
+      template_tags: data.template_tags,
+      exclude_tags: data.exclude_tags,
+      severity_filter: data.severity_filter,
+      scan_interval: data.scan_interval,
+      status: data.status,
+      // Convert notification channels array to comma-separated string
+      notification_id: data.notification_enabled ? data.notification_channels.join(',') : '',
+      // Rate limit settings
+      rate_limit: data.rate_limit,
+      bulk_size: data.bulk_size,
+      concurrency: data.concurrency,
+      timeout: data.timeout,
+      // Deep scan settings
+      scan_mode: data.scan_mode,
+      crawl_enabled: data.crawl_enabled,
+      crawl_depth: data.crawl_depth,
+      crawl_max_pages: data.crawl_max_pages,
+      headless_enabled: data.headless_enabled,
+      automatic_scan: data.automatic_scan,
+      dast_enabled: data.dast_enabled,
+      scan_all_ips: data.scan_all_ips,
+      // Request customization
+      user_agent: data.user_agent,
+    };
+  };
 
   const createMutation = useMutation({
     mutationFn: (data: typeof formData) => securityService.createScan(transformFormData(data)),
@@ -533,6 +551,38 @@ export function CreateSecurityScanDialog({
                   ))}
                 </RadioGroup>
               </div>
+
+              {/* URL List Input - shown when url_list mode is selected */}
+              {formData.scan_mode === 'url_list' && (
+                <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                  <Label className="text-base font-semibold">URL List</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Enter URLs to scan, one per line. Each URL must start with http:// or https://
+                  </p>
+                  <Textarea
+                    placeholder={`https://example.com/page1\nhttps://example.com/page2\nhttps://example.com/api/endpoint`}
+                    value={formData.target_urls_text}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, target_urls_text: e.target.value }))
+                    }
+                    rows={8}
+                    className="font-mono text-sm"
+                  />
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>
+                      {formData.target_urls_text
+                        ? formData.target_urls_text
+                            .split('\n')
+                            .filter(url => url.trim() && (url.trim().startsWith('http://') || url.trim().startsWith('https://')))
+                            .length
+                        : 0} valid URLs
+                    </span>
+                    <span>
+                      The main Target URL above will also be included
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Crawl Settings - shown when crawl mode is selected */}
               {formData.scan_mode === 'crawl' && (

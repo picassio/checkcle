@@ -1,11 +1,12 @@
 // Scan mode types
-export type ScanMode = 'single' | 'crawl' | 'automatic' | 'headless' | 'dast';
+export type ScanMode = 'single' | 'crawl' | 'automatic' | 'headless' | 'dast' | 'url_list';
 
 // Security scan configuration
 export interface SecurityScan {
   id: string;
   name: string;
   target_url: string;
+  target_urls: string[];        // Multiple URLs to scan (alternative to single target_url)
   template_tags: string[];
   exclude_tags: string[];
   severity_filter: string[];
@@ -23,7 +24,7 @@ export interface SecurityScan {
   concurrency: number;  // concurrent hosts (default 25)
   timeout: number;      // scan timeout in seconds (default 3600)
   // Deep scanning options
-  scan_mode: ScanMode;          // single, crawl, automatic, headless, dast
+  scan_mode: ScanMode;          // single, crawl, automatic, headless, dast, url_list
   crawl_enabled: boolean;       // Enable Katana crawling before scan
   crawl_depth: number;          // Max crawl depth (default 3)
   crawl_max_pages: number;      // Max pages to crawl (default 100)
@@ -105,6 +106,7 @@ export interface SeverityCounts {
 export interface CreateSecurityScanRequest {
   name: string;
   target_url: string;
+  target_urls?: string[];  // Multiple URLs to scan
   template_tags?: string[];
   exclude_tags?: string[];
   severity_filter?: string[];
@@ -132,6 +134,7 @@ export interface CreateSecurityScanRequest {
 export interface UpdateSecurityScanRequest {
   name?: string;
   target_url?: string;
+  target_urls?: string[];  // Multiple URLs to scan
   template_tags?: string[];
   exclude_tags?: string[];
   severity_filter?: string[];
@@ -582,6 +585,12 @@ export const scanModeOptions: { value: ScanMode; label: string; description: str
     label: 'Single URL',
     description: 'Scan only the specified URL (fastest)',
     notice: 'For thorough scanning, select template tags in Basic tab. Without tags, scans all ~9000 templates (slower but comprehensive).',
+  },
+  {
+    value: 'url_list',
+    label: 'URL List',
+    description: 'Scan multiple URLs from a provided list',
+    notice: 'Enter one URL per line in the URL List field below. All URLs will be scanned with the selected templates.',
   },
   {
     value: 'crawl',

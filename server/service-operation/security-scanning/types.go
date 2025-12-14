@@ -7,6 +7,7 @@ type SecurityScan struct {
 	ID             string   `json:"id"`
 	Name           string   `json:"name"`
 	TargetURL      string   `json:"target_url"`
+	TargetURLs     []string `json:"target_urls"`     // Multiple URLs to scan (alternative to single target_url)
 	TemplateTags   []string `json:"template_tags"`   // e.g., ["cve", "xss", "sqli"]
 	ExcludeTags    []string `json:"exclude_tags"`    // Templates to exclude
 	SeverityFilter []string `json:"severity_filter"` // e.g., ["critical", "high"]
@@ -24,7 +25,7 @@ type SecurityScan struct {
 	Concurrency int `json:"concurrency"`  // concurrent hosts (default 10)
 	Timeout     int `json:"timeout"`      // scan timeout in seconds (default 3600)
 	// Deep scanning options
-	ScanMode        string `json:"scan_mode"`         // single, crawl, automatic, headless, dast
+	ScanMode        string `json:"scan_mode"`         // single, crawl, automatic, headless, dast, url_list
 	CrawlEnabled    bool   `json:"crawl_enabled"`     // Enable Katana crawling before scan
 	CrawlDepth      int    `json:"crawl_depth"`       // Max crawl depth (default 3)
 	CrawlMaxPages   int    `json:"crawl_max_pages"`   // Max pages to crawl (default 100)
