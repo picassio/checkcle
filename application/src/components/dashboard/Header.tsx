@@ -3,11 +3,11 @@ import { AuthUser } from "@/services/authService";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Moon, PanelLeft, PanelLeftClose, Sun, Globe, FileText, Github, Twitter, MessageSquare, Bell, User, Settings, LogOut, Menu } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useBranding } from "@/contexts/BrandingContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
-import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 interface HeaderProps {
   currentUser: AuthUser | null;
@@ -26,8 +26,8 @@ export const Header = ({
 }: HeaderProps) => {
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
+  const branding = useBranding();
   const [greeting, setGreeting] = useState<string>("");
-  const { systemName } = useSystemSettings();
   const navigate = useNavigate();
 
   // Set greeting based on time of day
@@ -136,48 +136,56 @@ export const Header = ({
         </DropdownMenu>
         
         {/* Documentation - hidden on mobile */}
-        <Button
-          variant="outline"
-          size="icon"
-          className="hidden md:flex rounded-full w-8 h-8 border-border"
-          onClick={() => window.open("https://docs.checkcle.io", "_blank")}
-        >
-          <span className="sr-only">{t("documentation")}</span>
-          <FileText className="w-4 h-4" />
-        </Button>
+        {branding.showSocialLinks && branding.showHeaderSocialLinks && branding.showDocsLink && branding.docsUrl && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="hidden md:flex rounded-full w-8 h-8 border-border"
+            onClick={() => window.open(branding.docsUrl, "_blank")}
+          >
+            <span className="sr-only">{t("documentation")}</span>
+            <FileText className="w-4 h-4" />
+          </Button>
+        )}
 
         {/* GitHub - hidden on mobile */}
-        <Button
-          variant="outline"
-          size="icon"
-          className="hidden md:flex rounded-full w-8 h-8 border-border"
-          onClick={() => window.open("https://github.com/operacle/checkcle", "_blank")}
-        >
-          <span className="sr-only">GitHub</span>
-          <Github className="w-4 h-4" />
-        </Button>
+        {branding.showSocialLinks && branding.showHeaderSocialLinks && branding.showGithubLink && branding.githubUrl && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="hidden md:flex rounded-full w-8 h-8 border-border"
+            onClick={() => window.open(branding.githubUrl, "_blank")}
+          >
+            <span className="sr-only">GitHub</span>
+            <Github className="w-4 h-4" />
+          </Button>
+        )}
 
         {/* X (Twitter) - hidden on mobile */}
-        <Button
-          variant="outline"
-          size="icon"
-          className="hidden lg:flex rounded-full w-8 h-8 border-border"
-          onClick={() => window.open("https://x.com/checkcle_oss", "_blank")}
-        >
-          <span className="sr-only">X (Twitter)</span>
-          <Twitter className="w-4 h-4" />
-        </Button>
+        {branding.showSocialLinks && branding.showHeaderSocialLinks && branding.showTwitterLink && branding.twitterUrl && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="hidden lg:flex rounded-full w-8 h-8 border-border"
+            onClick={() => window.open(branding.twitterUrl, "_blank")}
+          >
+            <span className="sr-only">X (Twitter)</span>
+            <Twitter className="w-4 h-4" />
+          </Button>
+        )}
 
         {/* Discord - hidden on mobile */}
-        <Button
-          variant="outline"
-          size="icon"
-          className="hidden lg:flex rounded-full w-8 h-8 border-border"
-          onClick={() => window.open("https://discord.gg/xs9gbubGwX", "_blank")}
-        >
-          <span className="sr-only">Discord</span>
-          <MessageSquare className="w-4 h-4" />
-        </Button>
+        {branding.showSocialLinks && branding.showHeaderSocialLinks && branding.showDiscordLink && branding.discordUrl && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="hidden lg:flex rounded-full w-8 h-8 border-border"
+            onClick={() => window.open(branding.discordUrl, "_blank")}
+          >
+            <span className="sr-only">Discord</span>
+            <MessageSquare className="w-4 h-4" />
+          </Button>
+        )}
 
         {/* Notifications */}
         <Button variant="outline" size="icon" className="rounded-full w-8 h-8 border-border">

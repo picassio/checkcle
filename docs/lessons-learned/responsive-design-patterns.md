@@ -424,6 +424,7 @@ Stack content vertically and move actions to a separate row.
 
 ### Components Updated
 - `GeneralSettingsPanel.tsx` - Responsive tabs and buttons
+- `BrandingSettings.tsx` - Horizontal scrolling tabs, responsive grid inputs, responsive buttons
 - `UserManagement.tsx` - Responsive accordion and header
 - `NotificationSettings.tsx` - Horizontal scrolling tabs, responsive header
 - `AlertsTemplates.tsx` - Horizontal scrolling tabs, responsive buttons

@@ -1,8 +1,7 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { settingsService } from '@/services/settingsService';
+import React, { createContext, useContext, useState } from 'react';
 
-const SIDEBAR_COLLAPSED_KEY = 'checkcle_sidebar_collapsed';
+const SIDEBAR_COLLAPSED_KEY = 'sidebar_collapsed';
 
 interface SidebarContextType {
   sidebarCollapsed: boolean;
@@ -11,8 +10,6 @@ interface SidebarContextType {
   mobileOpen: boolean;
   setMobileOpen: (open: boolean) => void;
   toggleMobile: () => void;
-  appName: string;
-  appLogo: string | null;
 }
 
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
@@ -27,8 +24,6 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({ child
   });
 
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [appName, setAppName] = useState('CheckCle');
-  const [appLogo, setAppLogo] = useState<string | null>(null);
 
   const setSidebarCollapsed = (collapsed: boolean) => {
     setSidebarCollapsedState(collapsed);
@@ -47,28 +42,6 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setMobileOpen(!mobileOpen);
   };
 
-  // Fetch app name from settings
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const settings = await settingsService.getGeneralSettings();
-        if (settings) {
-          if (settings.meta?.appName) {
-            setAppName(settings.meta.appName);
-          } else if (settings.system_name) {
-            setAppName(settings.system_name);
-          }
-          if (settings.logo_url) {
-            setAppLogo(settings.logo_url);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch settings for sidebar:', error);
-      }
-    };
-    fetchSettings();
-  }, []);
-
   const value = {
     sidebarCollapsed,
     setSidebarCollapsed,
@@ -76,8 +49,6 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({ child
     mobileOpen,
     setMobileOpen,
     toggleMobile,
-    appName,
-    appLogo
   };
 
   return (

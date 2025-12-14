@@ -11,6 +11,7 @@ export interface MenuTranslations {
   securityScanning: string;
   settingPanel: string;
   generalSettings: string;
+  brandingSettings: string;
   userManagement: string;
   notificationSettings: string;
   alertsTemplates: string;

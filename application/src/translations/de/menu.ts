@@ -15,6 +15,7 @@ export const menuTranslations: MenuTranslations = {
   // Einstellungen-Panel
   settingPanel: "Einstellungsbereich",
   generalSettings: "Allgemeine Einstellungen",
+  brandingSettings: "Branding",
   userManagement: "Benutzerverwaltung",
   notificationSettings: "Benachrichtigungseinstellungen",
   alertsTemplates: "Alarmvorlagen",

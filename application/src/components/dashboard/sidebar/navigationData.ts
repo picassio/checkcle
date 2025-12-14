@@ -1,5 +1,5 @@
 
-import { Globe, Boxes, Layers, Calendar, BarChart2, LineChart, MapPin, Settings, User, Bell, Database, Info, BookOpen, Gauge, Shield } from "lucide-react";
+import { Globe, Boxes, Layers, Calendar, BarChart2, LineChart, MapPin, Settings, User, Bell, Database, Info, BookOpen, Gauge, Shield, Palette } from "lucide-react";
 
 export const mainMenuItems = [
   {
@@ -81,6 +81,11 @@ export const settingsMenuItems = [
     id: 'general',
     icon: Settings,
     translationKey: 'generalSettings'
+  },
+  {
+    id: 'branding',
+    icon: Palette,
+    translationKey: 'brandingSettings'
   },
   {
     id: 'users',

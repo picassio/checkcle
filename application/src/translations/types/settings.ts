@@ -161,4 +161,39 @@ export interface SettingsTranslations {
   serverRetentionHelp: string;
   lastCleanup: string;
   // save: string;
+
+  // Branding Settings
+  brandingSettingsDesc?: string;
+  brandingSettingsSaved?: string;
+  brandingPermissionNotice?: string;
+  appearance?: string;
+  socialLinks?: string;
+  emailBranding?: string;
+  appNameDesc?: string;
+  sidebarLogoUrl?: string;
+  sidebarLogoUrlDesc?: string;
+  loginLogoUrl?: string;
+  loginLogoUrlDesc?: string;
+  faviconUrl?: string;
+  faviconUrlDesc?: string;
+  appDescription?: string;
+  appDescriptionDesc?: string;
+  preview?: string;
+  sidebarLogo?: string;
+  loginLogo?: string;
+  showSocialLinks?: string;
+  showSocialLinksDesc?: string;
+  githubUrl?: string;
+  twitterUrl?: string;
+  discordUrl?: string;
+  docsUrl?: string;
+  linkVisibility?: string;
+  showLoginSocialLinks?: string;
+  showLoginSocialLinksDesc?: string;
+  showHeaderSocialLinks?: string;
+  showHeaderSocialLinksDesc?: string;
+  emailSenderNameBrandingDesc?: string;
+  emailFooterText?: string;
+  emailFooterTextDesc?: string;
+  emailPreview?: string;
 }

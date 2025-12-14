@@ -1,7 +1,7 @@
 
 import React from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useSidebar } from "@/contexts/SidebarContext";
+import { useBranding } from "@/contexts/BrandingContext";
 
 interface SidebarHeaderProps {
   collapsed: boolean;
@@ -9,13 +9,13 @@ interface SidebarHeaderProps {
 
 export const SidebarHeader: React.FC<SidebarHeaderProps> = ({ collapsed }) => {
   const { theme } = useTheme();
-  const { appName, appLogo } = useSidebar();
+  const { appName, logoUrl } = useBranding();
 
   return (
     <div className={`p-4 ${theme === 'dark' ? 'border-[#1e1e1e]' : 'border-sidebar-border'} border-b flex items-center ${collapsed ? 'justify-center' : ''}`}>
       <div className="h-8 w-8 bg-gray-600 rounded flex items-center justify-center mr-2 flex-shrink-0">
         <img
-          src={appLogo || "/favicon_sidebar.ico"}
+          src={logoUrl || "/favicon_sidebar.ico"}
           alt={appName}
           className="h-6 w-6"
         />

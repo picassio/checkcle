@@ -12,6 +12,7 @@ export const menuTranslations: MenuTranslations = {
   securityScanning: "セキュリティスキャン",
   settingPanel: "設定パネル",
   generalSettings: "一般設定",
+  brandingSettings: "ブランディング",
   userManagement: "ユーザー管理",
   notificationSettings: "通知設定",
   alertsTemplates: "アラートテンプレート",

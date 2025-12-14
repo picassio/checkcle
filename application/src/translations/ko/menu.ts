@@ -13,6 +13,7 @@ export const menuTranslations: MenuTranslations = {
   securityScanning: "보안 스캔",
   settingPanel: "설정 패널",
   generalSettings: "일반 설정",
+  brandingSettings: "브랜딩",
   userManagement: "사용자 관리",
   notificationSettings: "알림 설정",
   alertsTemplates: "알림 템플릿",

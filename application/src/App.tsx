@@ -6,6 +6,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { SidebarProvider } from './contexts/SidebarContext';
+import { BrandingProvider } from './contexts/BrandingContext';
 
 import Index from './pages/Index';
 import Login from './pages/Login';
@@ -41,10 +42,11 @@ function App() {
     <BrowserRouter>
       <ThemeProvider>
         <LanguageProvider>
-          <SidebarProvider>
-            <QueryClientProvider client={queryClient}>
-              <Toaster />
-              <Routes>
+          <BrandingProvider>
+            <SidebarProvider>
+              <QueryClientProvider client={queryClient}>
+                <Toaster />
+                <Routes>
                 {/* Public routes */}
                 <Route path="/public/:slug" element={<PublicStatusPage />} />
                 
@@ -68,9 +70,10 @@ function App() {
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
-              </Routes>
-            </QueryClientProvider>
-          </SidebarProvider>
+                </Routes>
+              </QueryClientProvider>
+            </SidebarProvider>
+          </BrandingProvider>
         </LanguageProvider>
       </ThemeProvider>
     </BrowserRouter>

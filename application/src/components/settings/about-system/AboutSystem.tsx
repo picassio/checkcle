@@ -7,14 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { useBranding } from "@/contexts/BrandingContext";
 import { pb } from "@/lib/pocketbase";
 import { toast } from "@/components/ui/use-toast";
 
 export const AboutSystem: React.FC = () => {
   const { t } = useLanguage();
   const { theme } = useTheme();
-  const { systemName } = useSystemSettings();
+  const branding = useBranding();
   const [isImporting, setIsImporting] = useState(false);
   const [mergeFields, setMergeFields] = useState(true);
   const [importResult, setImportResult] = useState<{
@@ -324,26 +324,34 @@ export const AboutSystem: React.FC = () => {
               <Code2 className={`h-5 w-5 ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'}`} />
               <span>{t('links')}</span>
             </CardTitle>
-            <CardDescription className="font-medium text-sm md:text-base">{systemName || 'CheckCle'} {t('resources').toLowerCase()}</CardDescription>
+            <CardDescription className="font-medium text-sm md:text-base">{branding.appName} {t('resources').toLowerCase()}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 md:space-y-4 pt-4 md:pt-6 p-4 md:p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 gap-2 md:gap-3">
-              <Button variant="outline" className="flex items-center justify-start gap-2 md:gap-3 h-10 md:h-12 hover:bg-muted/50 transition-all duration-200 text-sm md:text-base" onClick={() => window.open("https://github.com/operacle/checkcle", "_blank")}>
-                <Github className={`h-4 w-4 md:h-5 md:w-5 ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`} />
-                <span>{t('viewOnGithub')}</span>
-              </Button>
-              <Button variant="outline" className="flex items-center justify-start gap-2 md:gap-3 h-10 md:h-12 hover:bg-muted/50 transition-all duration-200 text-sm md:text-base" onClick={() => window.open("https://docs.checkcle.io", "_blank")}>
-                <FileText className={`h-4 w-4 md:h-5 md:w-5 ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`} />
-                <span>{t('viewDocumentation')}</span>
-              </Button>
-              <Button variant="outline" className="flex items-center justify-start gap-2 md:gap-3 h-10 md:h-12 hover:bg-muted/50 transition-all duration-200 text-sm md:text-base" onClick={() => window.open("https://x.com/checkcle_oss", "_blank")}>
-                <Twitter className={`h-4 w-4 md:h-5 md:w-5 ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`} />
-                <span>{t('followOnX')}</span>
-              </Button>
-              <Button variant="outline" className="flex items-center justify-start gap-2 md:gap-3 h-10 md:h-12 hover:bg-muted/50 transition-all duration-200 text-sm md:text-base" onClick={() => window.open("https://discord.gg/xs9gbubGwX", "_blank")}>
-                <MessageCircle className={`h-4 w-4 md:h-5 md:w-5 ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`} />
-                <span>{t('joinDiscord')}</span>
-              </Button>
+              {branding.showGithubLink && branding.githubUrl && (
+                <Button variant="outline" className="flex items-center justify-start gap-2 md:gap-3 h-10 md:h-12 hover:bg-muted/50 transition-all duration-200 text-sm md:text-base" onClick={() => window.open(branding.githubUrl, "_blank")}>
+                  <Github className={`h-4 w-4 md:h-5 md:w-5 ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`} />
+                  <span>{t('viewOnGithub')}</span>
+                </Button>
+              )}
+              {branding.showDocsLink && branding.docsUrl && (
+                <Button variant="outline" className="flex items-center justify-start gap-2 md:gap-3 h-10 md:h-12 hover:bg-muted/50 transition-all duration-200 text-sm md:text-base" onClick={() => window.open(branding.docsUrl, "_blank")}>
+                  <FileText className={`h-4 w-4 md:h-5 md:w-5 ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`} />
+                  <span>{t('viewDocumentation')}</span>
+                </Button>
+              )}
+              {branding.showTwitterLink && branding.twitterUrl && (
+                <Button variant="outline" className="flex items-center justify-start gap-2 md:gap-3 h-10 md:h-12 hover:bg-muted/50 transition-all duration-200 text-sm md:text-base" onClick={() => window.open(branding.twitterUrl, "_blank")}>
+                  <Twitter className={`h-4 w-4 md:h-5 md:w-5 ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`} />
+                  <span>{t('followOnX')}</span>
+                </Button>
+              )}
+              {branding.showDiscordLink && branding.discordUrl && (
+                <Button variant="outline" className="flex items-center justify-start gap-2 md:gap-3 h-10 md:h-12 hover:bg-muted/50 transition-all duration-200 text-sm md:text-base" onClick={() => window.open(branding.discordUrl, "_blank")}>
+                  <MessageCircle className={`h-4 w-4 md:h-5 md:w-5 ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`} />
+                  <span>{t('joinDiscord')}</span>
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>

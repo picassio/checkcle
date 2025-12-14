@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/dashboard/Sidebar";
 import { authService } from "@/services/authService";
 import { useNavigate, useLocation } from "react-router-dom";
 import GeneralSettingsPanel from "@/components/settings/GeneralSettings";
+import { BrandingSettings } from "@/components/settings/branding";
 import UserManagement from "@/components/settings/user-management";
 import { NotificationSettings } from "@/components/settings/notification-settings";
 import { AlertsTemplates } from "@/components/settings/alerts-templates";
@@ -57,6 +58,7 @@ const Settings = () => {
         />
         <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
           {activePanel === "general" && <GeneralSettingsPanel />}
+          {activePanel === "branding" && <BrandingSettings />}
           {activePanel === "users" && <UserManagement />}
           {activePanel === "notifications" && <NotificationSettings />}
           {activePanel === "templates" && <AlertsTemplates />}

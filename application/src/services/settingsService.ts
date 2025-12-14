@@ -22,7 +22,7 @@ export interface GeneralSettings {
   enable_sms_notifications?: boolean;
   enable_two_factor?: boolean;
   enable_audit_logs?: boolean;
-  
+
   // New fields for additional settings
   meta?: {
     appName?: string;
@@ -40,6 +40,26 @@ export interface GeneralSettings {
     authMethod?: string;
     tls?: boolean;
     localName?: string;
+  };
+  // Branding settings
+  branding?: {
+    appDescription?: string;
+    logoUrl?: string;
+    faviconUrl?: string;
+    loginLogoUrl?: string;
+    showSocialLinks?: boolean;
+    githubUrl?: string;
+    twitterUrl?: string;
+    discordUrl?: string;
+    docsUrl?: string;
+    showGithubLink?: boolean;
+    showTwitterLink?: boolean;
+    showDiscordLink?: boolean;
+    showDocsLink?: boolean;
+    showLoginSocialLinks?: boolean;
+    showHeaderSocialLinks?: boolean;
+    emailSenderName?: string;
+    emailFooterText?: string;
   };
 }
 

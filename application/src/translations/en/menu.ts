@@ -13,6 +13,7 @@ export const menuTranslations: MenuTranslations = {
   securityScanning: "Security Scanning",
   settingPanel: "Setting Panel",
   generalSettings: "General Settings",
+  brandingSettings: "Branding",
   userManagement: "User Management",
   notificationSettings: "Notification Settings",
   alertsTemplates: "Alerts Templates",
