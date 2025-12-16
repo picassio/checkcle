@@ -249,6 +249,36 @@ func (c *SecurityClient) GetScansDueForRun() ([]SecurityScan, error) {
 
 // SaveResult saves a security result to PocketBase
 func (c *SecurityClient) SaveResult(result *SecurityResult) (string, error) {
+	// Truncate raw_data if it's too large (PocketBase has 100KB limit)
+	rawData := result.RawData
+	if rawData != nil {
+		rawDataBytes, _ := json.Marshal(rawData)
+		if len(rawDataBytes) > 90000 { // Leave some margin under 100KB
+			// Keep only essential fields and truncate large ones
+			truncatedData := make(map[string]interface{})
+			for key, value := range rawData {
+				if strVal, ok := value.(string); ok && len(strVal) > 5000 {
+					// Truncate large string values
+					truncatedData[key] = strVal[:5000] + "... [truncated]"
+				} else {
+					truncatedData[key] = value
+				}
+			}
+			// Check size again, if still too large, only keep minimal info
+			truncatedBytes, _ := json.Marshal(truncatedData)
+			if len(truncatedBytes) > 90000 {
+				rawData = map[string]interface{}{
+					"_note":       "Raw data truncated due to size limits",
+					"template_id": rawData["template_id"],
+					"type":        rawData["type"],
+					"ip":          rawData["ip"],
+				}
+			} else {
+				rawData = truncatedData
+			}
+		}
+	}
+
 	data := map[string]interface{}{
 		"scan_id":           result.ScanID,
 		"template_id":       result.TemplateID,
@@ -264,7 +294,7 @@ func (c *SecurityClient) SaveResult(result *SecurityResult) (string, error) {
 		"tags":              result.Tags,
 		"curl_command":      result.CurlCommand,
 		"extracted_results": result.ExtractedResults,
-		"raw_data":          result.RawData,
+		"raw_data":          rawData,
 	}
 
 	jsonData, err := json.Marshal(data)

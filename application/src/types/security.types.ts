@@ -71,6 +71,9 @@ export interface SecurityQueueItem {
   completed_at: string;
   error: string;
   findings_count: number;
+  scanned_urls_count: number;
+  scanned_urls_sample: string[];
+  scan_mode_used: string;
   created: string;
   updated: string;
 }

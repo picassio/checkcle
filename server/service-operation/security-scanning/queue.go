@@ -390,3 +390,43 @@ func (q *SecurityQueue) IsProcessing() bool {
 	current, err := q.GetCurrentProcessing()
 	return err == nil && current != nil
 }
+
+// UpdateScanMetadata updates the scan metadata for a queue item
+func (q *SecurityQueue) UpdateScanMetadata(itemID string, metadata *ScanMetadata) error {
+	if metadata == nil {
+		return nil
+	}
+
+	data := map[string]interface{}{
+		"scanned_urls_count":  metadata.ScannedURLsCount,
+		"scanned_urls_sample": metadata.ScannedURLsSample,
+		"scan_mode_used":      metadata.ScanModeUsed,
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("failed to marshal scan metadata: %w", err)
+	}
+
+	reqURL := fmt.Sprintf("%s/api/collections/security_queue/records/%s",
+		q.pbClient.GetBaseURL(), itemID)
+
+	req, err := http.NewRequest("PATCH", reqURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("failed to create PATCH request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := q.pbClient.GetHTTPClient().Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to update scan metadata: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed to update scan metadata, status: %d, response: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	return nil
+}

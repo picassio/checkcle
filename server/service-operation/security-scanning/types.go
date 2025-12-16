@@ -81,18 +81,21 @@ type SecurityResultsResponse struct {
 
 // SecurityQueueItem represents a scan in the queue
 type SecurityQueueItem struct {
-	ID            string `json:"id,omitempty"`
-	ScanID        string `json:"scan_id"`
-	Status        string `json:"status"` // pending, processing, completed, failed, cancelled, timeout
-	Priority      int    `json:"priority"`
-	Source        string `json:"source"` // scheduled, manual
-	QueuedAt      string `json:"queued_at"`
-	StartedAt     string `json:"started_at,omitempty"`
-	CompletedAt   string `json:"completed_at,omitempty"`
-	Error         string `json:"error,omitempty"`
-	FindingsCount int    `json:"findings_count"`
-	Created       string `json:"created,omitempty"`
-	Updated       string `json:"updated,omitempty"`
+	ID                string   `json:"id,omitempty"`
+	ScanID            string   `json:"scan_id"`
+	Status            string   `json:"status"` // pending, processing, completed, failed, cancelled, timeout
+	Priority          int      `json:"priority"`
+	Source            string   `json:"source"` // scheduled, manual
+	QueuedAt          string   `json:"queued_at"`
+	StartedAt         string   `json:"started_at,omitempty"`
+	CompletedAt       string   `json:"completed_at,omitempty"`
+	Error             string   `json:"error,omitempty"`
+	FindingsCount     int      `json:"findings_count"`
+	ScannedURLsCount  int      `json:"scanned_urls_count"`
+	ScannedURLsSample []string `json:"scanned_urls_sample"`
+	ScanModeUsed      string   `json:"scan_mode_used"`
+	Created           string   `json:"created,omitempty"`
+	Updated           string   `json:"updated,omitempty"`
 }
 
 // SecurityQueueResponse represents the response from PocketBase

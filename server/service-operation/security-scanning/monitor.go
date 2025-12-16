@@ -86,7 +86,7 @@ func (m *SecurityMonitor) Stop() {
 func (m *SecurityMonitor) processQueue() {
 	defer m.wg.Done()
 
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
 	for {
@@ -143,9 +143,9 @@ func (m *SecurityMonitor) processNextItem() {
 	// Update scan status to running
 	m.client.UpdateScanStatus(scan.ID, "running", nil, nil)
 
-	// Execute the scan
+	// Execute the scan with metadata
 	startTime := time.Now()
-	results, err := m.runner.ExecuteScan(*scan)
+	results, metadata, err := m.runner.ExecuteScanWithMetadata(*scan)
 	duration := time.Since(startTime)
 
 	if err != nil {
@@ -181,9 +181,14 @@ func (m *SecurityMonitor) processNextItem() {
 		}
 	}
 
-	// Update queue item
+	// Update queue item with status and metadata
 	m.queue.UpdateStatus(item.ID, "completed", "")
 	m.queue.UpdateFindingsCount(item.ID, len(results))
+	if metadata != nil {
+		if err := m.queue.UpdateScanMetadata(item.ID, metadata); err != nil {
+			log.Printf("[SecurityMonitor] Error updating scan metadata: %v", err)
+		}
+	}
 
 	// Calculate next scan time
 	var nextScan *time.Time

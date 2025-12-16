@@ -41,8 +41,8 @@ func NewPerformanceMonitor(pbClient *pocketbase.PocketBaseClient) *PerformanceMo
 		budgetChecker: budgetChecker,
 		notifier:      notifier,
 		queueClient:   queueClient,
-		checkInterval: 1 * time.Minute, // Check for due tests every minute
-		queueInterval: 5 * time.Second, // Check queue for processing every 5 seconds
+		checkInterval: 1 * time.Minute,  // Check for due tests every minute
+		queueInterval: 30 * time.Second, // Check queue for processing every 30 seconds
 		stopChan:      make(chan bool, 1),
 		isRunning:     false,
 		currentItem:   nil,

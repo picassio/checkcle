@@ -12,7 +12,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { RefreshCw, XCircle, Clock, PlayCircle, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { RefreshCw, XCircle, Clock, PlayCircle, CheckCircle, AlertCircle, Loader2, Link2, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState } from 'react';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -124,6 +130,52 @@ export function SecurityQueueStatus({ showDetails = true }: SecurityQueueStatusP
     );
   }
 
+  // Scanned URLs display component
+  const ScannedURLsInfo = ({ item }: { item: SecurityQueueItem }) => {
+    const [isOpen, setIsOpen] = useState(false);
+
+    if (!item.scanned_urls_count || item.scanned_urls_count === 0) return null;
+
+    return (
+      <Collapsible open={isOpen} onOpenChange={setIsOpen} className="mt-2">
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="sm" className="w-full justify-between text-xs h-7 px-2">
+            <span className="flex items-center gap-1">
+              <Link2 className="h-3 w-3" />
+              {item.scanned_urls_count} URL{item.scanned_urls_count !== 1 ? 's' : ''} scanned
+              {item.scan_mode_used && (
+                <Badge variant="outline" className="text-[10px] px-1 py-0 ml-1">
+                  {item.scan_mode_used}
+                </Badge>
+              )}
+            </span>
+            {isOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-1">
+          <div className="bg-muted rounded p-2 text-xs max-h-32 overflow-y-auto">
+            {item.scanned_urls_sample && item.scanned_urls_sample.length > 0 ? (
+              <>
+                {item.scanned_urls_sample.map((url, idx) => (
+                  <div key={idx} className="truncate text-muted-foreground py-0.5">
+                    {url}
+                  </div>
+                ))}
+                {item.scanned_urls_count > item.scanned_urls_sample.length && (
+                  <div className="text-muted-foreground italic mt-1">
+                    ... and {item.scanned_urls_count - item.scanned_urls_sample.length} more
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-muted-foreground">No URL samples available</div>
+            )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    );
+  };
+
   // Mobile Queue Item Card
   const MobileQueueItemCard = ({ item, showCancel = false }: { item: SecurityQueueItem; showCancel?: boolean }) => (
     <Card className="mb-2">
@@ -175,6 +227,7 @@ export function SecurityQueueStatus({ showDetails = true }: SecurityQueueStatusP
             Error: {item.error}
           </div>
         )}
+        <ScannedURLsInfo item={item} />
       </CardContent>
     </Card>
   );
@@ -312,6 +365,7 @@ export function SecurityQueueStatus({ showDetails = true }: SecurityQueueStatusP
                     <TableHead>Status</TableHead>
                     <TableHead>Source</TableHead>
                     <TableHead>Completed</TableHead>
+                    <TableHead>URLs Scanned</TableHead>
                     <TableHead>Findings</TableHead>
                     <TableHead>Error</TableHead>
                   </TableRow>
@@ -327,6 +381,18 @@ export function SecurityQueueStatus({ showDetails = true }: SecurityQueueStatusP
                         {item.completed_at
                           ? formatDistanceToNow(new Date(item.completed_at), { addSuffix: true })
                           : '-'}
+                      </TableCell>
+                      <TableCell>
+                        {item.scanned_urls_count ? (
+                          <div className="flex items-center gap-1">
+                            <span>{item.scanned_urls_count}</span>
+                            {item.scan_mode_used && (
+                              <Badge variant="outline" className="text-[10px] px-1 py-0">
+                                {item.scan_mode_used}
+                              </Badge>
+                            )}
+                          </div>
+                        ) : '-'}
                       </TableCell>
                       <TableCell>
                         {item.findings_count !== undefined ? item.findings_count : '-'}

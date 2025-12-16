@@ -2,6 +2,7 @@ package securityscanning
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -52,16 +53,39 @@ func NewNucleiRunner(resultsDir string) *NucleiRunner {
 	}
 }
 
-// ExecuteScan runs a nuclei scan and returns the results
+// ScanMetadata contains information about the URLs that were scanned
+type ScanMetadata struct {
+	ScannedURLsCount  int      `json:"scanned_urls_count"`
+	ScannedURLsSample []string `json:"scanned_urls_sample"`
+	ScanModeUsed      string   `json:"scan_mode_used"`
+}
+
+// ExecuteScanWithMetadata runs a nuclei scan and returns both results and metadata
+func (r *NucleiRunner) ExecuteScanWithMetadata(scan SecurityScan) ([]SecurityResult, *ScanMetadata, error) {
+	results, metadata, err := r.executeScanInternal(scan)
+	return results, metadata, err
+}
+
+// ExecuteScan runs a nuclei scan and returns the results (legacy, for backward compatibility)
 func (r *NucleiRunner) ExecuteScan(scan SecurityScan) ([]SecurityResult, error) {
+	results, _, err := r.executeScanInternal(scan)
+	return results, err
+}
+
+// executeScanInternal is the internal implementation
+func (r *NucleiRunner) executeScanInternal(scan SecurityScan) ([]SecurityResult, *ScanMetadata, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	// Debug logging for scan configuration
+	log.Printf("[SecurityScanning] Scan config: ScanMode=%s, CrawlEnabled=%v, TargetURLs=%v, HeadlessEnabled=%v",
+		scan.ScanMode, scan.CrawlEnabled, scan.TargetURLs, scan.HeadlessEnabled)
 
 	// Create output directory for this scan
 	timestamp := time.Now().Format("20060102-150405")
 	outputDir := filepath.Join(r.resultsDir, scan.ID, timestamp)
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create output directory: %w", err)
+		return nil, nil, fmt.Errorf("failed to create output directory: %w", err)
 	}
 
 	outputFile := filepath.Join(outputDir, "results.jsonl")
@@ -95,7 +119,7 @@ func (r *NucleiRunner) ExecuteScan(scan SecurityScan) ([]SecurityResult, error) 
 	// Write targets to file for nuclei
 	if len(targets) > 1 {
 		if err := r.writeURLsToFile(targets, urlsFile); err != nil {
-			return nil, fmt.Errorf("failed to write URLs file: %w", err)
+			return nil, nil, fmt.Errorf("failed to write URLs file: %w", err)
 		}
 	}
 
@@ -140,7 +164,7 @@ func (r *NucleiRunner) ExecuteScan(scan SecurityScan) ([]SecurityResult, error) 
 		// Nuclei may return non-zero exit code even on success (e.g., no findings)
 		// Check if output file was created
 		if _, statErr := os.Stat(outputFile); os.IsNotExist(statErr) {
-			return nil, fmt.Errorf("nuclei scan failed: %w", err)
+			return nil, nil, fmt.Errorf("nuclei scan failed: %w", err)
 		}
 		log.Printf("[SecurityScanning] Nuclei exited with error (may be normal): %v", err)
 	}
@@ -148,12 +172,32 @@ func (r *NucleiRunner) ExecuteScan(scan SecurityScan) ([]SecurityResult, error) 
 	// Parse results
 	results, err := r.parseResults(outputFile, scan.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse results: %w", err)
+		return nil, nil, fmt.Errorf("failed to parse results: %w", err)
 	}
 
 	log.Printf("[SecurityScanning] Found %d vulnerabilities for %s", len(results), scan.Name)
 
-	return results, nil
+	// Build scan metadata
+	scanModeUsed := scanMode
+	if len(scan.TargetURLs) > 0 {
+		scanModeUsed = "url_list"
+	} else if scan.CrawlEnabled && len(targets) > 1 {
+		scanModeUsed = "crawl"
+	}
+
+	// Get sample of URLs (first 20)
+	sampleURLs := targets
+	if len(targets) > 20 {
+		sampleURLs = targets[:20]
+	}
+
+	metadata := &ScanMetadata{
+		ScannedURLsCount:  len(targets),
+		ScannedURLsSample: sampleURLs,
+		ScanModeUsed:      scanModeUsed,
+	}
+
+	return results, metadata, nil
 }
 
 // getUserAgent returns the user-agent to use for scanning
@@ -172,8 +216,7 @@ func (r *NucleiRunner) runKatanaCrawl(scan SecurityScan, outputDir string) ([]st
 	args := []string{
 		"-u", scan.TargetURL,
 		"-o", crawlOutputFile,
-		"-silent",
-		"-no-color",
+		"-nc", // no-color
 	}
 
 	// Add user-agent header
@@ -187,13 +230,18 @@ func (r *NucleiRunner) runKatanaCrawl(scan SecurityScan, outputDir string) ([]st
 	}
 	args = append(args, "-d", fmt.Sprintf("%d", depth))
 
-	// Set max pages (default 100) - use -em (max endpoints) for limiting output
+	// Set crawl duration limit (convert max pages to duration - roughly 1 page/sec)
 	maxPages := scan.CrawlMaxPages
 	if maxPages <= 0 {
 		maxPages = 100
 	}
-	args = append(args, "-c", "10") // concurrency (fixed at 10 for stability)
-	args = append(args, "-em", fmt.Sprintf("%d", maxPages)) // max endpoints to crawl
+	// Use crawl duration to limit the crawl (roughly 1 URL per second)
+	crawlDuration := maxPages // seconds
+	if crawlDuration > 300 {
+		crawlDuration = 300 // cap at 5 minutes
+	}
+	args = append(args, "-c", "10") // concurrency
+	args = append(args, "-ct", fmt.Sprintf("%ds", crawlDuration)) // crawl duration timeout
 
 	// Enable headless mode if configured
 	if scan.HeadlessEnabled {
@@ -203,24 +251,23 @@ func (r *NucleiRunner) runKatanaCrawl(scan SecurityScan, outputDir string) ([]st
 		args = append(args, "-system-chrome")
 	}
 
-	// Add scope to stay within same domain
-	args = append(args, "-fs", "dn") // field scope: domain name
+	// Add scope to stay within same domain (rdn = root domain name, more flexible than dn)
+	args = append(args, "-fs", "rdn") // field scope: root domain name
 
 	// Filter out static assets that aren't useful for vulnerability scanning
 	// -ef: extension filter (exclude these extensions)
 	args = append(args, "-ef", "js,css,png,jpg,jpeg,gif,svg,ico,woff,woff2,ttf,eot,mp4,mp3,avi,mov,webp,webm,pdf,zip,rar,gz,tar")
 
-	// Output only unique URLs
-	args = append(args, "-unique")
-
-	// Don't crawl external links
-	args = append(args, "-no-external")
+	// Note: Unique filtering is enabled by default in Katana
+	// Note: External links are excluded by scope setting above
 
 	log.Printf("[SecurityScanning] Running Katana: katana %s", strings.Join(args, " "))
 
 	cmd := exec.Command("katana", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	// Capture stdout for URLs, stderr for errors
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
 
 	startTime := time.Now()
 	err := cmd.Run()
@@ -228,15 +275,23 @@ func (r *NucleiRunner) runKatanaCrawl(scan SecurityScan, outputDir string) ([]st
 
 	log.Printf("[SecurityScanning] Katana crawl completed in %v", duration)
 
+	// Log any stderr output for debugging
+	if stderr.Len() > 0 {
+		log.Printf("[SecurityScanning] Katana stderr: %s", stderr.String())
+	}
+
 	if err != nil {
+		log.Printf("[SecurityScanning] Katana error: %v, stderr: %s", err, stderr.String())
 		return nil, fmt.Errorf("katana crawl failed: %w", err)
 	}
 
-	// Read crawled URLs
+	// Read crawled URLs from file
 	urls, err := r.readURLsFromFile(crawlOutputFile)
 	if err != nil {
+		log.Printf("[SecurityScanning] Error reading crawled URLs: %v", err)
 		return nil, fmt.Errorf("failed to read crawled URLs: %w", err)
 	}
+	log.Printf("[SecurityScanning] Read %d URLs from crawl output file", len(urls))
 
 	// Always include the original target URL
 	urlSet := make(map[string]bool)
