@@ -97,12 +97,11 @@ const createEmailTemplate = (template: string, data: any, branding?: BrandingDat
 };
 
 export const testEmail = async (data: any): Promise<SettingsApiResponse> => {
-  console.log('testEmail function called with data:', data);
+  // Security: Removed sensitive logging to prevent credential exposure
 
   try {
     // Validate required fields
     if (!data || typeof data !== 'object') {
-      console.log('Invalid request data - not object');
       return {
         status: 200,
         json: { success: false, message: 'Invalid request data' },
@@ -110,7 +109,6 @@ export const testEmail = async (data: any): Promise<SettingsApiResponse> => {
     }
 
     if (!data.email || typeof data.email !== 'string') {
-      console.log('Email address missing or invalid type');
       return {
         status: 200,
         json: { success: false, message: 'Email address is required and must be a string' },
@@ -118,28 +116,22 @@ export const testEmail = async (data: any): Promise<SettingsApiResponse> => {
     }
 
     if (!validateEmail(data.email)) {
-      console.log('Invalid email format:', data.email);
       return {
         status: 200,
         json: { success: false, message: 'Invalid email address format' },
       };
     }
 
-    console.log('Email validation passed for:', data.email);
-
     const headers = getAuthHeaders();
     const baseUrl = getBaseUrl();
 
     // Get current SMTP settings first
-    console.log('Fetching SMTP settings from:', `${baseUrl}/api/settings`);
-    
     const settingsResponse = await fetch(`${baseUrl}/api/settings`, {
       method: 'GET',
       headers,
     });
 
     if (!settingsResponse.ok) {
-      console.error('Failed to get SMTP settings, status:', settingsResponse.status);
       return {
         status: 200,
         json: { success: false, message: 'Failed to get SMTP settings' },
@@ -147,12 +139,9 @@ export const testEmail = async (data: any): Promise<SettingsApiResponse> => {
     }
 
     const settingsData = await settingsResponse.json();
-    console.log('Retrieved settings data:', settingsData);
-    
     const smtpSettings = settingsData?.smtp;
 
     if (!smtpSettings || !smtpSettings.enabled) {
-      console.log('SMTP not enabled or missing');
       return {
         status: 200,
         json: { success: false, message: 'SMTP is not enabled. Please enable and configure SMTP settings first.' },
@@ -160,7 +149,6 @@ export const testEmail = async (data: any): Promise<SettingsApiResponse> => {
     }
 
     if (!smtpSettings.host || !smtpSettings.username) {
-      console.log('SMTP configuration incomplete - missing host or username');
       return {
         status: 200,
         json: { success: false, message: 'SMTP configuration is incomplete. Please check host and username.' },
@@ -179,26 +167,13 @@ export const testEmail = async (data: any): Promise<SettingsApiResponse> => {
     const template = data.template || 'basic';
     const { subject, htmlBody } = createEmailTemplate(template, data, brandingData);
 
-    console.log('Test email prepared successfully:', {
-      to: data.email,
-      subject: subject,
-      template: template,
-      smtpHost: smtpSettings.host,
-      smtpPort: smtpSettings.port || 587
-    });
-
     // Send actual email using the correct PocketBase API endpoint
-    console.log('Sending actual email via PocketBase...');
-    
-    // Fix the payload structure to match PocketBase API expectations
     const emailPayload = {
-      email: data.email,  // Use 'email' instead of 'to'
-      template: template, // Add the template field
+      email: data.email,
+      template: template,
       subject: subject,
       html: htmlBody,
     };
-
-    console.log('Email payload:', emailPayload);
 
     const emailResponse = await fetch(`${baseUrl}/api/settings/test/email`, {
       method: 'POST',
@@ -210,9 +185,6 @@ export const testEmail = async (data: any): Promise<SettingsApiResponse> => {
     });
 
     if (!emailResponse.ok) {
-      console.error('Failed to send email, status:', emailResponse.status);
-      const errorText = await emailResponse.text();
-      console.error('Email send error response:', errorText);
       return {
         status: 200,
         json: { success: false, message: 'Failed to send email. Please check your SMTP configuration.' },
@@ -221,7 +193,6 @@ export const testEmail = async (data: any): Promise<SettingsApiResponse> => {
 
     // Handle 204 No Content response (successful but no body)
     if (emailResponse.status === 204) {
-      console.log('Email sent successfully (204 No Content)');
       return {
         status: 200,
         json: {
@@ -232,8 +203,7 @@ export const testEmail = async (data: any): Promise<SettingsApiResponse> => {
     }
 
     // For other successful responses, try to parse JSON
-    const emailResult = await emailResponse.json();
-    console.log('Email sent successfully:', emailResult);
+    await emailResponse.json();
 
     return {
       status: 200,
@@ -244,11 +214,10 @@ export const testEmail = async (data: any): Promise<SettingsApiResponse> => {
     };
 
   } catch (error) {
-    console.error('Error in testEmail function:', error);
     return {
       status: 200,
-      json: { 
-        success: false, 
+      json: {
+        success: false,
         message: error instanceof Error ? error.message : 'Failed to send test email. Please check your SMTP configuration.'
       },
     };

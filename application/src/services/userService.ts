@@ -15,6 +15,36 @@ export interface User {
   status?: string; // Added this field to support the backend status
 }
 
+// Security: Get current user's role for RBAC checks
+const getCurrentUserRole = (): string | null => {
+  const model = pb.authStore.model;
+  if (!model) return null;
+
+  // Check if user is from _superusers collection
+  if (pb.authStore.record?.collectionName === '_superusers' ||
+      pb.authStore.record?.collectionId === 'pbc_3142635823') {
+    return 'superadmin';
+  }
+
+  return model.role || 'admin';
+};
+
+// Security: Check if current user is superadmin
+const isSuperAdmin = (): boolean => {
+  return getCurrentUserRole() === 'superadmin';
+};
+
+// Security: Check if current user can perform user management operations
+const canManageUsers = (): boolean => {
+  // Only superadmins can manage other users
+  return isSuperAdmin();
+};
+
+// Security: Check if user is modifying their own record
+const isOwnRecord = (id: string): boolean => {
+  return pb.authStore.model?.id === id;
+};
+
 export interface CreateUserData {
   username: string;
   email: string;
@@ -58,35 +88,36 @@ const convertToUserType = (record: any, role: string = "admin"): User => {
 export const userService = {
   async getUsers(): Promise<User[] | null> {
     try {
-     // console.log("Calling getUsers API");
-      
+      // Security: Only allow user listing if user has appropriate permissions
+      // Backend PocketBase rules provide the authoritative check
+      if (!pb.authStore.isValid) {
+        throw new Error("Authentication required");
+      }
+
       // Get both regular users and superadmins
       const regularUsers = await pb.collection('users').getList(1, 50, {
         sort: 'created',
       });
-      
+
       let superadminUsers: any = [];
       try {
         // Try to get superadmin users if exists
+        // This will only succeed if current user has permission
         superadminUsers = await pb.collection('_superusers').getList(1, 50, {
           sort: 'created',
         });
-       // console.log("Successfully fetched superadmin users:", superadminUsers);
-      } catch (error) {
-       // console.log("No superadmin collection or access rights:", error);
+      } catch {
+        // User doesn't have access to superadmin list, which is fine
       }
-      
+
       // Combine both user types and mark superadmins
       const allUsers = [
         ...regularUsers.items.map((user: any) => convertToUserType(user, user.role || "admin")),
         ...superadminUsers.items.map((user: any) => convertToUserType(user, "superadmin"))
       ];
-      
-    //  console.log("Combined users list:", allUsers);
-      
+
       return allUsers;
-    } catch (error) {
-     // console.error("Failed to fetch users:", error);
+    } catch {
       return null;
     }
   },
@@ -121,6 +152,17 @@ export const userService = {
   
   async updateUser(id: string, data: UpdateUserData): Promise<User | null> {
     try {
+      // Security: Verify user is authenticated
+      if (!pb.authStore.isValid) {
+        throw new Error("Authentication required");
+      }
+
+      // Security: Check permissions - users can update themselves, superadmins can update anyone
+      const isUpdatingSelf = isOwnRecord(id);
+      if (!isUpdatingSelf && !canManageUsers()) {
+        throw new Error("Insufficient permissions to update other users");
+      }
+
       // Create a clean update object - remove undefined and empty string values
       const cleanData: Record<string, any> = {};
       Object.entries(data).forEach(([key, value]) => {
@@ -129,19 +171,26 @@ export const userService = {
           cleanData[key] = value;
         }
       });
-      
-     // console.log("Updating user with clean data:", cleanData);
-      
+
       // If there's nothing to update, return the current user
       if (Object.keys(cleanData).length === 0) {
-     //   console.log("No changes to update");
         const currentUser = await this.getUser(id);
         return currentUser;
       }
-      
+
       // Special handling for role changes between admin and superadmin
       const roleChange = cleanData.role !== undefined;
       const targetRole = roleChange ? cleanData.role : null;
+
+      // Security: Only superadmins can change roles
+      if (roleChange && !isSuperAdmin()) {
+        throw new Error("Only superadmins can change user roles");
+      }
+
+      // Security: Prevent non-superadmins from promoting to superadmin
+      if (targetRole === 'superadmin' && !isSuperAdmin()) {
+        throw new Error("Only superadmins can promote users to superadmin");
+      }
       
       // Remove role from regular update if it's being changed
       if (roleChange) {
@@ -248,59 +297,80 @@ export const userService = {
   
   async deleteUser(id: string): Promise<boolean> {
     try {
+      // Security: Verify user is authenticated
+      if (!pb.authStore.isValid) {
+        throw new Error("Authentication required");
+      }
+
+      // Security: Only superadmins can delete users (and not themselves)
+      if (!canManageUsers()) {
+        throw new Error("Only superadmins can delete users");
+      }
+
+      // Security: Prevent users from deleting themselves
+      if (isOwnRecord(id)) {
+        throw new Error("Cannot delete your own account");
+      }
+
       // Try to delete from regular users first
       try {
         await pb.collection('users').delete(id);
         return true;
-      } catch (error) {
-      //  console.log("User not found in regular users, trying superadmin collection");
+      } catch {
+        // User not found in regular users, try superadmin collection
       }
-      
+
       // If not found, try deleting from superadmin collection
       try {
         await pb.collection('_superusers').delete(id);
         return true;
-      } catch (error) {
-     //   console.error("Failed to delete user from either collection:", error);
+      } catch {
         return false;
       }
-    } catch (error) {
-   //   console.error("Failed to delete user:", error);
+    } catch {
       return false;
     }
   },
 
   async createUser(data: CreateUserData): Promise<User | null> {
     try {
+      // Security: Verify user is authenticated
+      if (!pb.authStore.isValid) {
+        throw new Error("Authentication required");
+      }
+
+      // Security: Only superadmins can create new users
+      if (!canManageUsers()) {
+        throw new Error("Only superadmins can create new users");
+      }
+
+      // Security: Only superadmins can create other superadmins
+      if (data.role === 'superadmin' && !isSuperAdmin()) {
+        throw new Error("Only superadmins can create superadmin accounts");
+      }
+
       // Create a clean data object without avatar field if it's a URL
       // PocketBase requires actual file uploads for avatar, not URLs
       const cleanData = { ...data };
-      
+
       // Remove avatar if it's a URL (we'll handle this differently in the future)
       if (cleanData.avatar && typeof cleanData.avatar === 'string') {
         // Check if it's an external URL (not a file reference)
-        if (cleanData.avatar.startsWith('http') || 
+        if (cleanData.avatar.startsWith('http') ||
             cleanData.avatar.startsWith('/upload/') ||
             cleanData.avatar.includes('api.dicebear.com')) {
-     //     console.log("Removing avatar URL for new user creation:", cleanData.avatar);
           delete cleanData.avatar;
         }
       }
-      
+
       // Determine which collection to use based on the role
-      const isSuperAdmin = cleanData.role === "superadmin";
-      const collection = isSuperAdmin ? '_superusers' : 'users';
-      
-    ///  console.log(`Creating new user in ${collection} collection with data:`, {
-    //    ...cleanData,
-     //   password: "[REDACTED]",
-    //    passwordConfirm: "[REDACTED]"
-    //  });
+      const isSuperAdminUser = cleanData.role === "superadmin";
+      const collection = isSuperAdminUser ? '_superusers' : 'users';
       
       // Create the user in the appropriate collection
       const result = await pb.collection(collection).create(cleanData);
-      
-      return convertToUserType(result, isSuperAdmin ? "superadmin" : "admin");
+
+      return convertToUserType(result, isSuperAdminUser ? "superadmin" : "admin");
     } catch (error) {
     //  console.error("Failed to create user:", error);
       throw error;

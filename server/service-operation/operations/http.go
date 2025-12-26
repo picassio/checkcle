@@ -8,20 +8,30 @@ import (
 	"strings"
 	"time"
 
+	"service-operation/middleware"
 	"service-operation/types"
 )
 
+// MaxResponseBodySize limits response body to 10MB to prevent memory exhaustion
+const MaxResponseBodySize = 10 * 1024 * 1024
+
 type HTTPOperation struct {
-	timeout time.Duration
-	client  *http.Client
+	timeout         time.Duration
+	client          *http.Client
+	ssrfValidator   *middleware.SSRFValidator
+	allowPrivateIPs bool
 }
 
 func NewHTTPOperation(timeout time.Duration) *HTTPOperation {
+	return NewHTTPOperationWithSSRF(timeout, true) // Default allow private IPs for internal monitoring
+}
+
+func NewHTTPOperationWithSSRF(timeout time.Duration, allowPrivateIPs bool) *HTTPOperation {
 	return &HTTPOperation{
-		timeout: timeout,
-		client: &http.Client{
-			Timeout: timeout,
-		},
+		timeout:         timeout,
+		client:          &http.Client{Timeout: timeout},
+		ssrfValidator:   middleware.NewSSRFValidator(allowPrivateIPs),
+		allowPrivateIPs: allowPrivateIPs,
 	}
 }
 
@@ -41,6 +51,14 @@ func (h *HTTPOperation) Execute(url, method string) (*types.OperationResult, err
 	// Ensure URL has protocol
 	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
 		url = "https://" + url
+	}
+
+	// SSRF Protection: Validate URL before making request
+	if err := h.ssrfValidator.ValidateURL(url); err != nil {
+		result.Error = fmt.Sprintf("URL validation failed: %v", err)
+		result.Success = false
+		result.EndTime = time.Now()
+		return result, nil
 	}
 
 	start := time.Now()
@@ -95,12 +113,18 @@ func (h *HTTPOperation) Execute(url, method string) (*types.OperationResult, err
 	}
 
 	// Read response body for keyword checking and additional details
-	body, err := io.ReadAll(resp.Body)
+	// Use LimitReader to prevent memory exhaustion from large responses
+	limitedReader := io.LimitReader(resp.Body, MaxResponseBodySize)
+	body, err := io.ReadAll(limitedReader)
 	if err == nil && len(body) > 0 {
 		result.ResponseBody = string(body)
 		// Update content length if not set by server
 		if result.ContentLength <= 0 {
 			result.ContentLength = int64(len(body))
+		}
+		// Indicate if response was truncated
+		if int64(len(body)) >= MaxResponseBodySize {
+			result.ResponseBody = result.ResponseBody + "\n... [Response truncated at 10MB]"
 		}
 	}
 

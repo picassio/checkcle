@@ -39,26 +39,68 @@ export const isAuthenticated = () => {
 // Export the auth store for use in components
 export const authStore = pb.authStore;
 
+// Security helper: Validate token expiry
+const isTokenExpired = (token: string): boolean => {
+  try {
+    // JWT tokens have 3 parts separated by dots
+    const parts = token.split('.');
+    if (parts.length !== 3) return true;
+
+    // Decode the payload (second part)
+    const payload = JSON.parse(atob(parts[1]));
+
+    // Check if token has expired (exp is in seconds)
+    if (payload.exp && Date.now() >= payload.exp * 1000) {
+      return true;
+    }
+    return false;
+  } catch {
+    // If we can't parse the token, consider it expired
+    return true;
+  }
+};
+
+// Security helper: Clear all auth data
+export const clearAuthData = (): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('pocketbase_auth');
+    pb.authStore.clear();
+  }
+};
+
 // Configure PocketBase to persist authentication between page reloads
+// SECURITY NOTE: Tokens are stored in localStorage which is accessible to JavaScript.
+// For enhanced security in production, consider implementing httpOnly cookies
+// via a backend proxy. The current implementation includes token expiry validation.
 if (typeof window !== 'undefined') {
   const storedAuthData = localStorage.getItem('pocketbase_auth');
   if (storedAuthData) {
     try {
       const parsedData = JSON.parse(storedAuthData);
-      pb.authStore.save(parsedData.token, parsedData.model);
-    } catch (error) {
-      console.error('Failed to parse stored auth data:', error);
+
+      // Security: Validate token before restoring
+      if (parsedData.token && !isTokenExpired(parsedData.token)) {
+        pb.authStore.save(parsedData.token, parsedData.model);
+      } else {
+        // Token is expired or invalid, clear it
+        localStorage.removeItem('pocketbase_auth');
+      }
+    } catch {
+      // Failed to parse stored auth data, remove it
       localStorage.removeItem('pocketbase_auth');
     }
   }
 
   // Subscribe to authStore changes to persist authentication
   pb.authStore.onChange(() => {
-    if (pb.authStore.isValid) {
-      localStorage.setItem('pocketbase_auth', JSON.stringify({
-        token: pb.authStore.token,
-        model: pb.authStore.model
-      }));
+    if (pb.authStore.isValid && pb.authStore.token) {
+      // Only save if token is not expired
+      if (!isTokenExpired(pb.authStore.token)) {
+        localStorage.setItem('pocketbase_auth', JSON.stringify({
+          token: pb.authStore.token,
+          model: pb.authStore.model
+        }));
+      }
     } else {
       localStorage.removeItem('pocketbase_auth');
     }

@@ -64,12 +64,6 @@ const TestEmailDialog: React.FC<TestEmailDialogProps> = ({
       setLastResult(null);
       setIsInternalTesting(true);
       
-      console.log('Sending test email with data:', {
-        email,
-        template,
-        collection: template === 'verification' || template === 'password-reset' ? collection : undefined
-      });
-      
       await onSendTest({
         email,
         template,

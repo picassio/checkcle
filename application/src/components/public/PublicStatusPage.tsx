@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, AlertCircle } from 'lucide-react';
@@ -11,13 +11,45 @@ import { OverallUptimeSection } from './OverallUptimeSection';
 import { PublicStatusPageFooter } from './PublicStatusPageFooter';
 import { useLanguage } from '@/contexts/LanguageContext';
 
+// Security: Sanitize custom CSS to prevent XSS attacks
+const sanitizeCSS = (css: string): string => {
+  if (!css) return '';
+
+  // Remove potentially dangerous CSS patterns
+  let sanitized = css
+    // Remove url() - can be used for data exfiltration
+    .replace(/url\s*\([^)]*\)/gi, '')
+    // Remove @import - can load external resources
+    .replace(/@import[^;]*;?/gi, '')
+    // Remove expression() - IE JS execution
+    .replace(/expression\s*\([^)]*\)/gi, '')
+    // Remove behavior: - IE JS execution
+    .replace(/behavior\s*:[^;]*(;|$)/gi, '')
+    // Remove -moz-binding - Firefox XBL
+    .replace(/-moz-binding\s*:[^;]*(;|$)/gi, '')
+    // Remove javascript: pseudo-protocol
+    .replace(/javascript\s*:/gi, '')
+    // Remove vbscript: pseudo-protocol
+    .replace(/vbscript\s*:/gi, '')
+    // Remove data: URLs
+    .replace(/data\s*:/gi, '')
+    // Remove </style> tags that could break out
+    .replace(/<\/?style[^>]*>/gi, '');
+
+  return sanitized;
+};
+
 export const PublicStatusPage = () => {
   const { t } = useLanguage();
   const { slug } = useParams<{ slug: string }>();
-//  console.log('PublicStatusPage - slug from params:', slug);
-  
+
   const { page, components, services, uptimeData, loading, error } = usePublicStatusPageData(slug);
   const [lastUpdated, setLastUpdated] = useState(new Date());
+
+  // Memoize sanitized CSS to avoid re-processing on every render
+  const sanitizedCSS = useMemo(() => {
+    return page?.custom_css ? sanitizeCSS(page.custom_css) : '';
+  }, [page?.custom_css]);
 
   // Auto-refresh every 30 seconds
   useEffect(() => {
@@ -122,9 +154,9 @@ export const PublicStatusPage = () => {
         <PublicStatusPageFooter page={page} />
       </main>
 
-      {/* Custom CSS */}
-      {page.custom_css && (
-        <style dangerouslySetInnerHTML={{ __html: page.custom_css }} />
+      {/* Custom CSS - sanitized to prevent XSS */}
+      {sanitizedCSS && (
+        <style dangerouslySetInnerHTML={{ __html: sanitizedCSS }} />
       )}
     </div>
   );

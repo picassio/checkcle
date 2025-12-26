@@ -16,10 +16,8 @@ services:
     volumes:
       - /opt/pb_data:/mnt/pb_data
       - sitespeed_results:/opt/sitespeed-results
-    environment:
-      - SITESPEED_RESULTS_DIR=/opt/sitespeed-results
-      # Local execution is auto-detected, but can be forced with:
-      # - SITESPEED_LOCAL_EXEC=true
+    env_file:
+      - ../env.local
     # Required for Chrome stability
     shm_size: '2g'
     ulimits:

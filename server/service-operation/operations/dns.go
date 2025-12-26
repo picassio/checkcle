@@ -3,11 +3,22 @@ package operations
 import (
 	"fmt"
 	"net"
+	"regexp"
 	"strings"
 	"time"
 
 	"service-operation/types"
 )
+
+// Valid DNS query types
+var validDNSQueryTypes = map[string]bool{
+	"A":     true,
+	"AAAA":  true,
+	"MX":    true,
+	"TXT":   true,
+	"CNAME": true,
+	"NS":    true,
+}
 
 type DNSOperation struct {
 	timeout time.Duration
@@ -17,15 +28,48 @@ func NewDNSOperation(timeout time.Duration) *DNSOperation {
 	return &DNSOperation{timeout: timeout}
 }
 
+// validateDNSHost validates that a host is a valid hostname for DNS lookup
+func validateDNSHost(host string) error {
+	if len(host) > 253 {
+		return fmt.Errorf("hostname too long (max 253 characters)")
+	}
+
+	// Check if it's a valid IP address (for reverse lookups)
+	if ip := net.ParseIP(host); ip != nil {
+		return nil
+	}
+
+	// Validate hostname format (RFC 1123)
+	// Allow alphanumeric characters, hyphens, and dots
+	hostnamePattern := regexp.MustCompile(`^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$`)
+	if !hostnamePattern.MatchString(host) {
+		return fmt.Errorf("invalid hostname format")
+	}
+
+	return nil
+}
+
 func (d *DNSOperation) Execute(host, query string) (*types.OperationResult, error) {
 	// Validate inputs
 	if host == "" {
 		return nil, fmt.Errorf("host cannot be empty")
 	}
-	
+
+	// Validate hostname format
+	if err := validateDNSHost(host); err != nil {
+		return nil, fmt.Errorf("invalid host: %v", err)
+	}
+
 	if query == "" {
 		query = "A" // Default to A record
 	}
+
+	// Validate query type (prevent injection of arbitrary query types)
+	queryUpper := strings.ToUpper(query)
+	if !validDNSQueryTypes[queryUpper] {
+		return nil, fmt.Errorf("invalid DNS query type: %s (valid types: A, AAAA, MX, TXT, CNAME, NS)", query)
+	}
+	query = queryUpper
 
 	result := &types.OperationResult{
 		Type:      types.OperationDNS,

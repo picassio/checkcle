@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"service-operation/middleware"
 )
 
 // SecurityRunScanHandler is a function type for triggering immediate scans
@@ -37,7 +38,9 @@ func (h *OperationHandler) listSecurityScans(w http.ResponseWriter, r *http.Requ
 	reqURL := fmt.Sprintf("%s/api/collections/security_scans/records?sort=-created",
 		h.pbClient.GetBaseURL())
 	if status != "" {
-		reqURL += "&filter=" + url.QueryEscape("(status='"+status+"')")
+		// Sanitize status to prevent filter injection
+		sanitizedStatus := middleware.SanitizeFilterValue(status)
+		reqURL += "&filter=" + url.QueryEscape("(status='"+sanitizedStatus+"')")
 	}
 
 	resp, err := http.Get(reqURL)
@@ -190,6 +193,12 @@ func (h *OperationHandler) HandleSecurityResults(w http.ResponseWriter, r *http.
 		return
 	}
 
+	// Validate scanID to prevent filter injection
+	if !middleware.ValidateID(scanID) {
+		http.Error(w, "Invalid scanId format", http.StatusBadRequest)
+		return
+	}
+
 	// Query parameters
 	severity := r.URL.Query().Get("severity")
 	limit := r.URL.Query().Get("limit")
@@ -197,9 +206,12 @@ func (h *OperationHandler) HandleSecurityResults(w http.ResponseWriter, r *http.
 		limit = "100"
 	}
 
-	filter := fmt.Sprintf("(scan_id='%s')", scanID)
+	// Sanitize values to prevent filter injection
+	sanitizedScanID := middleware.SanitizeFilterValue(scanID)
+	filter := fmt.Sprintf("(scan_id='%s')", sanitizedScanID)
 	if severity != "" {
-		filter = fmt.Sprintf("(scan_id='%s' && severity='%s')", scanID, severity)
+		sanitizedSeverity := middleware.SanitizeFilterValue(severity)
+		filter = fmt.Sprintf("(scan_id='%s' && severity='%s')", sanitizedScanID, sanitizedSeverity)
 	}
 
 	reqURL := fmt.Sprintf("%s/api/collections/security_results/records?filter=%s&sort=-created&perPage=%s",

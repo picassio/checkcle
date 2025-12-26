@@ -13,6 +13,7 @@ import (
 
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
+
 	"service-operation/types"
 )
 
@@ -24,10 +25,59 @@ func NewPingOperation(timeout time.Duration) *PingOperation {
 	return &PingOperation{timeout: timeout}
 }
 
+// validatePingHost validates that a host is a valid hostname or IP address
+// and doesn't contain command injection characters
+func validatePingHost(host string) error {
+	if len(host) > 253 {
+		return fmt.Errorf("hostname too long (max 253 characters)")
+	}
+
+	// Check for dangerous characters that could lead to command injection
+	// Even though we use exec.Command, it's still good practice
+	dangerousChars := []string{";", "|", "&", "$", "`", "\\", "'", "\"", "<", ">", "(", ")", "{", "}", "[", "]", "!", "#", "~", "^", "\n", "\r", "\t"}
+	for _, char := range dangerousChars {
+		if strings.Contains(host, char) {
+			return fmt.Errorf("invalid character in hostname: %s", char)
+		}
+	}
+
+	// Check if it starts with a dash (could be interpreted as command option)
+	if strings.HasPrefix(host, "-") {
+		return fmt.Errorf("hostname cannot start with a dash")
+	}
+
+	// Check if it's a valid IP address
+	if ip := net.ParseIP(host); ip != nil {
+		return nil
+	}
+
+	// Validate hostname format (RFC 1123)
+	// Allow alphanumeric characters, hyphens, and dots
+	hostnamePattern := regexp.MustCompile(`^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$`)
+	if !hostnamePattern.MatchString(host) {
+		return fmt.Errorf("invalid hostname format")
+	}
+
+	return nil
+}
+
 func (p *PingOperation) Execute(host string, count int) (*types.OperationResult, error) {
 	// Validate host/IP
 	if host == "" {
 		return nil, fmt.Errorf("host cannot be empty")
+	}
+
+	// Validate hostname format to prevent command injection
+	if err := validatePingHost(host); err != nil {
+		return nil, fmt.Errorf("invalid host: %v", err)
+	}
+
+	// Limit count to prevent abuse
+	if count <= 0 {
+		count = 4
+	}
+	if count > 100 {
+		count = 100
 	}
 
 	// Always try system ping first for better reliability

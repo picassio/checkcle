@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -13,10 +14,15 @@ type Config struct {
 	MaxCount       int
 	MaxTimeout     time.Duration
 	EnableLogging  bool
-	
-	// PocketBase configuration (no auth required)
+
+	// PocketBase configuration
 	PocketBaseEnabled  bool
 	PocketBaseURL      string
+
+	// Security configuration
+	AllowedOrigins   []string // CORS allowed origins
+	AuthEnabled      bool     // Enable authentication middleware
+	AllowPrivateIPs  bool     // Allow SSRF to private IPs (for internal monitoring)
 }
 
 func Load() *Config {
@@ -27,13 +33,34 @@ func Load() *Config {
 		MaxCount:       getEnvInt("MAX_COUNT", 20),
 		MaxTimeout:     getEnvDuration("MAX_TIMEOUT", 30*time.Second),
 		EnableLogging:  getEnvBool("ENABLE_LOGGING", true),
-		
-		// PocketBase settings (no credentials needed)
+
+		// PocketBase settings
 		PocketBaseEnabled:  getEnvBool("POCKETBASE_ENABLED", true),
 		PocketBaseURL:      getEnv("POCKETBASE_URL", ""),
+
+		// Security settings
+		AllowedOrigins:  getEnvList("ALLOWED_ORIGINS", []string{}),
+		AuthEnabled:     getEnvBool("AUTH_ENABLED", true),
+		AllowPrivateIPs: getEnvBool("ALLOW_PRIVATE_IPS", true), // Default true for internal monitoring
 	}
 
 	return cfg
+}
+
+func getEnvList(key string, defaultValue []string) []string {
+	if value := os.Getenv(key); value != "" {
+		// Split by comma and trim whitespace
+		parts := strings.Split(value, ",")
+		result := make([]string, 0, len(parts))
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				result = append(result, trimmed)
+			}
+		}
+		return result
+	}
+	return defaultValue
 }
 
 func getEnv(key, defaultValue string) string {

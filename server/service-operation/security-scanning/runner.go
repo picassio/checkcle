@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -200,10 +201,54 @@ func (r *NucleiRunner) executeScanInternal(scan SecurityScan) ([]SecurityResult,
 	return results, metadata, nil
 }
 
+// sanitizeUserAgent removes potentially dangerous characters from user agent strings
+// to prevent command injection attacks
+func sanitizeUserAgent(userAgent string) string {
+	if userAgent == "" {
+		return userAgent
+	}
+
+	// Limit length to prevent buffer overflow attacks
+	if len(userAgent) > 512 {
+		userAgent = userAgent[:512]
+	}
+
+	// Remove control characters, newlines, and other dangerous characters
+	// Only allow printable ASCII characters (32-126) excluding shell metacharacters
+	var builder strings.Builder
+	for _, r := range userAgent {
+		// Allow printable ASCII but exclude shell metacharacters
+		if r >= 32 && r <= 126 {
+			// Block shell metacharacters: ; | & $ ` \ " ' < > ( ) { } [ ] ! # ~ ^
+			switch r {
+			case ';', '|', '&', '$', '`', '\\', '"', '\'', '<', '>', '(', ')', '{', '}', '[', ']', '!', '#', '~', '^':
+				// Skip dangerous characters
+				continue
+			default:
+				builder.WriteRune(r)
+			}
+		}
+	}
+
+	result := builder.String()
+
+	// Additional validation: must match a reasonable user-agent pattern
+	// User agents typically start with product/version or Mozilla
+	if len(result) > 0 && !regexp.MustCompile(`^[a-zA-Z]`).MatchString(result) {
+		return DefaultUserAgent
+	}
+
+	return result
+}
+
 // getUserAgent returns the user-agent to use for scanning
 func (r *NucleiRunner) getUserAgent(scan SecurityScan) string {
 	if scan.UserAgent != "" {
-		return scan.UserAgent
+		// Sanitize user-provided user agent to prevent command injection
+		sanitized := sanitizeUserAgent(scan.UserAgent)
+		if sanitized != "" {
+			return sanitized
+		}
 	}
 	return DefaultUserAgent
 }

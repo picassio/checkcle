@@ -13,6 +13,7 @@ import (
 	"service-operation/config"
 	dataretention "service-operation/data-retention"
 	"service-operation/handlers"
+	"service-operation/middleware"
 	"service-operation/monitoring"
 	performancemonitoring "service-operation/performance-monitoring"
 	"service-operation/pocketbase"
@@ -115,65 +116,66 @@ func main() {
 
 	router := mux.NewRouter()
 
-	// CORS middleware
-	router.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Allow requests from any origin
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
-			w.Header().Set("Access-Control-Max-Age", "3600")
+	// Initialize security middleware
+	corsMiddleware := middleware.NewCORSMiddleware(cfg.AllowedOrigins)
+	var authMiddleware *middleware.AuthMiddleware
+	if cfg.AuthEnabled && cfg.PocketBaseURL != "" {
+		authMiddleware = middleware.NewAuthMiddleware(cfg.PocketBaseURL)
+		log.Printf("Authentication middleware enabled")
+	}
 
-			// Handle preflight requests
-			if r.Method == "OPTIONS" {
-				w.WriteHeader(http.StatusOK)
-				return
-			}
+	// Apply CORS middleware to all routes
+	router.Use(corsMiddleware.Handle)
 
-			next.ServeHTTP(w, r)
-		})
-	})
+	// Apply request body size limiter to prevent DoS
+	router.Use(middleware.LimitRequestBody)
 
-	// Main operation endpoint
-	router.HandleFunc("/operation", handler.HandleOperation).Methods("POST")
-	
-	// Quick operation endpoint with query parameters
-	router.HandleFunc("/operation/quick", handler.HandleQuickOperation).Methods("GET")
-	
-	// Legacy ping endpoint for backward compatibility
-	router.HandleFunc("/ping", handler.HandleOperation).Methods("POST")
-	router.HandleFunc("/ping/quick", handler.HandleQuickOperation).Methods("GET")
-	
-	// Health check
+	// Health check endpoint (no auth required)
 	router.HandleFunc("/health", handler.HandleHealth).Methods("GET")
 
-	// Performance monitoring endpoints
-	router.HandleFunc("/performance/tests", handler.HandlePerformanceTests).Methods("GET", "OPTIONS")
-	router.HandleFunc("/performance/test/{testId}", handler.HandlePerformanceTestStatus).Methods("GET", "OPTIONS")
-	router.HandleFunc("/performance/metrics/{testId}", handler.HandlePerformanceMetrics).Methods("GET", "OPTIONS")
-	router.HandleFunc("/performance/latest", handler.HandlePerformanceLatestMetrics).Methods("GET", "OPTIONS")
-	router.HandleFunc("/performance/budgets", handler.HandlePerformanceBudgets).Methods("GET", "OPTIONS")
-	router.HandleFunc("/performance/report/{testId}/{timestamp}/{file:.*}", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
-	router.HandleFunc("/performance/report/{testId}/{timestamp}/", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
-	router.HandleFunc("/performance/report/{testId}/{timestamp}", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
+	// Create authenticated subrouter for protected endpoints
+	protectedRouter := router.PathPrefix("").Subrouter()
+	if authMiddleware != nil {
+		protectedRouter.Use(authMiddleware.Authenticate)
+	}
 
-	// Queue endpoints
-	router.HandleFunc("/performance/queue", handler.HandlePerformanceQueueStatus).Methods("GET", "OPTIONS")
-	router.HandleFunc("/performance/queue/test/{testId}", handler.HandlePerformanceQueuePosition).Methods("GET", "OPTIONS")
-	router.HandleFunc("/performance/queue/{itemId}/cancel", handler.HandlePerformanceCancelQueue).Methods("POST", "OPTIONS")
+	// Main operation endpoint (protected)
+	protectedRouter.HandleFunc("/operation", handler.HandleOperation).Methods("POST")
 
-	// Security scanning endpoints
-	router.HandleFunc("/security/scans", handler.HandleSecurityScans).Methods("GET", "POST", "OPTIONS")
-	router.HandleFunc("/security/scan/{scanId}", handler.HandleSecurityScan).Methods("GET", "PATCH", "DELETE", "OPTIONS")
-	router.HandleFunc("/security/results/{scanId}", handler.HandleSecurityResults).Methods("GET", "OPTIONS")
-	router.HandleFunc("/security/result/{resultId}", handler.HandleSecurityResult).Methods("GET", "OPTIONS")
-	router.HandleFunc("/security/queue", handler.HandleSecurityQueueStatus).Methods("GET", "OPTIONS")
-	router.HandleFunc("/security/queue/{itemId}/cancel", handler.HandleSecurityCancelQueue).Methods("POST", "OPTIONS")
-	router.HandleFunc("/security/summary", handler.HandleSecuritySummary).Methods("GET", "OPTIONS")
+	// Quick operation endpoint with query parameters (protected)
+	protectedRouter.HandleFunc("/operation/quick", handler.HandleQuickOperation).Methods("GET")
 
-	// Security scan run endpoint (needs access to securityScanningService)
+	// Legacy ping endpoint for backward compatibility (protected)
+	protectedRouter.HandleFunc("/ping", handler.HandleOperation).Methods("POST")
+	protectedRouter.HandleFunc("/ping/quick", handler.HandleQuickOperation).Methods("GET")
+
+	// Performance monitoring endpoints (protected)
+	protectedRouter.HandleFunc("/performance/tests", handler.HandlePerformanceTests).Methods("GET", "OPTIONS")
+	protectedRouter.HandleFunc("/performance/test/{testId}", handler.HandlePerformanceTestStatus).Methods("GET", "OPTIONS")
+	protectedRouter.HandleFunc("/performance/metrics/{testId}", handler.HandlePerformanceMetrics).Methods("GET", "OPTIONS")
+	protectedRouter.HandleFunc("/performance/latest", handler.HandlePerformanceLatestMetrics).Methods("GET", "OPTIONS")
+	protectedRouter.HandleFunc("/performance/budgets", handler.HandlePerformanceBudgets).Methods("GET", "OPTIONS")
+	protectedRouter.HandleFunc("/performance/report/{testId}/{timestamp}/{file:.*}", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
+	protectedRouter.HandleFunc("/performance/report/{testId}/{timestamp}/", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
+	protectedRouter.HandleFunc("/performance/report/{testId}/{timestamp}", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
+
+	// Queue endpoints (protected)
+	protectedRouter.HandleFunc("/performance/queue", handler.HandlePerformanceQueueStatus).Methods("GET", "OPTIONS")
+	protectedRouter.HandleFunc("/performance/queue/test/{testId}", handler.HandlePerformanceQueuePosition).Methods("GET", "OPTIONS")
+	protectedRouter.HandleFunc("/performance/queue/{itemId}/cancel", handler.HandlePerformanceCancelQueue).Methods("POST", "OPTIONS")
+
+	// Security scanning endpoints (protected)
+	protectedRouter.HandleFunc("/security/scans", handler.HandleSecurityScans).Methods("GET", "POST", "OPTIONS")
+	protectedRouter.HandleFunc("/security/scan/{scanId}", handler.HandleSecurityScan).Methods("GET", "PATCH", "DELETE", "OPTIONS")
+	protectedRouter.HandleFunc("/security/results/{scanId}", handler.HandleSecurityResults).Methods("GET", "OPTIONS")
+	protectedRouter.HandleFunc("/security/result/{resultId}", handler.HandleSecurityResult).Methods("GET", "OPTIONS")
+	protectedRouter.HandleFunc("/security/queue", handler.HandleSecurityQueueStatus).Methods("GET", "OPTIONS")
+	protectedRouter.HandleFunc("/security/queue/{itemId}/cancel", handler.HandleSecurityCancelQueue).Methods("POST", "OPTIONS")
+	protectedRouter.HandleFunc("/security/summary", handler.HandleSecuritySummary).Methods("GET", "OPTIONS")
+
+	// Security scan run endpoint (needs access to securityScanningService) - protected
 	if securityScanningService != nil {
-		router.HandleFunc("/security/scan/{scanId}/run", func(w http.ResponseWriter, r *http.Request) {
+		protectedRouter.HandleFunc("/security/scan/{scanId}/run", func(w http.ResponseWriter, r *http.Request) {
 			vars := mux.Vars(r)
 			scanID := vars["scanId"]
 
@@ -193,10 +195,10 @@ func main() {
 		}).Methods("POST", "OPTIONS")
 	}
 
-	// Run test endpoint (needs access to performanceMonitoringService)
+	// Run test endpoint (needs access to performanceMonitoringService) - protected
 	// Now adds to queue instead of running directly
 	if performanceMonitoringService != nil {
-		router.HandleFunc("/performance/test/{testId}/run", func(w http.ResponseWriter, r *http.Request) {
+		protectedRouter.HandleFunc("/performance/test/{testId}/run", func(w http.ResponseWriter, r *http.Request) {
 			vars := mux.Vars(r)
 			testID := vars["testId"]
 

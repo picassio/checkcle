@@ -66,11 +66,8 @@ export function ChangePasswordForm({ userId }: ChangePasswordFormProps) {
     setIsSubmitting(true);
     
     try {
-      console.log("Starting password change for user:", userId);
-      
       // Determine which collection the user belongs to
       const collection = await getUserCollection(userId);
-      console.log("User found in collection:", collection);
       
       // PocketBase requires the old password along with the new one
       await pb.collection(collection).update(userId, {
@@ -92,7 +89,6 @@ export function ChangePasswordForm({ userId }: ChangePasswordFormProps) {
       
       // Auto logout after successful password change
       setTimeout(() => {
-        console.log("Auto logout after password change");
         authService.logout();
         navigate("/login");
       }, 3000);

@@ -9,8 +9,10 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/gorilla/mux"
+	"service-operation/middleware"
 )
 
 // HandlePerformanceRunTest triggers an immediate test run
@@ -29,6 +31,16 @@ func (h *OperationHandler) HandlePerformanceReport(w http.ResponseWriter, r *htt
 		return
 	}
 
+	// Security: Validate path components to prevent directory traversal
+	if err := middleware.ValidatePathComponent(testID); err != nil {
+		http.Error(w, "Invalid testId: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := middleware.ValidatePathComponent(timestamp); err != nil {
+		http.Error(w, "Invalid timestamp: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	// Get results directory from environment
 	resultsDir := os.Getenv("SITESPEED_RESULTS_DIR")
 	if resultsDir == "" {
@@ -38,14 +50,34 @@ func (h *OperationHandler) HandlePerformanceReport(w http.ResponseWriter, r *htt
 	// Build file path
 	var filePath string
 	if file != "" {
-		filePath = filepath.Join(resultsDir, testID, timestamp, file)
+		// Validate file path - allow subdirectories but no traversal
+		cleanFile := filepath.Clean(file)
+		if filepath.IsAbs(cleanFile) || strings.HasPrefix(cleanFile, "..") {
+			http.Error(w, "Invalid file path", http.StatusForbidden)
+			return
+		}
+		filePath = filepath.Join(resultsDir, testID, timestamp, cleanFile)
 	} else {
 		filePath = filepath.Join(resultsDir, testID, timestamp, "index.html")
 	}
 
 	// Security: ensure the path is within the results directory
+	// Use EvalSymlinks to resolve any symlinks first
+	absResultsDir, err := filepath.Abs(resultsDir)
+	if err != nil {
+		http.Error(w, "Invalid results directory", http.StatusInternalServerError)
+		return
+	}
+
 	cleanPath := filepath.Clean(filePath)
-	if !filepath.HasPrefix(cleanPath, resultsDir) {
+	absCleanPath, err := filepath.Abs(cleanPath)
+	if err != nil {
+		http.Error(w, "Invalid path", http.StatusForbidden)
+		return
+	}
+
+	// Check if the resolved path is within the results directory
+	if !strings.HasPrefix(absCleanPath, absResultsDir+string(filepath.Separator)) && absCleanPath != absResultsDir {
 		http.Error(w, "Invalid path", http.StatusForbidden)
 		return
 	}
@@ -70,12 +102,18 @@ func (h *OperationHandler) HandlePerformanceMetrics(w http.ResponseWriter, r *ht
 		return
 	}
 
+	// Validate testID to prevent filter injection
+	if !middleware.ValidateID(testID) {
+		http.Error(w, "Invalid testId format", http.StatusBadRequest)
+		return
+	}
+
 	// Query parameters for filtering
 	timeRange := r.URL.Query().Get("range") // e.g., "24h", "7d", "30d"
 	limit := r.URL.Query().Get("limit")
 
-	// Build filter
-	filter := "test_id='" + testID + "'"
+	// Build filter with sanitized value
+	filter := "test_id='" + middleware.SanitizeFilterValue(testID) + "'"
 	if timeRange != "" {
 		// TODO: Add time range filtering
 		_ = timeRange
@@ -166,7 +204,9 @@ func (h *OperationHandler) HandlePerformanceTests(w http.ResponseWriter, r *http
 	reqURL := fmt.Sprintf("%s/api/collections/performance_tests/records?sort=-created",
 		h.pbClient.GetBaseURL())
 	if status != "" {
-		reqURL += "&filter=" + url.QueryEscape("(status='"+status+"')")
+		// Sanitize status to prevent filter injection
+		sanitizedStatus := middleware.SanitizeFilterValue(status)
+		reqURL += "&filter=" + url.QueryEscape("(status='"+sanitizedStatus+"')")
 	}
 
 	resp, err := http.Get(reqURL)
@@ -275,8 +315,10 @@ func (h *OperationHandler) HandlePerformanceLatestMetrics(w http.ResponseWriter,
 	results := make([]TestWithMetrics, 0)
 
 	for _, test := range testsResponse.Items {
+		// Sanitize test ID to prevent filter injection
+		sanitizedTestID := middleware.SanitizeFilterValue(test.ID)
 		metricsURL := fmt.Sprintf("%s/api/collections/performance_metrics/records?filter=%s&sort=-timestamp&perPage=1",
-			h.pbClient.GetBaseURL(), url.QueryEscape("(test_id='"+test.ID+"')"))
+			h.pbClient.GetBaseURL(), url.QueryEscape("(test_id='"+sanitizedTestID+"')"))
 
 		metricsResp, err := http.Get(metricsURL)
 		if err != nil {
@@ -391,15 +433,24 @@ func (h *OperationHandler) HandlePerformanceQueuePosition(w http.ResponseWriter,
 		return
 	}
 
+	// Validate testID to prevent filter injection
+	if !middleware.ValidateID(testID) {
+		http.Error(w, "Invalid testId format", http.StatusBadRequest)
+		return
+	}
+
 	if h.pbClient == nil {
 		http.Error(w, "PocketBase not configured", http.StatusInternalServerError)
 		return
 	}
 
+	// Sanitize testID for filter
+	sanitizedTestID := middleware.SanitizeFilterValue(testID)
+
 	// Check if the test is currently processing
 	processingURL := fmt.Sprintf("%s/api/collections/performance_queue/records?filter=%s&perPage=1",
 		h.pbClient.GetBaseURL(),
-		url.QueryEscape(fmt.Sprintf("(test_id='%s' && status='processing')", testID)))
+		url.QueryEscape(fmt.Sprintf("(test_id='%s' && status='processing')", sanitizedTestID)))
 
 	processingResp, err := http.Get(processingURL)
 	if err != nil {
