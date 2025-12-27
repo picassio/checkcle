@@ -2,7 +2,8 @@
  * UserTable Component
  *
  * Displays users in a table (desktop) or card list (mobile) with
- * color-coded RBAC role badges.
+ * color-coded RBAC role badges. Features clickable cards with
+ * reveal-on-hover actions following Modern Professional design system.
  */
 
 import React from "react";
@@ -17,7 +18,12 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Edit,
   Trash2,
@@ -27,9 +33,11 @@ import {
   Eye,
   UserCog,
   Sparkles,
+  MoreHorizontal,
 } from "lucide-react";
 import { User } from "@/services/userService";
 import { getRoleColor } from "./hooks/useRoles";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export interface UserTableProps {
   users: User[];
@@ -61,6 +69,13 @@ const getRoleIcon = (roleName: string): React.ElementType => {
   return iconMap[roleName] || Sparkles;
 };
 
+// Status badge helper - semantic colors from design system
+const getStatusBadgeClasses = (isActive: boolean): string => {
+  return isActive
+    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800"
+    : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800";
+};
+
 // Role Badge Component
 const RoleBadge = ({ role, size = "default" }: { role: string; size?: "default" | "sm" }) => {
   const colors = getRoleColor(role);
@@ -87,69 +102,95 @@ const RoleBadge = ({ role, size = "default" }: { role: string; size?: "default" 
   );
 };
 
+// Status Badge Component
+const StatusBadge = ({ isActive, size = "default" }: { isActive: boolean; size?: "default" | "sm" }) => {
+  const sizeClasses = size === "sm" ? "text-[10px] px-1.5 py-0.5" : "";
+
+  return (
+    <Badge variant="outline" className={`${getStatusBadgeClasses(isActive)} ${sizeClasses}`}>
+      {isActive ? "Active" : "Inactive"}
+    </Badge>
+  );
+};
+
 const UserTable = ({ users, onUserUpdate, onUserDelete }: UserTableProps) => {
+  const { t } = useLanguage();
+
   // Helper function to get the user's initials for the avatar fallback
   const getUserInitials = (user: User): string => {
     return (user.full_name || user.username || "").substring(0, 2).toUpperCase();
   };
 
-  // Mobile User Card Component
+  // Mobile User Card Component - Clickable with reveal-on-hover actions
   const MobileUserCard = ({ user }: { user: User }) => (
-    <Card className="mb-3 bg-card">
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <Avatar className="h-10 w-10 flex-shrink-0">
-              {user.avatar ? (
-                <AvatarImage
-                  src={user.avatar}
-                  alt={user.full_name || user.username}
-                />
-              ) : (
-                <AvatarFallback>
-                  {getUserInitials(user)}
-                </AvatarFallback>
-              )}
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <div className="font-medium truncate">{user.full_name || "-"}</div>
-              <div className="text-xs text-muted-foreground truncate">@{user.username}</div>
-            </div>
+    <div
+      onClick={() => onUserUpdate(user)}
+      className="group mb-3 rounded-lg border bg-card p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary/20 active:scale-[0.99]"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <Avatar className="h-11 w-11 flex-shrink-0 ring-2 ring-background shadow-sm">
+            {user.avatar ? (
+              <AvatarImage
+                src={user.avatar}
+                alt={user.full_name || user.username}
+              />
+            ) : (
+              <AvatarFallback className="bg-muted text-muted-foreground font-medium">
+                {getUserInitials(user)}
+              </AvatarFallback>
+            )}
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <div className="font-medium truncate">{user.full_name || "-"}</div>
+            <div className="text-xs text-muted-foreground truncate">@{user.username}</div>
           </div>
-          <div className="flex gap-1 flex-shrink-0">
+        </div>
+
+        {/* Reveal-on-hover action menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => onUserUpdate(user)}
+              className="h-10 w-10 p-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+              onClick={(e) => e.stopPropagation()}
             >
-              <Edit className="h-4 w-4" />
+              <MoreHorizontal className="h-5 w-5" />
+              <span className="sr-only">Actions</span>
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={() => onUserDelete(user)}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                onUserUpdate(user);
+              }}
             >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-        <div className="mt-3 text-xs text-muted-foreground truncate">{user.email}</div>
-        <div className="flex flex-wrap items-center gap-2 mt-3">
-          <RoleBadge role={user.role || "viewer"} size="sm" />
-          {user.isActive !== false ? (
-            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800 text-[10px] px-1.5 py-0.5">
-              Active
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800 text-[10px] px-1.5 py-0.5">
-              Inactive
-            </Badge>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+              <Edit className="h-4 w-4 mr-2" />
+              {t("edit")}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                onUserDelete(user);
+              }}
+              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              {t("delete")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <div className="mt-3 text-xs text-muted-foreground truncate">{user.email}</div>
+
+      <div className="flex flex-wrap items-center gap-2 mt-3">
+        <RoleBadge role={user.role || "viewer"} size="sm" />
+        <StatusBadge isActive={user.isActive !== false} size="sm" />
+      </div>
+    </div>
   );
 
   return (
@@ -157,8 +198,8 @@ const UserTable = ({ users, onUserUpdate, onUserDelete }: UserTableProps) => {
       {/* Mobile View */}
       <div className="md:hidden">
         {users.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No users found
+          <div className="text-center py-12 text-muted-foreground">
+            <div className="text-sm">No users found</div>
           </div>
         ) : (
           users.map((user) => (
@@ -171,35 +212,39 @@ const UserTable = ({ users, onUserUpdate, onUserDelete }: UserTableProps) => {
       <div className="hidden md:block border rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead>User</TableHead>
-              <TableHead>Username</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+            <TableRow className="bg-muted/50 hover:bg-muted/50">
+              <TableHead className="font-semibold">User</TableHead>
+              <TableHead className="font-semibold">Username</TableHead>
+              <TableHead className="font-semibold">Email</TableHead>
+              <TableHead className="font-semibold">Role</TableHead>
+              <TableHead className="font-semibold">Status</TableHead>
+              <TableHead className="text-right font-semibold">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
+                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
                   No users found
                 </TableCell>
               </TableRow>
             ) : (
               users.map((user) => (
-                <TableRow key={user.id}>
+                <TableRow
+                  key={user.id}
+                  className="group cursor-pointer hover:bg-muted/30 transition-colors"
+                  onClick={() => onUserUpdate(user)}
+                >
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8">
+                      <Avatar className="h-9 w-9 ring-2 ring-background shadow-sm">
                         {user.avatar ? (
                           <AvatarImage
                             src={user.avatar}
                             alt={user.full_name || user.username}
                           />
                         ) : (
-                          <AvatarFallback>
+                          <AvatarFallback className="bg-muted text-muted-foreground text-sm">
                             {getUserInitials(user)}
                           </AvatarFallback>
                         )}
@@ -207,41 +252,41 @@ const UserTable = ({ users, onUserUpdate, onUserDelete }: UserTableProps) => {
                       <span>{user.full_name || "-"}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{user.username}</TableCell>
+                  <TableCell className="text-muted-foreground">@{user.username}</TableCell>
                   <TableCell className="text-muted-foreground">{user.email}</TableCell>
                   <TableCell>
                     <RoleBadge role={user.role || "viewer"} />
                   </TableCell>
                   <TableCell>
-                    {user.isActive !== false ? (
-                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800">
-                        Active
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800">
-                        Inactive
-                      </Badge>
-                    )}
+                    <StatusBadge isActive={user.isActive !== false} />
                   </TableCell>
-                  <TableCell className="text-right space-x-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={() => onUserUpdate(user)}
-                    >
-                      <Edit className="h-4 w-4" />
-                      <span className="sr-only">Edit</span>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => onUserDelete(user)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">Delete</span>
-                    </Button>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onUserUpdate(user);
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                        <span className="sr-only">Edit</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onUserDelete(user);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Delete</span>
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

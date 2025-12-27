@@ -1,3 +1,9 @@
+/**
+ * AddUserForm Component
+ *
+ * Form for creating new users with role-based access.
+ * Follows Modern Professional design system patterns.
+ */
 
 import React from "react";
 import { Form } from "@/components/ui/form";
@@ -7,18 +13,24 @@ import { UseFormReturn } from "react-hook-form";
 import { UserTextField } from "./";
 import { UserToggleField } from "./";
 import { UserRoleField } from "./";
-import { DialogFooter } from "@/components/ui/dialog";
+import UserProfilePictureField from "./UserProfilePictureField";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface AddUserFormProps {
   form: UseFormReturn<any>;
   onSubmit: (data: any) => void;
   isSubmitting: boolean;
+  onCancel?: () => void;
 }
 
-const AddUserForm = ({ form, onSubmit, isSubmitting }: AddUserFormProps) => {
+const AddUserForm = ({ form, onSubmit, isSubmitting, onCancel }: AddUserFormProps) => {
+  const { t } = useLanguage();
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Profile Picture Selection */}
+        <UserProfilePictureField control={form.control} />
 
         {/* Text fields - responsive grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -78,18 +90,36 @@ const AddUserForm = ({ form, onSubmit, isSubmitting }: AddUserFormProps) => {
           description="User will be able to access the system"
         />
 
-        <DialogFooter className="pt-4">
-          <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              "Create User"
+        {/* Fixed Footer */}
+        <div className="pt-4 border-t bg-muted/30 -mx-4 sm:-mx-6 px-4 sm:px-6 -mb-4 pb-4 mt-6">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            {onCancel && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                disabled={isSubmitting}
+                className="w-full sm:w-auto"
+              >
+                {t("cancel")}
+              </Button>
             )}
-          </Button>
-        </DialogFooter>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-800"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                t("createUser")
+              )}
+            </Button>
+          </div>
+        </div>
       </form>
     </Form>
   );
