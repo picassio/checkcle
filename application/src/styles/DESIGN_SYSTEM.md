@@ -1070,6 +1070,222 @@ Always handle broken image URLs gracefully:
 
 ---
 
+## User Management Patterns
+
+### Clickable User Cards with Reveal Actions
+
+Mobile user cards should be fully tappable with a reveal-on-hover action menu:
+
+```tsx
+<div
+  onClick={() => onUserUpdate(user)}
+  className="group mb-3 rounded-lg border bg-card p-4 cursor-pointer
+             transition-all duration-200 hover:shadow-md hover:border-primary/20
+             active:scale-[0.99]"
+>
+  <div className="flex items-start justify-between gap-3">
+    {/* User info */}
+    <div className="flex items-center gap-3 min-w-0 flex-1">
+      <Avatar className="h-11 w-11 flex-shrink-0 ring-2 ring-background shadow-sm">
+        <AvatarImage src={user.avatar} />
+        <AvatarFallback className="bg-muted text-muted-foreground font-medium">
+          {initials}
+        </AvatarFallback>
+      </Avatar>
+      <div className="min-w-0 flex-1">
+        <div className="font-medium truncate">{user.full_name}</div>
+        <div className="text-xs text-muted-foreground truncate">@{user.username}</div>
+      </div>
+    </div>
+
+    {/* Reveal-on-hover action menu */}
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-10 w-10 p-0 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <MoreHorizontal className="h-5 w-5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(user); }}>
+          <Edit className="h-4 w-4 mr-2" />
+          Edit
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={(e) => { e.stopPropagation(); onDelete(user); }}
+          className="text-destructive focus:text-destructive focus:bg-destructive/10"
+        >
+          <Trash2 className="h-4 w-4 mr-2" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  </div>
+</div>
+```
+
+**Key elements:**
+- Touch target `h-10 w-10` (40px) for mobile accessibility
+- `active:scale-[0.99]` for tactile feedback on tap
+- `ring-2 ring-background shadow-sm` on avatar for depth
+- Both trigger and menu items need `stopPropagation()`
+
+### Status Badge Helper Function
+
+Extract status colors to a reusable helper:
+
+```tsx
+const getStatusBadgeClasses = (isActive: boolean): string => {
+  return isActive
+    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800"
+    : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800";
+};
+
+// Usage
+<Badge variant="outline" className={getStatusBadgeClasses(user.isActive)}>
+  {user.isActive ? "Active" : "Inactive"}
+</Badge>
+```
+
+### Clickable Table Rows
+
+Desktop tables can also be clickable with reveal-on-hover actions:
+
+```tsx
+<TableRow
+  className="group cursor-pointer hover:bg-muted/30 transition-colors"
+  onClick={() => onUserUpdate(user)}
+>
+  <TableCell>
+    {/* Content */}
+  </TableCell>
+  <TableCell className="text-right">
+    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-8 w-8 p-0"
+        onClick={(e) => { e.stopPropagation(); onEdit(user); }}
+      >
+        <Edit className="h-4 w-4" />
+      </Button>
+    </div>
+  </TableCell>
+</TableRow>
+```
+
+### Avatar Selection Grid
+
+Responsive grid for selecting profile pictures:
+
+```tsx
+<RadioGroup
+  value={selectedAvatar}
+  onValueChange={setSelectedAvatar}
+  className="grid grid-cols-4 sm:grid-cols-4 lg:grid-cols-8 gap-2 sm:gap-3"
+>
+  {avatars.map((avatar) => {
+    const isSelected = selectedAvatar === avatar.url;
+
+    return (
+      <FormItem key={avatar.url} className="flex flex-col items-center justify-center">
+        <FormControl>
+          <RadioGroupItem value={avatar.url} className="sr-only" />
+        </FormControl>
+        <label
+          htmlFor={avatar.url}
+          className={`
+            relative cursor-pointer rounded-lg p-1 sm:p-1.5
+            transition-all duration-200
+            ${isSelected
+              ? "ring-2 ring-primary ring-offset-2 ring-offset-background bg-primary/5"
+              : "hover:bg-muted/50 hover:ring-2 hover:ring-muted"
+            }
+          `}
+        >
+          <Avatar className="h-12 w-12 sm:h-14 sm:w-14 shadow-sm">
+            <AvatarImage src={avatar.url} />
+            <AvatarFallback>?</AvatarFallback>
+          </Avatar>
+
+          {/* Selection indicator */}
+          {isSelected && (
+            <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary flex items-center justify-center shadow-sm">
+              <Check className="h-3 w-3 text-primary-foreground" />
+            </div>
+          )}
+        </label>
+      </FormItem>
+    );
+  })}
+</RadioGroup>
+```
+
+**Key elements:**
+- Grid: `grid-cols-4 lg:grid-cols-8` for 4 per row mobile, 8 desktop
+- Avatar sizing: `h-12 w-12 sm:h-14 sm:w-14`
+- Selection ring: `ring-2 ring-primary ring-offset-2`
+- Checkmark badge: absolute positioned circle with `Check` icon
+
+### Dialog with Semantic Header Icons
+
+Each dialog type gets a semantic colored icon:
+
+```tsx
+// Add User Dialog - Emerald (create action)
+<DialogTitle className="flex items-center gap-2 text-lg">
+  <div className="p-1.5 rounded-md bg-emerald-100 dark:bg-emerald-900/30">
+    <UserPlus className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+  </div>
+  Add New User
+</DialogTitle>
+
+// Edit User Dialog - Blue (view/update action)
+<DialogTitle className="flex items-center gap-2 text-lg">
+  <div className="p-1.5 rounded-md bg-blue-100 dark:bg-blue-900/30">
+    <Edit className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+  </div>
+  Edit User
+</DialogTitle>
+
+// Delete Dialog - Rose (destructive action)
+<DialogTitle className="flex items-center gap-2 text-lg">
+  <div className="p-1.5 rounded-md bg-rose-100 dark:bg-rose-900/30">
+    <Trash2 className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+  </div>
+  Delete User
+</DialogTitle>
+```
+
+### Dialog Footer with Background
+
+Footer should have subtle background for visual separation:
+
+```tsx
+<div className="flex-shrink-0 px-4 sm:px-6 py-4 border-t bg-muted/30">
+  <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+    <Button variant="outline" className="w-full sm:w-auto">
+      Cancel
+    </Button>
+    <Button className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700">
+      Create User
+    </Button>
+  </div>
+</div>
+```
+
+**Key elements:**
+- `bg-muted/30` for subtle background
+- `border-t` for separation
+- Buttons: `w-full sm:w-auto` for full-width on mobile
+- `flex-col-reverse` so primary action is first on mobile
+
+---
+
 ## Reference Implementation
 
 See these files for complete examples:
@@ -1078,6 +1294,9 @@ See these files for complete examples:
 - `/src/components/settings/role-management/RoleDialog.tsx` - Scrollable dialog with expandable sections
 - `/src/components/settings/role-management/UserRoleAssignment.tsx` - User cards with avatar, badge overflow, conditional borders
 - `/src/components/settings/branding/BrandingSettings.tsx` - Settings page with tabs, toggle cards, platform icons, email preview
+- `/src/components/settings/user-management/UserTable.tsx` - Clickable cards/rows with reveal-on-hover actions
+- `/src/components/settings/user-management/UserProfilePictureField.tsx` - Avatar selection grid with checkmark indicator
+- `/src/components/settings/user-management/EditUserDialog.tsx` - Dialog with semantic header icon and footer background
 - `/src/components/dashboard/Sidebar.tsx` - Desktop/mobile sidebar with proper theming
 - `/src/components/dashboard/sidebar/MenuItem.tsx` - Active state with left accent border, tooltips
 - `/src/components/dashboard/sidebar/SettingsPanel.tsx` - Collapsible navigation section
