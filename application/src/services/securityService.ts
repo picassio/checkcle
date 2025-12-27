@@ -72,6 +72,9 @@ export const securityService = {
   async runScanNow(scanId: string): Promise<SecurityQueueItem> {
     const response = await fetch(`${SERVICE_OPERATION_URL}/security/scan/${scanId}/run`, {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${pb.authStore.token}`,
+      },
     });
     if (!response.ok) {
       const error = await response.text();
@@ -154,7 +157,11 @@ export const securityService = {
 
   // Get current queue status
   async getQueueStatus(): Promise<SecurityQueueStatus> {
-    const response = await fetch(`${SERVICE_OPERATION_URL}/security/queue`);
+    const response = await fetch(`${SERVICE_OPERATION_URL}/security/queue`, {
+      headers: {
+        'Authorization': `Bearer ${pb.authStore.token}`,
+      },
+    });
     if (!response.ok) {
       throw new Error('Failed to fetch queue status');
     }
@@ -165,6 +172,9 @@ export const securityService = {
   async cancelQueueItem(itemId: string): Promise<{ success: boolean; message: string }> {
     const response = await fetch(`${SERVICE_OPERATION_URL}/security/queue/${itemId}/cancel`, {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${pb.authStore.token}`,
+      },
     });
     if (!response.ok) {
       const error = await response.text();
@@ -188,7 +198,11 @@ export const securityService = {
 
   // Get security summary
   async getSummary(): Promise<SecuritySummary> {
-    const response = await fetch(`${SERVICE_OPERATION_URL}/security/summary`);
+    const response = await fetch(`${SERVICE_OPERATION_URL}/security/summary`, {
+      headers: {
+        'Authorization': `Bearer ${pb.authStore.token}`,
+      },
+    });
     if (!response.ok) {
       throw new Error('Failed to fetch security summary');
     }

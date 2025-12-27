@@ -64,6 +64,9 @@ export const performanceService = {
   async runTestNow(testId: string): Promise<QueueItem> {
     const response = await fetch(`${SERVICE_OPERATION_URL}/performance/test/${testId}/run`, {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${pb.authStore.token}`,
+      },
     });
     if (!response.ok) {
       const error = await response.text();
@@ -76,7 +79,11 @@ export const performanceService = {
 
   // Get current queue status (currently running + pending items)
   async getQueueStatus(): Promise<QueueStatus> {
-    const response = await fetch(`${SERVICE_OPERATION_URL}/performance/queue`);
+    const response = await fetch(`${SERVICE_OPERATION_URL}/performance/queue`, {
+      headers: {
+        'Authorization': `Bearer ${pb.authStore.token}`,
+      },
+    });
     if (!response.ok) {
       throw new Error('Failed to fetch queue status');
     }
@@ -85,7 +92,11 @@ export const performanceService = {
 
   // Get queue position for a specific test
   async getQueuePosition(testId: string): Promise<QueuePositionResponse> {
-    const response = await fetch(`${SERVICE_OPERATION_URL}/performance/queue/test/${testId}`);
+    const response = await fetch(`${SERVICE_OPERATION_URL}/performance/queue/test/${testId}`, {
+      headers: {
+        'Authorization': `Bearer ${pb.authStore.token}`,
+      },
+    });
     if (!response.ok) {
       throw new Error('Failed to fetch queue position');
     }
@@ -96,6 +107,9 @@ export const performanceService = {
   async cancelQueueItem(itemId: string): Promise<{ success: boolean; message: string }> {
     const response = await fetch(`${SERVICE_OPERATION_URL}/performance/queue/${itemId}/cancel`, {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${pb.authStore.token}`,
+      },
     });
     if (!response.ok) {
       const error = await response.text();
@@ -163,7 +177,11 @@ export const performanceService = {
   // Get latest metrics for all tests (dashboard overview)
   async getLatestMetricsForAllTests(): Promise<PerformanceTestWithMetrics[]> {
     try {
-      const response = await fetch(`${SERVICE_OPERATION_URL}/performance/latest`);
+      const response = await fetch(`${SERVICE_OPERATION_URL}/performance/latest`, {
+        headers: {
+          'Authorization': `Bearer ${pb.authStore.token}`,
+        },
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch latest metrics');
       }

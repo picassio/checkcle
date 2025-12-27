@@ -1,48 +1,40 @@
 /// <reference path="../pb_data/types.d.ts" />
 /**
- * Security Migration: Add proper access rules to all collections
+ * Security Migration: Add proper access rules to user-facing collections
  *
- * This migration updates all data collections to require authentication
- * for read/write operations, preventing unauthorized access to monitoring data.
+ * This migration updates user-facing collections to require authentication.
+ * Internal/monitoring collections are excluded as they are accessed by the
+ * service-operation Go microservice which runs inside the container.
+ *
+ * Security model:
+ * - User-facing collections: Require authentication (managed via frontend)
+ * - Internal collections: Public access (used by internal Go service)
+ * - The frontend handles user authentication for all user operations
+ * - The Go service handles internal monitoring without auth overhead
  */
 
-// Collections that require authentication for all operations
+// Collections that require authentication (user-facing only)
 const protectedCollections = [
-    'alert_configurations',
-    'data_settings',
-    'dns_data',
-    'docker_metrics',
-    'dockers',
-    'incidents',
-    'maintenance',
-    'operational_page',
-    'ping_data',
-    // 'regional_service' - excluded: internal service-operation infrastructure, not user-facing
-    'server_metrics',
-    'server_notification_templates',
-    'server_threshold_templates',
-    'servers',
-    'service_notification_templates',
-    'services',
-    'services_metrics',
-    'ssl_certificates',
-    'ssl_history',
-    'ssl_notification_templates',
-    'status_page_components',
-    'tcp_data',
-    'uptime_data',
-    'performance_tests',
-    'performance_metrics',
-    'performance_budgets',
-    'performance_queue',
-    'security_scans',
-    'security_results',
-    'security_queue',
-    'security_notification_templates',
-    'service_group'
-    // Note: 'webhook_configs' removed (collection was deleted)
-    // Note: 'uptime_validation_results' removed (it's a field, not a collection)
+    'data_settings',          // User preferences
+    'maintenance',            // User-managed maintenance windows
+    'status_page_components', // User-managed status page config
+    // RBAC collections - protected for user management
+    'roles',
+    'permissions',
+    'role_permissions',
+    'user_roles',
+    'user_permissions',
+    'resource_assignments'
 ];
+
+// Internal collections - accessed by Go service-operation
+// These remain public for internal service communication:
+// - services, servers, dockers (monitored resources)
+// - *_metrics, *_data (monitoring data written by Go service)
+// - *_notification_templates (read by Go service for alerts)
+// - incidents, alert_configurations (managed by Go service)
+// - performance_*, security_* (managed by Go service)
+// - regional_service, service_group, operational_page
 
 // Rule requiring user to be authenticated
 const authRequiredRule = "@request.auth.id != ''";

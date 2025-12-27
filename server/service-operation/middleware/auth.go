@@ -28,6 +28,12 @@ func NewAuthMiddleware(pocketbaseURL string) *AuthMiddleware {
 // Authenticate wraps an http.Handler with authentication
 func (a *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Skip auth for public endpoints (static report files)
+		if strings.HasPrefix(r.URL.Path, "/performance/report/") {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		// Extract token from Authorization header
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {

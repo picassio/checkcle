@@ -138,6 +138,11 @@ func main() {
 	// Health check endpoint (no auth required)
 	router.HandleFunc("/health", handler.HandleHealth).Methods("GET")
 
+	// Performance reports - public access (static HTML files, loaded in iframes)
+	router.HandleFunc("/performance/report/{testId}/{timestamp}/{file:.*}", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
+	router.HandleFunc("/performance/report/{testId}/{timestamp}/", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
+	router.HandleFunc("/performance/report/{testId}/{timestamp}", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
+
 	// Create authenticated subrouter for protected endpoints
 	protectedRouter := router.PathPrefix("").Subrouter()
 	if authMiddleware != nil {
@@ -183,9 +188,7 @@ func main() {
 	perfViewRouter.HandleFunc("/metrics/{testId}", handler.HandlePerformanceMetrics).Methods("GET", "OPTIONS")
 	perfViewRouter.HandleFunc("/latest", handler.HandlePerformanceLatestMetrics).Methods("GET", "OPTIONS")
 	perfViewRouter.HandleFunc("/budgets", handler.HandlePerformanceBudgets).Methods("GET", "OPTIONS")
-	perfViewRouter.HandleFunc("/report/{testId}/{timestamp}/{file:.*}", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
-	perfViewRouter.HandleFunc("/report/{testId}/{timestamp}/", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
-	perfViewRouter.HandleFunc("/report/{testId}/{timestamp}", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
+	// Note: /report routes moved to public router (no auth needed for static HTML)
 	perfViewRouter.HandleFunc("/queue", handler.HandlePerformanceQueueStatus).Methods("GET", "OPTIONS")
 	perfViewRouter.HandleFunc("/queue/test/{testId}", handler.HandlePerformanceQueuePosition).Methods("GET", "OPTIONS")
 
