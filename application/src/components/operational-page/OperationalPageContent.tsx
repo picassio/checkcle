@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOperationalPages, useDeleteOperationalPage } from '@/hooks/useOperationalPage';
 import { CreateOperationalPageDialog } from './CreateOperationalPageDialog';
@@ -10,6 +10,7 @@ import { OperationalPageRecord } from '@/types/operational.types';
 import { Activity, Plus, RefreshCw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLanguage } from "@/contexts/LanguageContext";
+import { usePermission } from "@/hooks/usePermission";
 
 import {
   AlertDialog,
@@ -25,9 +26,36 @@ import {
 export const OperationalPageContent = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const { data: pages, isLoading, error, refetch, isRefetching } = useOperationalPages();
+  const { data: allPages, isLoading: pagesLoading, error, refetch, isRefetching } = useOperationalPages();
   const deleteMutation = useDeleteOperationalPage();
-  
+
+  // Permission checking for resource filtering
+  const { getAssignedResourceIds, can, loading: permissionLoading } = usePermission();
+
+  // Check if user can create operational pages
+  const canCreatePages = can('operational_pages', 'create');
+
+  // Filter operational pages based on user's resource assignments
+  const pages = useMemo(() => {
+    const assignedIds = getAssignedResourceIds('operational_pages');
+
+    // null means no filtering needed (superadmin/admin)
+    if (assignedIds === null) {
+      return allPages;
+    }
+
+    // Empty array means no access to any operational pages
+    if (assignedIds.length === 0) {
+      return [];
+    }
+
+    // Filter to only show assigned operational pages
+    return allPages?.filter(page => assignedIds.includes(page.id));
+  }, [allPages, getAssignedResourceIds]);
+
+  // Combined loading state
+  const isLoading = pagesLoading || permissionLoading;
+
   const [editingPage, setEditingPage] = useState<OperationalPageRecord | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -105,7 +133,7 @@ export const OperationalPageContent = () => {
             <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline ml-2">{t('refresh')}</span>
           </Button>
-          <CreateOperationalPageDialog />
+          {canCreatePages && <CreateOperationalPageDialog />}
         </div>
       </div>
 
@@ -142,7 +170,7 @@ export const OperationalPageContent = () => {
             <p className="text-muted-foreground mb-6">
               {t('createYourFirstOperationalPage')}
             </p>
-            <CreateOperationalPageDialog />
+            {canCreatePages && <CreateOperationalPageDialog />}
           </CardContent>
         </Card>
       )}

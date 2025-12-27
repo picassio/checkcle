@@ -19,6 +19,10 @@ interface UsePermissionReturn {
   canAny: (permissions: Array<[Resource | string, Action | string]>) => boolean;
   canAll: (permissions: Array<[Resource | string, Action | string]>) => boolean;
 
+  // Resource filtering methods
+  getAssignedResourceIds: (resourceType: string) => string[] | null;
+  requiresResourceFiltering: () => boolean;
+
   // Role checks
   isViewer: boolean;
   isOperator: boolean;
@@ -77,6 +81,20 @@ export function usePermission(): UsePermissionReturn {
     [context]
   );
 
+  const getAssignedResourceIds = useCallback(
+    (resourceType: string): string[] | null => {
+      return context.getAssignedResourceIds(resourceType);
+    },
+    [context]
+  );
+
+  const requiresResourceFiltering = useCallback(
+    (): boolean => {
+      return context.requiresResourceFiltering();
+    },
+    [context]
+  );
+
   return useMemo(
     () => ({
       loading: context.loading,
@@ -85,6 +103,8 @@ export function usePermission(): UsePermissionReturn {
       canAccess,
       canAny,
       canAll,
+      getAssignedResourceIds,
+      requiresResourceFiltering,
       isViewer: context.isViewer,
       isOperator: context.isOperator,
       isServiceManager: context.isServiceManager,
@@ -92,7 +112,7 @@ export function usePermission(): UsePermissionReturn {
       isSuperAdmin: context.isSuperAdmin,
       refresh: context.refreshPermissions
     }),
-    [context, can, canAccess, canAny, canAll]
+    [context, can, canAccess, canAny, canAll, getAssignedResourceIds, requiresResourceFiltering]
   );
 }
 

@@ -56,11 +56,11 @@ export interface User {
 
 // Security: Get current user's role for RBAC checks
 const getCurrentUserRole = (): string | null => {
-  const model = pb.authStore.model;
+  const model = pb.authStore.model as any;
   if (!model) return null;
 
   // Check if user is from _superusers collection (by name, not hardcoded ID)
-  if (pb.authStore.record?.collectionName === '_superusers') {
+  if (model?.collectionName === '_superusers') {
     return 'superadmin';
   }
 

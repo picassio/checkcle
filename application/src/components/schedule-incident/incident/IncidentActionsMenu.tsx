@@ -14,6 +14,7 @@ import { MoreHorizontal, Eye, Edit, Trash, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { updateIncidentStatus, deleteIncident } from '@/services/incident/incidentOperations';
 import { IncidentItem } from '@/services/incident/types';
+import { permissionService } from '@/services/permissionService';
 
 interface IncidentActionsMenuProps {
   item: IncidentItem;
@@ -22,14 +23,18 @@ interface IncidentActionsMenuProps {
   onEditIncident?: (incident: IncidentItem) => void;
 }
 
-export const IncidentActionsMenu = ({ 
-  item, 
+export const IncidentActionsMenu = ({
+  item,
   onIncidentUpdated,
   onViewDetails,
   onEditIncident
 }: IncidentActionsMenuProps) => {
   const { t } = useLanguage();
   const { toast } = useToast();
+
+  // Check if user can manage this incident
+  const accessLevel = permissionService.getEffectiveAccessLevel('incidents', item.id);
+  const canManage = accessLevel === 'manage';
 
   const handleResolveIncident = async () => {
     try {
@@ -92,22 +97,26 @@ export const IncidentActionsMenu = ({
             {t('view')}
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem onClick={handleEditClick}>
-          <Edit className="mr-2 h-4 w-4" />
-          {t('edit')}
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleResolveIncident}>
-          <Check className="mr-2 h-4 w-4" />
-          {t('resolve')}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={handleDeleteIncident}
-          className="text-red-600 focus:text-red-600"
-        >
-          <Trash className="mr-2 h-4 w-4" />
-          {t('delete')}
-        </DropdownMenuItem>
+        {canManage && (
+          <>
+            <DropdownMenuItem onClick={handleEditClick}>
+              <Edit className="mr-2 h-4 w-4" />
+              {t('edit')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleResolveIncident}>
+              <Check className="mr-2 h-4 w-4" />
+              {t('resolve')}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={handleDeleteIncident}
+              className="text-red-600 focus:text-red-600"
+            >
+              <Trash className="mr-2 h-4 w-4" />
+              {t('delete')}
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

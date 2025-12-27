@@ -1,14 +1,27 @@
 
 import { Globe, Boxes, Layers, Calendar, BarChart2, LineChart, MapPin, Settings, User, Bell, Database, Info, BookOpen, Gauge, Shield, Palette, Key } from "lucide-react";
 
-export const mainMenuItems = [
+export interface MenuItemData {
+  id: string;
+  path?: string;
+  icon: any;
+  translationKey: string;
+  color?: string;
+  hasNavigation?: boolean;
+  // Permission requirement: [resource, action]
+  requiredPermission?: [string, string];
+}
+
+export const mainMenuItems: MenuItemData[] = [
   {
     id: 'uptime-monitoring',
     path: '/dashboard',
     icon: Globe,
     translationKey: 'uptimeMonitoring',
     color: 'text-purple-400',
-    hasNavigation: true
+    hasNavigation: true,
+    // Dashboard is accessible to all authenticated users
+    requiredPermission: undefined
   },
   {
     id: 'instance-monitoring',
@@ -16,7 +29,8 @@ export const mainMenuItems = [
     icon: Boxes,
     translationKey: 'instanceMonitoring',
     color: 'text-blue-400',
-    hasNavigation: true
+    hasNavigation: true,
+    requiredPermission: ['services', 'view']
   },
   {
     id: 'ssl-domain',
@@ -24,7 +38,8 @@ export const mainMenuItems = [
     icon: Layers,
     translationKey: 'sslDomain',
     color: 'text-cyan-400',
-    hasNavigation: true
+    hasNavigation: true,
+    requiredPermission: ['ssl_certificates', 'view']
   },
   {
     id: 'schedule-incident',
@@ -32,7 +47,8 @@ export const mainMenuItems = [
     icon: Calendar,
     translationKey: 'scheduleIncident',
     color: 'text-emerald-400',
-    hasNavigation: true
+    hasNavigation: true,
+    requiredPermission: ['incidents', 'view']
   },
   {
     id: 'operational-page',
@@ -40,7 +56,8 @@ export const mainMenuItems = [
     icon: BarChart2,
     translationKey: 'operationalPage',
     color: 'text-amber-400',
-    hasNavigation: true
+    hasNavigation: true,
+    requiredPermission: ['operational_pages', 'view']
   },
   {
     id: 'regional-monitoring',
@@ -48,7 +65,8 @@ export const mainMenuItems = [
     icon: MapPin,
     translationKey: 'regionalMonitoring',
     color: 'text-indigo-400',
-    hasNavigation: true
+    hasNavigation: true,
+    requiredPermission: ['services', 'view']
   },
   {
     id: 'performance-monitoring',
@@ -56,7 +74,8 @@ export const mainMenuItems = [
     icon: Gauge,
     translationKey: 'performanceMonitoring',
     color: 'text-orange-400',
-    hasNavigation: true
+    hasNavigation: true,
+    requiredPermission: ['performance_tests', 'view']
   },
   {
     id: 'security-scanning',
@@ -64,7 +83,8 @@ export const mainMenuItems = [
     icon: Shield,
     translationKey: 'securityScanning',
     color: 'text-red-400',
-    hasNavigation: true
+    hasNavigation: true,
+    requiredPermission: ['security_scans', 'view']
   },
   {
     id: 'reports',
@@ -72,49 +92,59 @@ export const mainMenuItems = [
     icon: LineChart,
     translationKey: 'reports',
     color: 'text-rose-400',
-    hasNavigation: true
+    hasNavigation: true,
+    requiredPermission: ['reports', 'view']
   }
 ];
 
-export const settingsMenuItems = [
+export const settingsMenuItems: MenuItemData[] = [
   {
     id: 'general',
     icon: Settings,
-    translationKey: 'generalSettings'
+    translationKey: 'generalSettings',
+    requiredPermission: ['settings', 'view']
   },
   {
     id: 'branding',
     icon: Palette,
-    translationKey: 'brandingSettings'
+    translationKey: 'brandingSettings',
+    requiredPermission: ['settings', 'view']
   },
   {
     id: 'users',
     icon: User,
-    translationKey: 'userManagement'
+    translationKey: 'userManagement',
+    requiredPermission: ['users', 'view']
   },
   {
     id: 'roles',
     icon: Key,
-    translationKey: 'roleManagement'
+    translationKey: 'roleManagement',
+    requiredPermission: ['roles', 'view']
   },
   {
     id: 'notifications',
     icon: Bell,
-    translationKey: 'notificationSettings'
+    translationKey: 'notificationSettings',
+    requiredPermission: ['settings', 'view']
   },
   {
     id: 'templates',
     icon: BookOpen,
-    translationKey: 'alertsTemplates'
+    translationKey: 'alertsTemplates',
+    requiredPermission: ['alerts', 'view']
   },
   {
     id: 'data-retention',
     icon: Database,
-    translationKey: 'dataRetention'
+    translationKey: 'dataRetention',
+    requiredPermission: ['settings', 'view']
   },
   {
     id: 'about',
     icon: Info,
-    translationKey: 'aboutSystem'
+    translationKey: 'aboutSystem',
+    // About is accessible to all authenticated users
+    requiredPermission: undefined
   }
 ];

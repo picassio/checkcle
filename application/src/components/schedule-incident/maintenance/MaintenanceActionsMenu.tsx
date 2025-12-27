@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, Eye, Edit, Trash, Play, CheckCircle, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { 
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -26,6 +26,7 @@ import { MaintenanceItem } from '@/services/types/maintenance.types';
 import { maintenanceService } from '@/services/maintenance';
 import { MaintenanceDetailDialog } from './detail-dialog/MaintenanceDetailDialog';
 import { EditMaintenanceDialog } from './edit-dialog/EditMaintenanceDialog';
+import { permissionService } from '@/services/permissionService';
 
 interface MaintenanceActionsMenuProps {
   item: MaintenanceItem;
@@ -38,6 +39,10 @@ export const MaintenanceActionsMenu = ({ item, onMaintenanceUpdated }: Maintenan
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // Check if user can manage this maintenance item
+  const accessLevel = permissionService.getEffectiveAccessLevel('maintenance', item.id);
+  const canManage = accessLevel === 'manage';
 
   const handleStatusChange = async (newStatus: string) => {
     try {
@@ -96,41 +101,45 @@ export const MaintenanceActionsMenu = ({ item, onMaintenanceUpdated }: Maintenan
             <Eye className="mr-2 h-4 w-4" />
             {t('view')}
           </DropdownMenuItem>
-          
-          <DropdownMenuItem onClick={() => setEditDialogOpen(true)}>
-            <Edit className="mr-2 h-4 w-4" />
-            {t('edit')}
-          </DropdownMenuItem>
-          
-          {status === 'scheduled' && (
-            <DropdownMenuItem onClick={() => handleStatusChange('in_progress')}>
-              <Play className="mr-2 h-4 w-4" />
-              {t('markAsInProgress')}
-            </DropdownMenuItem>
+
+          {canManage && (
+            <>
+              <DropdownMenuItem onClick={() => setEditDialogOpen(true)}>
+                <Edit className="mr-2 h-4 w-4" />
+                {t('edit')}
+              </DropdownMenuItem>
+
+              {status === 'scheduled' && (
+                <DropdownMenuItem onClick={() => handleStatusChange('in_progress')}>
+                  <Play className="mr-2 h-4 w-4" />
+                  {t('markAsInProgress')}
+                </DropdownMenuItem>
+              )}
+
+              {(status === 'scheduled' || status === 'in_progress') && (
+                <DropdownMenuItem onClick={() => handleStatusChange('completed')}>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  {t('markAsCompleted')}
+                </DropdownMenuItem>
+              )}
+
+              {status !== 'cancelled' && (
+                <DropdownMenuItem onClick={() => handleStatusChange('cancelled')}>
+                  <X className="mr-2 h-4 w-4" />
+                  {t('markAsCancelled')}
+                </DropdownMenuItem>
+              )}
+
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setDeleteDialogOpen(true)}
+                className="text-red-600 focus:text-red-600"
+              >
+                <Trash className="mr-2 h-4 w-4" />
+                {t('delete')}
+              </DropdownMenuItem>
+            </>
           )}
-          
-          {(status === 'scheduled' || status === 'in_progress') && (
-            <DropdownMenuItem onClick={() => handleStatusChange('completed')}>
-              <CheckCircle className="mr-2 h-4 w-4" />
-              {t('markAsCompleted')}
-            </DropdownMenuItem>
-          )}
-          
-          {status !== 'cancelled' && (
-            <DropdownMenuItem onClick={() => handleStatusChange('cancelled')}>
-              <X className="mr-2 h-4 w-4" />
-              {t('markAsCancelled')}
-            </DropdownMenuItem>
-          )}
-          
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() => setDeleteDialogOpen(true)}
-            className="text-red-600 focus:text-red-600"
-          >
-            <Trash className="mr-2 h-4 w-4" />
-            {t('delete')}
-          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       

@@ -9,6 +9,7 @@ import { RegionalService } from "@/types/regional.types";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { permissionService } from "@/services/permissionService";
 
 interface RegionalAgentCardProps {
   agent: RegionalService;
@@ -21,6 +22,10 @@ export const RegionalAgentCard: React.FC<RegionalAgentCardProps> = ({ agent, onD
 
   // Check if this is the default agent that cannot be removed
   const isDefaultAgent = agent.agent_id === "1" || agent.region_name === "Default";
+
+  // Check if user can manage this agent (based on service permission since regional agents are linked to services)
+  const accessLevel = permissionService.getEffectiveAccessLevel('services', agent.service_id);
+  const canManage = accessLevel === 'manage';
 
   const copyAgentId = async () => {
     try {
@@ -90,7 +95,7 @@ export const RegionalAgentCard: React.FC<RegionalAgentCardProps> = ({ agent, onD
                 <Copy className="mr-2 h-4 w-4" />
                 {t('copyAgentId')}
               </DropdownMenuItem>
-              {!isDefaultAgent && (
+              {!isDefaultAgent && canManage && (
                 <DropdownMenuItem onClick={onDelete} className="text-red-600">
                   <Trash2 className="mr-2 h-4 w-4" />
                   {t('removeAgent')}

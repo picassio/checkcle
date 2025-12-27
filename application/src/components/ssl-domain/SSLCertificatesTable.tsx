@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Shield, Calendar, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSSLPagination } from "@/hooks/useSSLPagination";
 import { toast } from "sonner";
+import { usePermission } from "@/hooks/usePermission";
 
 export const SSLCertificatesTable = () => {
   const { t } = useLanguage();
@@ -54,10 +55,34 @@ export const SSLCertificatesTable = () => {
   const [selectedCertificate, setSelectedCertificate] = useState<SSLCertificate | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: certificates = [], isLoading, isError } = useQuery({
+  // Permission checking for resource filtering
+  const { getAssignedResourceIds, loading: permissionLoading } = usePermission();
+
+  const { data: allCertificates = [], isLoading: certificatesLoading, isError } = useQuery({
     queryKey: ['ssl-certificates'],
     queryFn: fetchSSLCertificates,
   });
+
+  // Filter certificates based on user's resource assignments
+  const certificates = useMemo(() => {
+    const assignedIds = getAssignedResourceIds('ssl_certificates');
+
+    // null means no filtering needed (superadmin/admin)
+    if (assignedIds === null) {
+      return allCertificates;
+    }
+
+    // Empty array means no access to any certificates
+    if (assignedIds.length === 0) {
+      return [];
+    }
+
+    // Filter to only show assigned certificates
+    return allCertificates.filter(cert => assignedIds.includes(cert.id));
+  }, [allCertificates, getAssignedResourceIds]);
+
+  // Combined loading state
+  const isLoading = certificatesLoading || permissionLoading;
 
   const {
     paginatedCertificates,

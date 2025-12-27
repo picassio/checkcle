@@ -5,6 +5,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, RefreshCw, Edit, Trash2, Eye } from "lucide-react";
@@ -12,6 +13,7 @@ import { SSLCertificate } from "@/types/ssl.types";
 import { triggerImmediateCheck } from "@/services/sslCertificateService";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { permissionService } from "@/services/permissionService";
 
 interface SSLCertificateActionsProps {
   certificate: SSLCertificate;
@@ -20,13 +22,17 @@ interface SSLCertificateActionsProps {
   onDelete: (certificate: SSLCertificate) => void;
 }
 
-export const SSLCertificateActions = ({ 
-  certificate, 
+export const SSLCertificateActions = ({
+  certificate,
   onView,
-  onEdit, 
-  onDelete 
+  onEdit,
+  onDelete
 }: SSLCertificateActionsProps) => {
   const { t } = useLanguage();
+
+  // Check if user can manage this specific certificate
+  const accessLevel = permissionService.getEffectiveAccessLevel('ssl_certificates', certificate.id);
+  const canManage = accessLevel === 'manage';
 
   const handleCheck = async () => {
     try {
@@ -49,21 +55,26 @@ export const SSLCertificateActions = ({
           <Eye className="mr-2 h-4 w-4" />
           {t('view')}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleCheck(); }}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Check
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(certificate); }}>
-          <Edit className="mr-2 h-4 w-4" />
-          {t('edit')}
-        </DropdownMenuItem>
-        <DropdownMenuItem 
-          onClick={(e) => { e.stopPropagation(); onDelete(certificate); }}
-          className="text-destructive"
-        >
-          <Trash2 className="mr-2 h-4 w-4" />
-          {t('delete')}
-        </DropdownMenuItem>
+        {canManage && (
+          <>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleCheck(); }}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Check
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(certificate); }}>
+              <Edit className="mr-2 h-4 w-4" />
+              {t('edit')}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={(e) => { e.stopPropagation(); onDelete(certificate); }}
+              className="text-destructive"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {t('delete')}
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

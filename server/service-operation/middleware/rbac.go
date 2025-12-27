@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"sync"
@@ -157,6 +158,7 @@ func (r *RBACMiddleware) checkPermission(token, resource, action string) (bool, 
 	// Get user info from token
 	userInfo, err := r.getUserFromToken(token)
 	if err != nil {
+		fmt.Printf("[RBAC] getUserFromToken failed: %v\n", err)
 		return false, err
 	}
 
@@ -175,8 +177,10 @@ func (r *RBACMiddleware) checkPermission(token, resource, action string) (bool, 
 	// Fetch permissions from PocketBase
 	permissions, roles, err := r.fetchUserPermissions(token, userInfo.ID, userInfo.Collection)
 	if err != nil {
+		fmt.Printf("[RBAC] fetchUserPermissions failed for user %s: %v\n", userInfo.ID, err)
 		return false, err
 	}
+	fmt.Printf("[RBAC] User %s permissions: %v, roles: %v\n", userInfo.ID, permissions, roles)
 
 	// Cache the permissions
 	r.cache.set(cacheKey, permissions, roles)
@@ -265,8 +269,9 @@ func (r *RBACMiddleware) fetchUserPermissions(token, userID, userCollection stri
 	}
 
 	// 1. Get user's roles
-	userRolesURL := fmt.Sprintf("%s/api/collections/user_roles/records?filter=user_id='%s' && user_collection='%s'&expand=role_id",
-		r.pbURL, safeUserID, safeCollection)
+	userRolesFilter := fmt.Sprintf("user_id='%s' && user_collection='%s'", safeUserID, safeCollection)
+	userRolesURL := fmt.Sprintf("%s/api/collections/user_roles/records?filter=%s&expand=role_id",
+		r.pbURL, url.QueryEscape(userRolesFilter))
 
 	req, err := http.NewRequest("GET", userRolesURL, nil)
 	if err != nil {
@@ -321,8 +326,9 @@ func (r *RBACMiddleware) fetchUserPermissions(token, userID, userCollection stri
 			continue // Skip invalid role IDs
 		}
 
-		rolePermsURL := fmt.Sprintf("%s/api/collections/role_permissions/records?filter=role_id='%s'&expand=permission_id",
-			r.pbURL, safeRoleID)
+		rolePermsFilter := fmt.Sprintf("role_id='%s'", safeRoleID)
+		rolePermsURL := fmt.Sprintf("%s/api/collections/role_permissions/records?filter=%s&expand=permission_id",
+			r.pbURL, url.QueryEscape(rolePermsFilter))
 
 		req, err := http.NewRequest("GET", rolePermsURL, nil)
 		if err != nil {
@@ -363,8 +369,9 @@ func (r *RBACMiddleware) fetchUserPermissions(token, userID, userCollection stri
 	}
 
 	// 3. Get user-specific permission overrides
-	userPermsURL := fmt.Sprintf("%s/api/collections/user_permissions/records?filter=user_id='%s' && user_collection='%s'&expand=permission_id",
-		r.pbURL, userID, userCollection)
+	userPermsFilter := fmt.Sprintf("user_id='%s' && user_collection='%s'", safeUserID, safeCollection)
+	userPermsURL := fmt.Sprintf("%s/api/collections/user_permissions/records?filter=%s&expand=permission_id",
+		r.pbURL, url.QueryEscape(userPermsFilter))
 
 	req, err = http.NewRequest("GET", userPermsURL, nil)
 	if err == nil {
@@ -392,6 +399,66 @@ func (r *RBACMiddleware) fetchUserPermissions(token, userID, userCollection stri
 					// User-specific overrides take precedence
 					permissions[permKey] = up.Granted
 				}
+			}
+		}
+	}
+
+	// 4. Get resource-level assignments - grants permission if user has any assignment with manage access
+	// This allows users with specific resource assignments to perform actions on those resources
+	resourceAssignFilter := fmt.Sprintf("user_id='%s' && user_collection='%s'", safeUserID, safeCollection)
+	resourceAssignURL := fmt.Sprintf("%s/api/collections/resource_assignments/records?filter=%s",
+		r.pbURL, url.QueryEscape(resourceAssignFilter))
+
+	req, err = http.NewRequest("GET", resourceAssignURL, nil)
+	if err == nil {
+		req.Header.Set("Authorization", token)
+		resp, err := r.httpClient.Do(req)
+		if err != nil {
+			fmt.Printf("[RBAC] resource_assignments request failed: %v\n", err)
+		} else {
+			body, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+
+			fmt.Printf("[RBAC] resource_assignments response status: %d, body: %s\n", resp.StatusCode, string(body))
+
+			var resourceAssignResp struct {
+				Items []struct {
+					ResourceType string `json:"resource_type"`
+					ResourceID   string `json:"resource_id"`
+					AccessLevel  string `json:"access_level"`
+				} `json:"items"`
+			}
+
+			if json.Unmarshal(body, &resourceAssignResp) == nil {
+				// Track which resource types have manage access via assignments
+				resourceManageAccess := make(map[string]bool)
+				resourceViewAccess := make(map[string]bool)
+
+				for _, ra := range resourceAssignResp.Items {
+					if ra.AccessLevel == "manage" {
+						resourceManageAccess[ra.ResourceType] = true
+					}
+					if ra.AccessLevel == "view" || ra.AccessLevel == "manage" {
+						resourceViewAccess[ra.ResourceType] = true
+					}
+				}
+
+				// Grant permissions based on resource assignments
+				// If user has manage access to any resource of a type, allow manage actions
+				for resourceType := range resourceManageAccess {
+					permissions[fmt.Sprintf("%s:manage", resourceType)] = true
+					permissions[fmt.Sprintf("%s:view", resourceType)] = true
+					permissions[fmt.Sprintf("%s:create", resourceType)] = true
+				}
+
+				// If user has view access to any resource of a type, allow view actions
+				for resourceType := range resourceViewAccess {
+					if !resourceManageAccess[resourceType] {
+						permissions[fmt.Sprintf("%s:view", resourceType)] = true
+					}
+				}
+
+				fmt.Printf("[RBAC] After resource_assignments - manage: %v, view: %v\n", resourceManageAccess, resourceViewAccess)
 			}
 		}
 	}

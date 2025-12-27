@@ -8,6 +8,7 @@ import { ServiceFilters } from "./ServiceFilters";
 import { ServicesTable } from "./ServicesTable";
 import { AddServiceDialog } from "@/components/services/AddServiceDialog";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { usePermission } from "@/hooks/usePermission";
 
 interface DashboardContentProps {
   services: Service[];
@@ -17,9 +18,13 @@ interface DashboardContentProps {
 
 export const DashboardContent = ({ services, isLoading, error }: DashboardContentProps) => {
   const { t } = useLanguage();
+  const { can } = usePermission();
   const [filter, setFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState<boolean>(false);
+
+  // Check if user can create services
+  const canCreateServices = can('services', 'create');
 
   // Filter services based on search term and type filter
   const filteredServices = services.filter(service => {
@@ -43,13 +48,15 @@ export const DashboardContent = ({ services, isLoading, error }: DashboardConten
       <div className="flex flex-col flex-1 min-w-0">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 md:mb-6">
           <h2 className="text-xl md:text-2xl font-bold text-foreground">{t('overview')}</h2>
-          <Button
-            className="text-primary-foreground w-full sm:w-auto"
-            size="sm"
-            onClick={() => setIsAddDialogOpen(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" /> {t('newService')}
-          </Button>
+          {canCreateServices && (
+            <Button
+              className="text-primary-foreground w-full sm:w-auto"
+              size="sm"
+              onClick={() => setIsAddDialogOpen(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" /> {t('newService')}
+            </Button>
+          )}
         </div>
 
         <StatusCards services={services} />

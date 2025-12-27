@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { performanceService } from "@/services/performanceService";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -18,6 +18,7 @@ import { Download, FileText, ExternalLink, Calendar } from "lucide-react";
 import { PerformanceMetrics, formatMs, formatBytes, getWebVitalStatus } from "@/types/performance.types";
 import { format } from "date-fns";
 import { HTMLReportViewer } from "./HTMLReportViewer";
+import { usePermission } from "@/hooks/usePermission";
 
 export function PerformanceReports() {
   const { t } = useLanguage();
@@ -28,10 +29,31 @@ export function PerformanceReports() {
   const [selectedReportUrl, setSelectedReportUrl] = useState("");
   const [selectedReportTestName, setSelectedReportTestName] = useState("");
 
-  const { data: tests = [], isLoading: testsLoading } = useQuery({
+  // Permission checking for resource filtering
+  const { getAssignedResourceIds, loading: permissionLoading } = usePermission();
+
+  const { data: allTests = [], isLoading: testsLoading } = useQuery({
     queryKey: ["performance-tests"],
     queryFn: () => performanceService.getTests(),
   });
+
+  // Filter performance tests based on user's resource assignments
+  const tests = useMemo(() => {
+    const assignedIds = getAssignedResourceIds('performance_tests');
+
+    // null means no filtering needed (superadmin/admin)
+    if (assignedIds === null) {
+      return allTests;
+    }
+
+    // Empty array means no access to any performance tests
+    if (assignedIds.length === 0) {
+      return [];
+    }
+
+    // Filter to only show assigned performance tests
+    return allTests.filter(test => assignedIds.includes(test.id));
+  }, [allTests, getAssignedResourceIds]);
 
   const { data: metrics = [], isLoading: metricsLoading } = useQuery({
     queryKey: ["performance-metrics-report", selectedTestId, timeRange],
@@ -39,7 +61,7 @@ export function PerformanceReports() {
     enabled: !!selectedTestId,
   });
 
-  const isLoading = testsLoading || (selectedTestId && metricsLoading);
+  const isLoading = testsLoading || permissionLoading || (selectedTestId && metricsLoading);
 
   const selectedTest = tests.find((t) => t.id === selectedTestId);
   const averages = performanceService.calculateAverages(metrics);

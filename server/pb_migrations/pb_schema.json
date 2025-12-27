@@ -215,11 +215,11 @@
     },
     {
         "id": "_pb_users_auth_",
-        "listRule": "id = @request.auth.id",
-        "viewRule": "id = @request.auth.id",
+        "listRule": "id = @request.auth.id || @request.auth.collectionName = '_superusers'",
+        "viewRule": "id = @request.auth.id || @request.auth.collectionName = '_superusers'",
         "createRule": "",
-        "updateRule": "id = @request.auth.id",
-        "deleteRule": "id = @request.auth.id",
+        "updateRule": "id = @request.auth.id || @request.auth.collectionName = '_superusers'",
+        "deleteRule": "id = @request.auth.id || @request.auth.collectionName = '_superusers'",
         "name": "users",
         "type": "auth",
         "fields": [

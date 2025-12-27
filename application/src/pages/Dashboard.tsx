@@ -1,5 +1,5 @@
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/dashboard/Header";
 import { Sidebar } from "@/components/dashboard/Sidebar";
@@ -8,20 +8,24 @@ import { serviceService } from "@/services/serviceService";
 import { authService } from "@/services/authService";
 import { useNavigate } from "react-router-dom";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { usePermission } from "@/hooks/usePermission";
 
 const Dashboard = () => {
   // Use shared sidebar state
   const { sidebarCollapsed, toggleSidebar, mobileOpen, setMobileOpen, toggleMobile } = useSidebar();
 
+  // Permission checking for resource filtering
+  const { getAssignedResourceIds, loading: permissionLoading } = usePermission();
+
   // Get current user
   const currentUser = authService.getCurrentUser();
   const navigate = useNavigate();
-  
+
   // For debugging user data
   useEffect(() => {
   //  console.log("Current user data:", currentUser);
   }, [currentUser]);
-  
+
   // Handle logout
   const handleLogout = () => {
     authService.logout();
@@ -29,7 +33,7 @@ const Dashboard = () => {
   };
 
   // Fetch all services with 1-minute polling for real-time updates
-  const { data: services = [], isLoading, error } = useQuery({
+  const { data: allServices = [], isLoading: servicesLoading, error } = useQuery({
     queryKey: ['services'],
     queryFn: serviceService.getServices,
     refetchInterval: 60000, // 1 minute as requested
@@ -41,6 +45,27 @@ const Dashboard = () => {
     retry: 2,
     retryDelay: 3000,
   });
+
+  // Filter services based on user's resource assignments
+  const services = useMemo(() => {
+    const assignedIds = getAssignedResourceIds('services');
+
+    // null means no filtering needed (superadmin/admin)
+    if (assignedIds === null) {
+      return allServices;
+    }
+
+    // Empty array means no access to any services
+    if (assignedIds.length === 0) {
+      return [];
+    }
+
+    // Filter to only show assigned services
+    return allServices.filter(service => assignedIds.includes(service.id));
+  }, [allServices, getAssignedResourceIds]);
+
+  // Combined loading state
+  const isLoading = servicesLoading || permissionLoading;
 
   // Start monitoring all active services when the dashboard loads - only once
   useEffect(() => {

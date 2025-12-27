@@ -28,30 +28,70 @@ import {
   RefreshCw,
   Loader2,
   ListOrdered,
+  Eye,
 } from "lucide-react";
 import { PerformanceTest, BROWSER_OPTIONS, CONNECTIVITY_OPTIONS, QueueStatus } from "@/types/performance.types";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { usePermission } from "@/hooks/usePermission";
+import { permissionService } from "@/services/permissionService";
 
 export function PerformanceTestList() {
   const { t } = useLanguage();
   const { theme } = useTheme();
   const queryClient = useQueryClient();
 
+  // Permission checking for resource filtering
+  const { getAssignedResourceIds, can, loading: permissionLoading } = usePermission();
+
+  // Check if user can create performance tests
+  const canCreateTests = can('performance_tests', 'create');
+
+  // Check if user can manage any performance tests (for showing queue status)
+  const canManageAny = can('performance_tests', 'manage');
+
+  // Helper function to check if user can manage a specific test
+  const canManageTest = (testId: string): boolean => {
+    const accessLevel = permissionService.getEffectiveAccessLevel('performance_tests', testId);
+    return accessLevel === 'manage';
+  };
+
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingTest, setEditingTest] = useState<PerformanceTest | null>(null);
   const [selectedTest, setSelectedTest] = useState<PerformanceTest | null>(null);
 
-  const { data: tests = [], isLoading } = useQuery({
+  const { data: allTests = [], isLoading: testsLoading } = useQuery({
     queryKey: ["performance-tests"],
     queryFn: () => performanceService.getTests(),
   });
 
-  // Fetch queue status
+  // Filter performance tests based on user's resource assignments
+  const tests = useMemo(() => {
+    const assignedIds = getAssignedResourceIds('performance_tests');
+
+    // null means no filtering needed (superadmin/admin)
+    if (assignedIds === null) {
+      return allTests;
+    }
+
+    // Empty array means no access to any performance tests
+    if (assignedIds.length === 0) {
+      return [];
+    }
+
+    // Filter to only show assigned performance tests
+    return allTests.filter(test => assignedIds.includes(test.id));
+  }, [allTests, getAssignedResourceIds]);
+
+  // Combined loading state
+  const isLoading = testsLoading || permissionLoading;
+
+  // Fetch queue status - only for users who can manage tests
   const { data: queueStatus } = useQuery({
     queryKey: ["performance-queue-status"],
     queryFn: () => performanceService.getQueueStatus(),
     refetchInterval: 5000, // Poll every 5 seconds
+    enabled: canManageAny, // Only fetch for users who can manage tests
   });
 
   // Create a map of test_id to test name for the queue banner
@@ -170,17 +210,21 @@ export function PerformanceTestList() {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <h2 className="text-base md:text-lg font-semibold">{t("performanceTests") || "Performance Tests"}</h2>
-        <Button onClick={() => setCreateDialogOpen(true)} size="sm" className="w-full sm:w-auto">
-          <Plus className="h-4 w-4 mr-2" />
-          {t("addTest") || "Add Test"}
-        </Button>
+        {canCreateTests && (
+          <Button onClick={() => setCreateDialogOpen(true)} size="sm" className="w-full sm:w-auto">
+            <Plus className="h-4 w-4 mr-2" />
+            {t("addTest") || "Add Test"}
+          </Button>
+        )}
       </div>
 
-      {/* Queue Status Banner */}
-      <QueueStatusBanner
-        onRefresh={handleQueueRefresh}
-        testNames={testNamesMap}
-      />
+      {/* Queue Status Banner - only show for users who can manage tests */}
+      {canManageAny && (
+        <QueueStatusBanner
+          onRefresh={handleQueueRefresh}
+          testNames={testNamesMap}
+        />
+      )}
 
       {tests.length === 0 ? (
         <Card className={theme === "dark" ? "bg-gray-900 border-gray-800" : ""}>
@@ -188,10 +232,12 @@ export function PerformanceTestList() {
             <p className="text-muted-foreground mb-4">
               {t("noPerformanceTests") || "No performance tests configured yet."}
             </p>
-            <Button onClick={() => setCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              {t("createFirstTest") || "Create your first test"}
-            </Button>
+            {canCreateTests && (
+              <Button onClick={() => setCreateDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                {t("createFirstTest") || "Create your first test"}
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -236,7 +282,7 @@ export function PerformanceTestList() {
                   </div>
 
                   <div className="flex items-center gap-2 self-end md:self-center" onClick={(e) => e.stopPropagation()}>
-                    {(() => {
+                    {canManageTest(test.id) && (() => {
                       const queueInfo = getTestQueueStatus(test.id);
                       const isDisabled = queueInfo.isQueued || test.status === "running" || runTestMutation.isPending;
 
@@ -279,38 +325,46 @@ export function PerformanceTestList() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setEditingTest(test)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          {t("edit") || "Edit"}
+                        <DropdownMenuItem onClick={() => setSelectedTest(test)}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          {t("viewReports") || "View Reports"}
                         </DropdownMenuItem>
-                        {test.status === "active" ? (
-                          <DropdownMenuItem onClick={() => pauseMutation.mutate(test.id)}>
-                            <Pause className="h-4 w-4 mr-2" />
-                            {t("pause") || "Pause"}
-                          </DropdownMenuItem>
-                        ) : test.status === "paused" ? (
-                          <DropdownMenuItem onClick={() => resumeMutation.mutate(test.id)}>
-                            <RefreshCw className="h-4 w-4 mr-2" />
-                            {t("resume") || "Resume"}
-                          </DropdownMenuItem>
-                        ) : null}
                         <DropdownMenuItem asChild>
                           <a href={test.url} target="_blank" rel="noopener noreferrer">
                             <ExternalLink className="h-4 w-4 mr-2" />
                             {t("openUrl") || "Open URL"}
                           </a>
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-red-600"
-                          onClick={() => {
-                            if (confirm(t("confirmDelete") || "Are you sure you want to delete this test?")) {
-                              deleteMutation.mutate(test.id);
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          {t("delete") || "Delete"}
-                        </DropdownMenuItem>
+                        {canManageTest(test.id) && (
+                          <>
+                            <DropdownMenuItem onClick={() => setEditingTest(test)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              {t("edit") || "Edit"}
+                            </DropdownMenuItem>
+                            {test.status === "active" ? (
+                              <DropdownMenuItem onClick={() => pauseMutation.mutate(test.id)}>
+                                <Pause className="h-4 w-4 mr-2" />
+                                {t("pause") || "Pause"}
+                              </DropdownMenuItem>
+                            ) : test.status === "paused" ? (
+                              <DropdownMenuItem onClick={() => resumeMutation.mutate(test.id)}>
+                                <RefreshCw className="h-4 w-4 mr-2" />
+                                {t("resume") || "Resume"}
+                              </DropdownMenuItem>
+                            ) : null}
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => {
+                                if (confirm(t("confirmDelete") || "Are you sure you want to delete this test?")) {
+                                  deleteMutation.mutate(test.id);
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              {t("delete") || "Delete"}
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>

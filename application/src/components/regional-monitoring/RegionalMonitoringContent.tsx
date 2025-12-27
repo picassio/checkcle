@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { AddRegionalAgentDialog } from "./AddRegionalAgentDialog";
 import { RegionalAgentCard } from "./RegionalAgentCard";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { usePermission } from "@/hooks/usePermission";
 
 export const RegionalMonitoringContent = () => {
   const { t } = useLanguage();
@@ -17,11 +18,39 @@ export const RegionalMonitoringContent = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: regionalServices = [], isLoading, error } = useQuery({
+  // Permission checking for resource filtering
+  const { getAssignedResourceIds, can, loading: permissionLoading } = usePermission();
+
+  // Check if user can create regional agents (linked to services permission)
+  const canCreateAgents = can('services', 'create');
+
+  const { data: allRegionalServices = [], isLoading: servicesLoading, error } = useQuery({
     queryKey: ['regional-services'],
     queryFn: regionalService.getRegionalServices,
     refetchInterval: 30000, // Refetch every 30 seconds
   });
+
+  // Filter regional services based on user's resource assignments
+  // Regional services are linked to services, so we filter by services resource type
+  const regionalServices = useMemo(() => {
+    const assignedIds = getAssignedResourceIds('services');
+
+    // null means no filtering needed (superadmin/admin)
+    if (assignedIds === null) {
+      return allRegionalServices;
+    }
+
+    // Empty array means no access to any services
+    if (assignedIds.length === 0) {
+      return [];
+    }
+
+    // Filter to only show regional services for assigned services
+    return allRegionalServices.filter(agent => assignedIds.includes(agent.service_id));
+  }, [allRegionalServices, getAssignedResourceIds]);
+
+  // Combined loading state
+  const isLoading = servicesLoading || permissionLoading;
 
   const handleAgentAdded = () => {
     queryClient.invalidateQueries({ queryKey: ['regional-services'] });
@@ -60,10 +89,12 @@ export const RegionalMonitoringContent = () => {
             {t('descriptRegionPage')}
           </p>
         </div>
-        <Button onClick={() => setAddDialogOpen(true)} className="w-full sm:w-auto flex-shrink-0">
-          <Plus className="mr-2 h-4 w-4" />
-          {t('addRegionalAgent')}
-        </Button>
+        {canCreateAgents && (
+          <Button onClick={() => setAddDialogOpen(true)} className="w-full sm:w-auto flex-shrink-0">
+            <Plus className="mr-2 h-4 w-4" />
+            {t('addRegionalAgent')}
+          </Button>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -137,10 +168,12 @@ export const RegionalMonitoringContent = () => {
               <p className="text-muted-foreground text-center mb-4">
                 {t('getStartedAddAgent')}
               </p>
-              <Button onClick={() => setAddDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                {t('addFirstAgent')}
-              </Button>
+              {canCreateAgents && (
+                <Button onClick={() => setAddDialogOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  {t('addFirstAgent')}
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (

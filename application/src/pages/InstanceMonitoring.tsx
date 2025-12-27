@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -15,29 +15,57 @@ import { authService } from "@/services/authService";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { usePermission } from "@/hooks/usePermission";
 
 const InstanceMonitoring = () => {
   const { theme } = useTheme();
   const { t } = useLanguage();
   const { sidebarCollapsed, toggleSidebar, mobileOpen, setMobileOpen, toggleMobile } = useSidebar();
   const navigate = useNavigate();
-  
+
+  // Permission checking for resource filtering
+  const { getAssignedResourceIds, can, loading: permissionLoading } = usePermission();
+
+  // Check if user can create servers
+  const canCreateServers = can('servers', 'create');
+
   const [stats, setStats] = useState<ServerStats>({
     total: 0,
     online: 0,
     offline: 0,
     warning: 0
   });
-  
+
   const [currentUser, setCurrentUser] = useState(authService.getCurrentUser());
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  
-  const { data: servers = [], isLoading, error, refetch } = useQuery({
+
+  const { data: allServers = [], isLoading: serversLoading, error, refetch } = useQuery({
     queryKey: ['servers'],
     queryFn: serverService.getServers,
     refetchInterval: 30000 // Refetch every 30 seconds
   });
-  
+
+  // Filter servers based on user's resource assignments
+  const servers = useMemo(() => {
+    const assignedIds = getAssignedResourceIds('servers');
+
+    // null means no filtering needed (superadmin/admin)
+    if (assignedIds === null) {
+      return allServers;
+    }
+
+    // Empty array means no access to any servers
+    if (assignedIds.length === 0) {
+      return [];
+    }
+
+    // Filter to only show assigned servers
+    return allServers.filter(server => assignedIds.includes(server.id));
+  }, [allServers, getAssignedResourceIds]);
+
+  // Combined loading state
+  const isLoading = serversLoading || permissionLoading;
+
   useEffect(() => {
     if (servers.length > 0) {
       serverService.getServerStats(servers).then(setStats);
@@ -112,10 +140,12 @@ const InstanceMonitoring = () => {
                     {t('describeMonitorInstance')}
                   </p>
                 </div>
-                <Button onClick={() => setAddDialogOpen(true)} className="flex-shrink-0">
-                  <Plus className="mr-2 h-4 w-4" />
-                  {t('addServerAgent')}
-                </Button>
+                {canCreateServers && (
+                  <Button onClick={() => setAddDialogOpen(true)} className="flex-shrink-0">
+                    <Plus className="mr-2 h-4 w-4" />
+                    {t('addServerAgent')}
+                  </Button>
+                )}
               </div>
             </div>
 

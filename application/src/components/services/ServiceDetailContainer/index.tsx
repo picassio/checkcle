@@ -6,11 +6,15 @@ import { ServiceDetailContent } from "../ServiceDetailContent";
 import { ServiceDetailWrapper } from "./ServiceDetailWrapper";
 import { useServiceData, useRealTimeUpdates } from "./hooks";
 import { toast } from "@/components/ui/use-toast";
+import { usePermission } from "@/hooks/usePermission";
 
 export const ServiceDetailContainer = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
+
+  // Permission checking for resource-level access
+  const { getAssignedResourceIds, loading: permissionLoading } = usePermission();
+
   // Set default to 24h
   const [startDate, setStartDate] = useState<Date>(() => {
     const date = new Date();
@@ -23,14 +27,14 @@ export const ServiceDetailContainer = () => {
     return date;
   });
   const [selectedRange, setSelectedRange] = useState<DateRangeOption>('24h');
-  
+
   // State for sidebar collapse functionality (shared with Dashboard)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     // Check if there's a saved preference in localStorage
     const saved = localStorage.getItem("sidebarCollapsed");
     return saved ? JSON.parse(saved) : window.innerWidth < 768;
   });
-  
+
   // Toggle sidebar and save preference
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed(prev => {
@@ -39,10 +43,30 @@ export const ServiceDetailContainer = () => {
       return newState;
     });
   }, []);
-  
+
   // Get current user for header
   const currentUser = authService.getCurrentUser();
-  
+
+  // Check resource-level access
+  useEffect(() => {
+    if (permissionLoading) return;
+
+    const assignedIds = getAssignedResourceIds('services');
+
+    // null means no filtering needed (superadmin/admin) - allow access
+    if (assignedIds === null) return;
+
+    // Check if user has access to this specific service
+    if (id && !assignedIds.includes(id)) {
+      toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "You don't have permission to view this service",
+      });
+      navigate("/dashboard");
+    }
+  }, [id, getAssignedResourceIds, permissionLoading, navigate]);
+
   useEffect(() => {
     // Verify user is authenticated
     if (!authService.isAuthenticated()) {
@@ -53,7 +77,7 @@ export const ServiceDetailContainer = () => {
       });
       navigate("/login");
     }
-    
+
     // Auto-collapse sidebar on small screens
     const handleResize = () => {
       if (window.innerWidth < 768 && !sidebarCollapsed) {
@@ -61,7 +85,7 @@ export const ServiceDetailContainer = () => {
         localStorage.setItem("sidebarCollapsed", JSON.stringify(true));
       }
     };
-    
+
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [navigate, sidebarCollapsed]);

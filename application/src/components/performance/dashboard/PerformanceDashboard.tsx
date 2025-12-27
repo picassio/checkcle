@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { performanceService } from "@/services/performanceService";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -13,21 +14,63 @@ import {
   getStatusColor,
   formatMs,
 } from "@/types/performance.types";
+import { usePermission } from "@/hooks/usePermission";
 
 export function PerformanceDashboard() {
   const { t } = useLanguage();
   const { theme } = useTheme();
 
-  const { data: testsWithMetrics = [], isLoading } = useQuery({
+  // Permission checking for resource filtering
+  const { getAssignedResourceIds, loading: permissionLoading } = usePermission();
+
+  const { data: allTestsWithMetrics = [], isLoading: metricsLoading } = useQuery({
     queryKey: ["performance-latest-metrics"],
     queryFn: () => performanceService.getLatestMetricsForAllTests(),
     refetchInterval: 60000, // Refresh every minute
   });
 
-  const { data: tests = [] } = useQuery({
+  const { data: allTests = [] } = useQuery({
     queryKey: ["performance-tests"],
     queryFn: () => performanceService.getTests(),
   });
+
+  // Filter performance tests based on user's resource assignments
+  const tests = useMemo(() => {
+    const assignedIds = getAssignedResourceIds('performance_tests');
+
+    // null means no filtering needed (superadmin/admin)
+    if (assignedIds === null) {
+      return allTests;
+    }
+
+    // Empty array means no access to any performance tests
+    if (assignedIds.length === 0) {
+      return [];
+    }
+
+    // Filter to only show assigned performance tests
+    return allTests.filter(test => assignedIds.includes(test.id));
+  }, [allTests, getAssignedResourceIds]);
+
+  // Filter tests with metrics based on assigned tests
+  const testsWithMetrics = useMemo(() => {
+    const assignedIds = getAssignedResourceIds('performance_tests');
+
+    // null means no filtering needed (superadmin/admin)
+    if (assignedIds === null) {
+      return allTestsWithMetrics;
+    }
+
+    // Empty array means no access
+    if (assignedIds.length === 0) {
+      return [];
+    }
+
+    // Filter to only show assigned tests
+    return allTestsWithMetrics.filter(item => assignedIds.includes(item.test_id));
+  }, [allTestsWithMetrics, getAssignedResourceIds]);
+
+  const isLoading = metricsLoading || permissionLoading;
 
   // Calculate summary stats
   const activeTests = tests.filter((t) => t.status === "active").length;

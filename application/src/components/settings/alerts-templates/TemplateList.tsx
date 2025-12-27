@@ -22,6 +22,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { templateService, AnyTemplate, TemplateType } from "@/services/templateService";
+import { usePermission } from "@/hooks/usePermission";
 
 interface TemplateListProps {
   templates: AnyTemplate[];
@@ -31,16 +32,20 @@ interface TemplateListProps {
   templateType: TemplateType;
 }
 
-export const TemplateList: React.FC<TemplateListProps> = ({ 
-  templates, 
-  isLoading, 
-  onEdit, 
+export const TemplateList: React.FC<TemplateListProps> = ({
+  templates,
+  isLoading,
+  onEdit,
   refetchTemplates,
-  templateType 
+  templateType
 }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null);
+
+  // Permission checking - templates require alerts:manage permission
+  const { can } = usePermission();
+  const canManageAlerts = can('alerts', 'manage');
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -127,33 +132,35 @@ export const TemplateList: React.FC<TemplateListProps> = ({
                 }
               </p>
             </div>
-            <div className="flex items-center space-x-2 self-end sm:self-auto">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onEdit(template.id)}
-                className="h-8 text-xs md:text-sm"
-              >
-                <Edit className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1" />
-                Edit
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 px-2">
-                    <MoreVertical className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={() => handleDelete(template.id)}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            {canManageAlerts && (
+              <div className="flex items-center space-x-2 self-end sm:self-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onEdit(template.id)}
+                  className="h-8 text-xs md:text-sm"
+                >
+                  <Edit className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1" />
+                  Edit
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-8 px-2">
+                      <MoreVertical className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={() => handleDelete(template.id)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
           </div>
         ))}
       </div>

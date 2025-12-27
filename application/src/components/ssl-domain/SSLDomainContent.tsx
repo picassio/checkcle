@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Plus, RefreshCw } from "lucide-react";
@@ -14,6 +14,7 @@ import { EditSSLCertificateForm } from "./EditSSLCertificateForm";
 import type { AddSSLCertificateDto, SSLCertificate } from "@/types/ssl.types";
 import { pb } from "@/lib/pocketbase";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { usePermission } from "@/hooks/usePermission";
 
 export const SSLDomainContent = () => {
   const { t } = useLanguage();
@@ -23,9 +24,15 @@ export const SSLDomainContent = () => {
   const [isRefreshingAll, setIsRefreshingAll] = useState(false);
   const [selectedCertificate, setSelectedCertificate] = useState<SSLCertificate | null>(null);
   const queryClient = useQueryClient();
-  
+
+  // Permission checking for resource filtering
+  const { getAssignedResourceIds, can, loading: permissionLoading } = usePermission();
+
+  // Check if user can create SSL certificates
+  const canCreateSSL = can('ssl_certificates', 'create');
+
   // Fetch SSL certificates with explicit error handling
-  const { data: certificates = [], isLoading, error } = useQuery({
+  const { data: allCertificates = [], isLoading: certificatesLoading, error } = useQuery({
     queryKey: ['ssl-certificates'],
     queryFn: async () => {
       try {
@@ -39,6 +46,27 @@ export const SSLDomainContent = () => {
     refetchOnWindowFocus: false,
     refetchInterval: 300000, // Refresh every 5 minutes
   });
+
+  // Filter certificates based on user's resource assignments
+  const certificates = useMemo(() => {
+    const assignedIds = getAssignedResourceIds('ssl_certificates');
+
+    // null means no filtering needed (superadmin/admin)
+    if (assignedIds === null) {
+      return allCertificates;
+    }
+
+    // Empty array means no access to any certificates
+    if (assignedIds.length === 0) {
+      return [];
+    }
+
+    // Filter to only show assigned certificates
+    return allCertificates.filter(cert => assignedIds.includes(cert.id));
+  }, [allCertificates, getAssignedResourceIds]);
+
+  // Combined loading state
+  const isLoading = certificatesLoading || permissionLoading;
 
   // Add certificate mutation
   const addMutation = useMutation({
@@ -213,14 +241,16 @@ export const SSLDomainContent = () => {
               </span>
             )}
           </Button>
-          <Button
-            className="text-primary-foreground"
-            size="sm"
-            onClick={() => setIsAddDialogOpen(true)}
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline ml-2">{t('addDomain')}</span>
-          </Button>
+          {canCreateSSL && (
+            <Button
+              className="text-primary-foreground"
+              size="sm"
+              onClick={() => setIsAddDialogOpen(true)}
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline ml-2">{t('addDomain')}</span>
+            </Button>
+          )}
         </div>
       </div>
 

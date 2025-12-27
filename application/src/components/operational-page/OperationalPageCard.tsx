@@ -7,6 +7,7 @@ import { StatusBadge } from './StatusBadge';
 import { Globe, ExternalLink, Eye, Settings, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useLanguage } from "@/contexts/LanguageContext";
+import { permissionService } from "@/services/permissionService";
 
 interface OperationalPageCardProps {
   page: OperationalPageRecord;
@@ -17,6 +18,10 @@ interface OperationalPageCardProps {
 
 export const OperationalPageCard = ({ page, onEdit, onView, onDelete }: OperationalPageCardProps) => {
   const { t } = useLanguage();
+
+  // Check if user can manage this specific operational page
+  const accessLevel = permissionService.getEffectiveAccessLevel('operational_pages', page.id);
+  const canManage = accessLevel === 'manage';
 
   return (
     <Card className="hover:shadow-lg transition-shadow duration-200">
@@ -76,7 +81,7 @@ export const OperationalPageCard = ({ page, onEdit, onView, onDelete }: Operatio
               {t('view')}
             </Button>
           )}
-          {onEdit && (
+          {onEdit && canManage && (
             <Button
               variant="outline"
               size="sm"
@@ -87,7 +92,7 @@ export const OperationalPageCard = ({ page, onEdit, onView, onDelete }: Operatio
               {t('edit')}
             </Button>
           )}
-          {onDelete && (
+          {onDelete && canManage && (
             <Button
               variant="outline"
               size="sm"

@@ -29,6 +29,10 @@ interface PermissionContextType {
   hasRole: (roleName: string) => boolean;
   hasAnyRole: (roleNames: string[]) => boolean;
 
+  // Resource filtering methods
+  getAssignedResourceIds: (resourceType: string) => string[] | null;
+  requiresResourceFiltering: () => boolean;
+
   // Role check helpers
   isViewer: boolean;
   isOperator: boolean;
@@ -49,6 +53,8 @@ const defaultPermissionContext: PermissionContextType = {
   hasResourceAccess: () => false,
   hasRole: () => false,
   hasAnyRole: () => false,
+  getAssignedResourceIds: () => [],
+  requiresResourceFiltering: () => true,
   isViewer: false,
   isOperator: false,
   isServiceManager: false,
@@ -131,6 +137,14 @@ export const PermissionProvider = ({ children }: { children: React.ReactNode }) 
     return permissionService.hasAnyRole(roleNames);
   }, [permissions]);
 
+  const getAssignedResourceIds = useCallback((resourceType: string): string[] | null => {
+    return permissionService.getAssignedResourceIds(resourceType);
+  }, [permissions]);
+
+  const requiresResourceFiltering = useCallback((): boolean => {
+    return permissionService.requiresResourceFiltering();
+  }, [permissions]);
+
   const refreshPermissions = useCallback(async () => {
     await loadPermissions();
   }, [loadPermissions]);
@@ -156,6 +170,8 @@ export const PermissionProvider = ({ children }: { children: React.ReactNode }) 
     hasResourceAccess,
     hasRole,
     hasAnyRole,
+    getAssignedResourceIds,
+    requiresResourceFiltering,
     ...roleChecks,
     refreshPermissions,
     getHighestRole
@@ -167,6 +183,8 @@ export const PermissionProvider = ({ children }: { children: React.ReactNode }) 
     hasResourceAccess,
     hasRole,
     hasAnyRole,
+    getAssignedResourceIds,
+    requiresResourceFiltering,
     roleChecks,
     refreshPermissions,
     getHighestRole

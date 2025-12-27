@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { pb } from "@/lib/pocketbase";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { permissionService } from "@/services/permissionService";
 
 interface ServerTableProps {
   servers: Server[];
@@ -38,6 +39,12 @@ export const ServerTable = ({ servers, isLoading, onRefresh }: ServerTableProps)
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const navigate = useNavigate();
+
+  // Helper function to check if user can manage a specific server
+  const canManageServer = (serverId: string): boolean => {
+    const accessLevel = permissionService.getEffectiveAccessLevel('servers', serverId);
+    return accessLevel === 'manage';
+  };
   const { toast } = useToast();
 
   const filteredServers = servers.filter(server =>
@@ -315,19 +322,23 @@ export const ServerTable = ({ servers, isLoading, onRefresh }: ServerTableProps)
                       {t('containerMonitoring')}
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => handlePauseResume(server)} disabled={isProcessing}>
-                    {isPaused ? <><Play className="mr-2 h-4 w-4" />{t('resumeMonitoring')}</> : <><Pause className="mr-2 h-4 w-4" />{t('pauseMonitoring')}</>}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => handleEdit(server)}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    {t('editServer')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleDelete(server)} className="text-red-600">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    {t('deleteServer')}
-                  </DropdownMenuItem>
+                  {canManageServer(server.id) && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handlePauseResume(server)} disabled={isProcessing}>
+                        {isPaused ? <><Play className="mr-2 h-4 w-4" />{t('resumeMonitoring')}</> : <><Pause className="mr-2 h-4 w-4" />{t('pauseMonitoring')}</>}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleEdit(server)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        {t('editServer')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDelete(server)} className="text-red-600">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        {t('deleteServer')}
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -545,35 +556,39 @@ export const ServerTable = ({ servers, isLoading, onRefresh }: ServerTableProps)
                                   {t('containerMonitoring')}
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                onClick={(e) => { e.stopPropagation(); handlePauseResume(server); }}
-                                disabled={isProcessing}
-                              >
-                                {isPaused ? (
-                                  <>
-                                    <Play className="mr-2 h-4 w-4" />
-                                    {t('resumeMonitoring')}
-                                  </>
-                                ) : (
-                                  <>
-                                    <Pause className="mr-2 h-4 w-4" />
-                                    {t('pauseMonitoring')}
-                                  </>
-                                )}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(server); }}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                {t('editServer')}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={(e) => { e.stopPropagation(); handleDelete(server); }}
-                                className="text-red-600 focus:text-red-600"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                {t('deleteServer')}
-                              </DropdownMenuItem>
+                              {canManageServer(server.id) && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={(e) => { e.stopPropagation(); handlePauseResume(server); }}
+                                    disabled={isProcessing}
+                                  >
+                                    {isPaused ? (
+                                      <>
+                                        <Play className="mr-2 h-4 w-4" />
+                                        {t('resumeMonitoring')}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Pause className="mr-2 h-4 w-4" />
+                                        {t('pauseMonitoring')}
+                                      </>
+                                    )}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(server); }}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    {t('editServer')}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={(e) => { e.stopPropagation(); handleDelete(server); }}
+                                    className="text-red-600 focus:text-red-600"
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    {t('deleteServer')}
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>

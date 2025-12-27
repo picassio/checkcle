@@ -10,11 +10,17 @@ import { CreateMaintenanceDialog } from './maintenance/CreateMaintenanceDialog';
 import { CreateIncidentDialog } from './incident/CreateIncidentDialog';
 import { useToast } from '@/hooks/use-toast';
 import { initMaintenanceNotifications, stopMaintenanceNotifications } from '@/services/maintenance/maintenanceNotificationService';
+import { usePermission } from '@/hooks/usePermission';
 
 export const ScheduleIncidentContent = () => {
   const { t } = useLanguage();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("maintenance");
+
+  // Permission checking
+  const { can } = usePermission();
+  const canCreateMaintenance = can('maintenance', 'create');
+  const canCreateIncidents = can('incidents', 'create');
   const [createMaintenanceDialogOpen, setCreateMaintenanceDialogOpen] = useState(false);
   const [createIncidentDialogOpen, setCreateIncidentDialogOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -72,15 +78,18 @@ export const ScheduleIncidentContent = () => {
         <h2 className="text-xl md:text-2xl font-bold text-foreground">
           {t('scheduleIncidentManagement')}
         </h2>
-        <Button
-          className="text-primary-foreground w-full sm:w-auto"
-          onClick={handleCreateButtonClick}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          <span className="truncate">
-            {activeTab === "maintenance" ? t('createMaintenanceWindow') : t('createIncident')}
-          </span>
-        </Button>
+        {((activeTab === "maintenance" && canCreateMaintenance) ||
+          (activeTab === "incidents" && canCreateIncidents)) && (
+          <Button
+            className="text-primary-foreground w-full sm:w-auto"
+            onClick={handleCreateButtonClick}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            <span className="truncate">
+              {activeTab === "maintenance" ? t('createMaintenanceWindow') : t('createIncident')}
+            </span>
+          </Button>
+        )}
       </div>
 
       <Tabs

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { securityService } from '@/services/securityService';
 import { SecurityScan } from '@/types/security.types';
@@ -23,6 +24,8 @@ import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { SeverityBadge } from './SeverityBadge';
+import { usePermission } from '@/hooks/usePermission';
+import { permissionService } from '@/services/permissionService';
 
 interface SecurityScanListProps {
   onEdit?: (scan: SecurityScan) => void;
@@ -33,11 +36,41 @@ export function SecurityScanList({ onEdit, onDelete }: SecurityScanListProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: scans, isLoading, refetch } = useQuery({
+  // Permission checking for resource filtering
+  const { getAssignedResourceIds, loading: permissionLoading } = usePermission();
+
+  // Helper function to check if user can manage a specific scan
+  const canManageScan = (scanId: string): boolean => {
+    const accessLevel = permissionService.getEffectiveAccessLevel('security_scans', scanId);
+    return accessLevel === 'manage';
+  };
+
+  const { data: allScans, isLoading: scansLoading, refetch } = useQuery({
     queryKey: ['security-scans'],
     queryFn: () => securityService.getScans(),
     refetchInterval: 30000,
   });
+
+  // Filter security scans based on user's resource assignments
+  const scans = useMemo(() => {
+    const assignedIds = getAssignedResourceIds('security_scans');
+
+    // null means no filtering needed (superadmin/admin)
+    if (assignedIds === null) {
+      return allScans;
+    }
+
+    // Empty array means no access to any security scans
+    if (assignedIds.length === 0) {
+      return [];
+    }
+
+    // Filter to only show assigned security scans
+    return allScans?.filter(scan => assignedIds.includes(scan.id));
+  }, [allScans, getAssignedResourceIds]);
+
+  // Combined loading state
+  const isLoading = scansLoading || permissionLoading;
 
   const runScanMutation = useMutation({
     mutationFn: (scanId: string) => securityService.runScanNow(scanId),
@@ -126,37 +159,41 @@ export function SecurityScanList({ onEdit, onDelete }: SecurityScanListProps) {
                 <Eye className="h-4 w-4 mr-2" />
                 View
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onEdit?.(scan)}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() =>
-                  toggleStatusMutation.mutate({
-                    scanId: scan.id,
-                    currentStatus: scan.status,
-                  })
-                }
-              >
-                {scan.status === 'active' ? (
-                  <>
-                    <Pause className="h-4 w-4 mr-2" />
-                    Pause
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-4 w-4 mr-2" />
-                    Activate
-                  </>
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-red-600"
-                onClick={() => onDelete?.(scan)}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
+              {canManageScan(scan.id) && (
+                <>
+                  <DropdownMenuItem onClick={() => onEdit?.(scan)}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      toggleStatusMutation.mutate({
+                        scanId: scan.id,
+                        currentStatus: scan.status,
+                      })
+                    }
+                  >
+                    {scan.status === 'active' ? (
+                      <>
+                        <Pause className="h-4 w-4 mr-2" />
+                        Pause
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-4 w-4 mr-2" />
+                        Activate
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-red-600"
+                    onClick={() => onDelete?.(scan)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -191,16 +228,18 @@ export function SecurityScanList({ onEdit, onDelete }: SecurityScanListProps) {
         </div>
 
         <div className="flex gap-2 mt-3 pt-3 border-t">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onClick={() => runScanMutation.mutate(scan.id)}
-            disabled={runScanMutation.isPending || scan.status === 'running'}
-          >
-            <Play className="h-4 w-4 mr-2" />
-            Run Now
-          </Button>
+          {canManageScan(scan.id) && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={() => runScanMutation.mutate(scan.id)}
+              disabled={runScanMutation.isPending || scan.status === 'running'}
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Run Now
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -298,14 +337,16 @@ export function SecurityScanList({ onEdit, onDelete }: SecurityScanListProps) {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => runScanMutation.mutate(scan.id)}
-                            disabled={runScanMutation.isPending || scan.status === 'running'}
-                          >
-                            <Play className="h-4 w-4" />
-                          </Button>
+                          {canManageScan(scan.id) && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => runScanMutation.mutate(scan.id)}
+                              disabled={runScanMutation.isPending || scan.status === 'running'}
+                            >
+                              <Play className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"
@@ -313,46 +354,48 @@ export function SecurityScanList({ onEdit, onDelete }: SecurityScanListProps) {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => onEdit?.(scan)}>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  toggleStatusMutation.mutate({
-                                    scanId: scan.id,
-                                    currentStatus: scan.status,
-                                  })
-                                }
-                              >
-                                {scan.status === 'active' ? (
-                                  <>
-                                    <Pause className="h-4 w-4 mr-2" />
-                                    Pause
-                                  </>
-                                ) : (
-                                  <>
-                                    <Play className="h-4 w-4 mr-2" />
-                                    Activate
-                                  </>
-                                )}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-red-600"
-                                onClick={() => onDelete?.(scan)}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          {canManageScan(scan.id) && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => onEdit?.(scan)}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    toggleStatusMutation.mutate({
+                                      scanId: scan.id,
+                                      currentStatus: scan.status,
+                                    })
+                                  }
+                                >
+                                  {scan.status === 'active' ? (
+                                    <>
+                                      <Pause className="h-4 w-4 mr-2" />
+                                      Pause
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Play className="h-4 w-4 mr-2" />
+                                      Activate
+                                    </>
+                                  )}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-red-600"
+                                  onClick={() => onDelete?.(scan)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

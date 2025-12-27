@@ -13,6 +13,7 @@ import { Service } from "@/types/service.types";
 import { serviceService } from "@/services/serviceService";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { permissionService } from "@/services/permissionService";
 
 interface ServiceRowActionsProps {
   service: Service;
@@ -23,8 +24,8 @@ interface ServiceRowActionsProps {
   onMuteAlerts?: (service: Service) => Promise<void>;
 }
 
-export const ServiceRowActions = ({ 
-  service, 
+export const ServiceRowActions = ({
+  service,
   onViewDetail,
   onPauseResume,
   onEdit,
@@ -32,7 +33,11 @@ export const ServiceRowActions = ({
   onMuteAlerts
 }: ServiceRowActionsProps) => {
   const { toast } = useToast();
-	const { t } = useLanguage();
+  const { t } = useLanguage();
+
+  // Check if user can manage this specific service
+  const accessLevel = permissionService.getEffectiveAccessLevel('services', service.id);
+  const canManage = accessLevel === 'manage';
 
   // Handle pause/resume directly from dropdown
   const handlePauseResume = async (e: React.MouseEvent) => {
@@ -116,7 +121,7 @@ export const ServiceRowActions = ({
           align="end" 
           className="w-48"
         >
-          <DropdownMenuItem 
+          <DropdownMenuItem
             className="flex items-center gap-2 cursor-pointer text-base py-2.5"
             onClick={(e) => {
               e.stopPropagation();
@@ -126,59 +131,63 @@ export const ServiceRowActions = ({
             <Eye className="h-4 w-4" />
             <span>{t("viewDetail")}</span>
           </DropdownMenuItem>
-          <DropdownMenuItem 
-            className="flex items-center gap-2 cursor-pointer text-base py-2.5"
-            onClick={handlePauseResume}
-          >
-            {service.status === "paused" ? (
-              <>
-                <Play className="h-4 w-4" />
-                <span>{t("resumeMonitoring")}</span>
-              </>
-            ) : (
-              <>
-                <Pause className="h-4 w-4" />
-                <span>{t("pauseMonitoring")}</span>
-              </>
-            )}
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            className="flex items-center gap-2 cursor-pointer text-base py-2.5"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(service);
-            }}
-          >
-            <Edit className="h-4 w-4" />
-            <span>{t("edit")}</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            className="flex items-center gap-2 cursor-pointer text-base py-2.5"
-            onClick={handleMuteAlerts}
-          >
-            {alertsMuted ? (
-              <>
-                <Bell className="h-4 w-4" />
-                <span>{t("unmuteAlerts")}</span>
-              </>
-            ) : (
-              <>
-                <BellOff className="h-4 w-4" />
-                <span>{t("muteAlerts")}</span>
-              </>
-            )}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem 
-            className="flex items-center gap-2 text-destructive cursor-pointer text-base py-2.5"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(service);
-            }}
-          >
-            <Trash2 className="h-4 w-4" />
-            <span>{t("delete")}</span>
-          </DropdownMenuItem>
+          {canManage && (
+            <>
+              <DropdownMenuItem
+                className="flex items-center gap-2 cursor-pointer text-base py-2.5"
+                onClick={handlePauseResume}
+              >
+                {service.status === "paused" ? (
+                  <>
+                    <Play className="h-4 w-4" />
+                    <span>{t("resumeMonitoring")}</span>
+                  </>
+                ) : (
+                  <>
+                    <Pause className="h-4 w-4" />
+                    <span>{t("pauseMonitoring")}</span>
+                  </>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="flex items-center gap-2 cursor-pointer text-base py-2.5"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(service);
+                }}
+              >
+                <Edit className="h-4 w-4" />
+                <span>{t("edit")}</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="flex items-center gap-2 cursor-pointer text-base py-2.5"
+                onClick={handleMuteAlerts}
+              >
+                {alertsMuted ? (
+                  <>
+                    <Bell className="h-4 w-4" />
+                    <span>{t("unmuteAlerts")}</span>
+                  </>
+                ) : (
+                  <>
+                    <BellOff className="h-4 w-4" />
+                    <span>{t("muteAlerts")}</span>
+                  </>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="flex items-center gap-2 text-destructive cursor-pointer text-base py-2.5"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(service);
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>{t("delete")}</span>
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

@@ -6,6 +6,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { Settings, ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { settingsMenuItems } from "./navigationData";
+import { usePermission } from "@/hooks/usePermission";
 
 interface SettingsPanelProps {
   collapsed: boolean;
@@ -15,10 +16,25 @@ interface SettingsPanelProps {
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({ collapsed, onItemClick }) => {
   const { theme } = useTheme();
   const { t } = useLanguage();
+  const { can } = usePermission();
   const location = useLocation();
   const navigate = useNavigate();
   const [activeSettingsItem, setActiveSettingsItem] = useState<string | null>("general");
   const [settingsPanelOpen, setSettingsPanelOpen] = useState(true);
+
+  // Filter settings items based on user permissions
+  const visibleSettingsItems = settingsMenuItems.filter((item) => {
+    // If no permission required, show the item
+    if (!item.requiredPermission) {
+      return true;
+    }
+    // Check if user has the required permission
+    const [resource, action] = item.requiredPermission;
+    return can(resource, action);
+  });
+
+  // Don't render settings panel if user has no access to any settings
+  const hasAnySettingsAccess = visibleSettingsItems.length > 0;
 
   // Update active settings item based on URL and auto-open panel on settings page
   useEffect(() => {
@@ -45,8 +61,13 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ collapsed, onItemC
   };
 
   const getMenuItemClasses = (isActive: boolean) => {
-    return `p-2 ${isActive ? theme === 'dark' ? 'bg-[#1a1a1a]' : 'bg-sidebar-accent' : `hover:${theme === 'dark' ? 'bg-[#1a1a1a]' : 'bg-sidebar-accent'}`} rounded-lg flex items-center`;
+    return `p-2 ${isActive ? theme === 'dark' ? 'bg-[#1a1a1a]' : 'bg-sidebar-accent' : `hover:${theme === 'dark' ? 'bg-[#1a1a1a]' : 'bg-sidebar-accent'}`} rounded-lg flex items-center cursor-pointer`;
   };
+
+  // Don't render if user has no settings access
+  if (!hasAnySettingsAccess) {
+    return null;
+  }
 
   if (collapsed) {
     const mainIconSize = "h-6 w-6";
@@ -74,11 +95,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ collapsed, onItemC
             <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${settingsPanelOpen ? 'rotate-180' : ''}`} />
           </div>
         </CollapsibleTrigger>
-        
+
         <CollapsibleContent className={`${theme === 'dark' ? 'bg-[#121212]' : 'bg-sidebar'} flex-1 flex flex-col`}>
           <div className="overflow-y-auto custom-scrollbar relative pr-1">
             <div className="space-y-2 pr-2">
-              {settingsMenuItems.map((item) => (
+              {visibleSettingsItems.map((item) => (
                 <div
                   key={item.id}
                   className={getMenuItemClasses(activeSettingsItem === item.id)}

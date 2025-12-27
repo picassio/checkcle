@@ -14,11 +14,17 @@ import {
   DeleteSecurityScanDialog,
 } from '@/components/security';
 import { Plus, Shield } from 'lucide-react';
+import { usePermission } from '@/hooks/usePermission';
 
 const SecurityScanning = () => {
   const { sidebarCollapsed, toggleSidebar, mobileOpen, setMobileOpen, toggleMobile } = useSidebar();
   const currentUser = authService.getCurrentUser();
   const navigate = useNavigate();
+
+  // Permission checking
+  const { can } = usePermission();
+  const canCreateScans = can('security_scans', 'create');
+  const canManageScans = can('security_scans', 'manage');
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editScan, setEditScan] = useState<SecurityScan | null>(null);
@@ -69,17 +75,19 @@ const SecurityScanning = () => {
                   Automated vulnerability scanning powered by Nuclei
                 </p>
               </div>
-              <Button onClick={() => setCreateDialogOpen(true)} className="w-full sm:w-auto">
-                <Plus className="h-4 w-4 mr-2" />
-                New Scan
-              </Button>
+              {canCreateScans && (
+                <Button onClick={() => setCreateDialogOpen(true)} className="w-full sm:w-auto">
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Scan
+                </Button>
+              )}
             </div>
 
             {/* Dashboard Stats */}
             <SecurityDashboard />
 
-            {/* Queue Status */}
-            <SecurityQueueStatus showDetails={true} />
+            {/* Queue Status - only show for users who can manage scans */}
+            {canManageScans && <SecurityQueueStatus showDetails={true} />}
 
             {/* Scan List */}
             <SecurityScanList onEdit={handleEdit} onDelete={handleDelete} />

@@ -86,7 +86,7 @@ export interface ResourceAssignment {
 export interface UserPermissions {
   roles: Role[];
   permissions: Set<string>; // "resource:action" format
-  resourceAssignments: Map<string, Set<string>>; // resource_type -> Set of resource_ids
+  resourceAssignments: Map<string, Map<string, 'view' | 'manage'>>; // resource_type -> {resource_id -> access_level}
   loaded: boolean;
 }
 
@@ -234,17 +234,17 @@ export const permissionService = {
         }
       }
 
-      // 4. Get resource assignments
+      // 4. Get resource assignments (with access_level)
       const assignments = await pb.collection('resource_assignments').getFullList<ResourceAssignment>({
         filter: `user_id = '${safeUserId}' && user_collection = '${safeCollection}'`
       });
 
-      const resourceAssignments = new Map<string, Set<string>>();
+      const resourceAssignments = new Map<string, Map<string, 'view' | 'manage'>>();
       for (const assignment of assignments) {
         if (!resourceAssignments.has(assignment.resource_type)) {
-          resourceAssignments.set(assignment.resource_type, new Set());
+          resourceAssignments.set(assignment.resource_type, new Map());
         }
-        resourceAssignments.get(assignment.resource_type)!.add(assignment.resource_id);
+        resourceAssignments.get(assignment.resource_type)!.set(assignment.resource_id, assignment.access_level || 'view');
       }
 
       permissionCache = {
@@ -297,7 +297,144 @@ export const permissionService = {
       return true;
     }
 
+    // Check if user has explicit permission from role
+    if (permissionCache.permissions.has(`${resource}:${action}`)) {
+      return true;
+    }
+
+    // For 'view' actions, also check if user has any resource assignments for this type
+    // Resource assignments imply at least 'view' access to those specific resources
+    if (action === 'view') {
+      const assignments = permissionCache.resourceAssignments.get(resource as string);
+      if (assignments && assignments.size > 0) {
+        return true;
+      }
+    }
+
+    // For 'manage' actions (create/update/delete), check if user has 'manage' level on any resource
+    if (['create', 'update', 'delete', 'manage'].includes(action as string)) {
+      const assignments = permissionCache.resourceAssignments.get(resource as string);
+      if (assignments) {
+        for (const [_, level] of assignments) {
+          if (level === 'manage') {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  },
+
+  /**
+   * Original permission check without resource assignment consideration
+   * Use this when you need strict role-based permission check only
+   */
+  hasRolePermission(resource: Resource | string, action: Action | string): boolean {
+    if (!permissionCache?.loaded) {
+      return false;
+    }
+
+    // Superusers have all permissions
+    const userInfo = getCurrentUserInfo();
+    if (userInfo?.collection === '_superusers') {
+      return true;
+    }
+
     return permissionCache.permissions.has(`${resource}:${action}`);
+  },
+
+  /**
+   * Get the access level for a specific resource assignment
+   * @param resourceType - The type of resource (e.g., 'services', 'servers')
+   * @param resourceId - The specific resource ID
+   * @returns 'view' | 'manage' | null (null if not assigned)
+   */
+  getResourceAccessLevel(resourceType: string, resourceId: string): 'view' | 'manage' | null {
+    if (!permissionCache?.loaded) {
+      return null;
+    }
+
+    const assignments = permissionCache.resourceAssignments.get(resourceType);
+    if (!assignments) {
+      return null;
+    }
+
+    return assignments.get(resourceId) || null;
+  },
+
+  /**
+   * Get the effective access level for a resource (combines role + resource assignment)
+   * Uses "most permissive wins" logic
+   * @param resourceType - The type of resource
+   * @param resourceId - The specific resource ID
+   * @returns 'view' | 'manage' | null (null = no access)
+   */
+  getEffectiveAccessLevel(resourceType: string, resourceId: string): 'view' | 'manage' | null {
+    if (!permissionCache?.loaded) {
+      return null;
+    }
+
+    // Superusers always have manage access
+    const userInfo = getCurrentUserInfo();
+    if (userInfo?.collection === '_superusers') {
+      return 'manage';
+    }
+
+    // Admins with manage permission have manage access to all resources
+    if (this.hasPermission(resourceType as Resource, 'manage')) {
+      const isAdmin = permissionCache.roles.some(r =>
+        r.name === 'admin' || r.name === 'superadmin'
+      );
+      if (isAdmin) {
+        return 'manage';
+      }
+    }
+
+    // Must have resource assigned for non-admin users
+    const resourceLevel = this.getResourceAccessLevel(resourceType, resourceId);
+
+    // Get role permission level
+    const hasManagePermission = this.hasPermission(resourceType as Resource, 'manage');
+    const hasViewPermission = this.hasPermission(resourceType as Resource, 'view');
+    const roleLevel = hasManagePermission ? 'manage' : hasViewPermission ? 'view' : null;
+
+    // Service managers need explicit resource assignments
+    const isServiceManager = permissionCache.roles.some(r => r.name === 'service_manager');
+    if (isServiceManager) {
+      if (!resourceLevel) {
+        return null; // Not assigned = no access
+      }
+      // Most permissive wins between role and resource level
+      if (roleLevel === 'manage' || resourceLevel === 'manage') {
+        return 'manage';
+      }
+      return 'view';
+    }
+
+    // Viewers and operators without assignments can still view if they have view permission
+    if (!resourceLevel && roleLevel) {
+      return roleLevel;
+    }
+
+    // Most permissive wins
+    if (roleLevel === 'manage' || resourceLevel === 'manage') {
+      return 'manage';
+    }
+    if (roleLevel || resourceLevel) {
+      return 'view';
+    }
+
+    return null;
+  },
+
+  /**
+   * Check if user can manage (not just view) a specific resource
+   * @param resourceType - The type of resource
+   * @param resourceId - The specific resource ID
+   */
+  canManageResource(resourceType: string, resourceId: string): boolean {
+    return this.getEffectiveAccessLevel(resourceType, resourceId) === 'manage';
   },
 
   /**
@@ -307,45 +444,7 @@ export const permissionService = {
    * @param resourceId - The specific resource ID
    */
   hasResourceAccess(resourceType: string, resourceId: string): boolean {
-    if (!permissionCache?.loaded) {
-      return false;
-    }
-
-    // Superusers have access to all resources
-    const userInfo = getCurrentUserInfo();
-    if (userInfo?.collection === '_superusers') {
-      return true;
-    }
-
-    // Check if user has manage permission for the resource type (full access)
-    if (this.hasPermission(resourceType as Resource, 'manage')) {
-      // Admins with manage permission have access to all resources of that type
-      const isAdmin = permissionCache.roles.some(r =>
-        r.name === 'admin' || r.name === 'superadmin'
-      );
-      if (isAdmin) {
-        return true;
-      }
-    }
-
-    // Check resource assignments for service managers
-    const assignments = permissionCache.resourceAssignments.get(resourceType);
-    if (assignments && assignments.has(resourceId)) {
-      return true;
-    }
-
-    // Check if user has view permission without resource restrictions
-    // (viewers and operators can view all without specific assignments)
-    if (this.hasPermission(resourceType as Resource, 'view')) {
-      const isServiceManager = permissionCache.roles.some(r => r.name === 'service_manager');
-      // Service managers need explicit assignments
-      if (isServiceManager) {
-        return assignments?.has(resourceId) || false;
-      }
-      return true; // Other roles with view permission can see all
-    }
-
-    return false;
+    return this.getEffectiveAccessLevel(resourceType, resourceId) !== null;
   },
 
   /**
@@ -385,6 +484,59 @@ export const permissionService = {
     return permissionCache.roles.reduce((highest, current) =>
       current.priority > highest.priority ? current : highest
     );
+  },
+
+  /**
+   * Get all assigned resource IDs for a specific resource type
+   * @param resourceType - The type of resource (e.g., 'services', 'servers')
+   * @returns Array of resource IDs that the user has access to, or null if no filtering needed
+   */
+  getAssignedResourceIds(resourceType: string): string[] | null {
+    if (!permissionCache?.loaded) {
+      return []; // No permissions loaded = no access
+    }
+
+    // Superusers have access to all resources - no filtering needed
+    const userInfo = getCurrentUserInfo();
+    if (userInfo?.collection === '_superusers') {
+      return null; // null means no filtering needed
+    }
+
+    // Admins with manage permission have access to all resources - no filtering needed
+    if (this.hasRole('admin') || this.hasRole('superadmin')) {
+      return null;
+    }
+
+    // Get assigned resources for this type
+    const assignments = permissionCache.resourceAssignments.get(resourceType);
+    if (!assignments || assignments.size === 0) {
+      return []; // No assignments = no access to any resources of this type
+    }
+
+    return Array.from(assignments.keys());
+  },
+
+  /**
+   * Check if user requires resource-level filtering
+   * Returns true if user is NOT a superuser/admin and needs filtered data
+   */
+  requiresResourceFiltering(): boolean {
+    if (!permissionCache?.loaded) {
+      return true; // Not loaded = assume filtering needed
+    }
+
+    // Superusers don't need filtering
+    const userInfo = getCurrentUserInfo();
+    if (userInfo?.collection === '_superusers') {
+      return false;
+    }
+
+    // Admins don't need filtering
+    if (this.hasRole('admin') || this.hasRole('superadmin')) {
+      return false;
+    }
+
+    return true;
   },
 
   /**
@@ -502,6 +654,33 @@ export const permissionService = {
    */
   async removeResourceAssignment(assignmentId: string): Promise<void> {
     await pb.collection('resource_assignments').delete(assignmentId);
+  },
+
+  /**
+   * Update access level of an existing resource assignment (superadmin only)
+   */
+  async updateResourceAccessLevel(assignmentId: string, accessLevel: 'view' | 'manage'): Promise<void> {
+    await pb.collection('resource_assignments').update(assignmentId, {
+      access_level: accessLevel
+    });
+  },
+
+  /**
+   * Get all resource assignments for a specific user
+   */
+  async getUserResourceAssignments(userId: string, userCollection: string): Promise<ResourceAssignment[]> {
+    try {
+      const safeUserId = sanitizeId(userId);
+      const safeCollection = sanitizeCollectionName(userCollection);
+
+      return await pb.collection('resource_assignments').getFullList<ResourceAssignment>({
+        filter: `user_id = '${safeUserId}' && user_collection = '${safeCollection}'`,
+        sort: 'resource_type,created'
+      });
+    } catch (error) {
+      console.error('Failed to fetch user resource assignments:', error);
+      return [];
+    }
   },
 
   /**
