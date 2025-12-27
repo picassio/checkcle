@@ -283,6 +283,86 @@ When a card is clickable but contains interactive elements (dropdowns, buttons),
 </Collapsible>
 ```
 
+### User/Avatar Cards
+
+Display user information with avatar in a clickable card:
+
+```tsx
+<div
+  onClick={() => openDialog(user)}
+  className="group rounded-lg border bg-card p-4 cursor-pointer
+             transition-all duration-200 hover:shadow-md"
+>
+  <div className="flex items-center gap-3">
+    <Avatar className="h-10 w-10 shrink-0">
+      <AvatarImage src={user.avatar} />
+      <AvatarFallback className="text-sm bg-primary/10 text-primary">
+        {getInitials(user.name, user.email)}
+      </AvatarFallback>
+    </Avatar>
+    <div className="min-w-0">
+      <h3 className="font-medium text-foreground truncate">{user.name}</h3>
+      <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+    </div>
+  </div>
+</div>
+```
+
+### Badge Overflow Pattern
+
+When displaying many badges, show first N and "+X more":
+
+```tsx
+<div className="flex flex-wrap gap-1.5">
+  {items.slice(0, 3).map((item) => (
+    <Badge key={item.id} variant="outline">{item.name}</Badge>
+  ))}
+  {items.length > 3 && (
+    <Badge variant="outline" className="text-xs">
+      +{items.length - 3} more
+    </Badge>
+  )}
+</div>
+```
+
+### Conditional Card Borders
+
+Use dashed borders for "empty" cards (no content/assignments):
+
+```tsx
+<div className={`
+  rounded-lg border bg-card p-4 cursor-pointer
+  transition-all duration-200 hover:shadow-md
+  ${hasContent
+    ? 'border-border hover:border-primary/30'
+    : 'border-dashed border-muted-foreground/30'
+  }
+`}>
+```
+
+### Role/Permission Color Mapping
+
+Semantic colors for different role types:
+
+```tsx
+const getRoleColor = (roleName: string) => {
+  switch (roleName) {
+    case 'superadmin':
+      return 'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800';
+    case 'admin':
+      return 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800';
+    case 'service_manager':
+      return 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800';
+    case 'operator':
+      return 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800';
+    case 'viewer':
+      return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700';
+    default:
+      return 'bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-400 dark:border-violet-800';
+  }
+};
+```
+
 ### Empty States
 
 ```tsx
@@ -561,6 +641,7 @@ See these files for complete examples:
 
 - `/src/components/settings/role-management/RoleList.tsx` - Clickable cards with dropdown actions
 - `/src/components/settings/role-management/RoleDialog.tsx` - Scrollable dialog with expandable sections
+- `/src/components/settings/role-management/UserRoleAssignment.tsx` - User cards with avatar, badge overflow, conditional borders
 
 ---
 
