@@ -2,6 +2,17 @@
 import { pb } from "@/lib/pocketbase";
 import { toast } from "@/hooks/use-toast";
 
+// Dynamically construct service operation URL based on current host
+const getServiceOperationUrl = (): string => {
+  if (import.meta.env.VITE_SERVICE_OPERATION_URL) {
+    return import.meta.env.VITE_SERVICE_OPERATION_URL;
+  }
+  // Use the same hostname as the current page, but with port 8091
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  return `${protocol}//${hostname}:8091`;
+};
+
 export interface AlertConfiguration {
   id?: string;
   collectionId?: string;
@@ -172,6 +183,57 @@ export const alertConfigService = {
         variant: "destructive"
       });
       return false;
+    }
+  },
+
+  async testNotificationChannel(id: string): Promise<{
+    success: boolean;
+    message?: string;
+    error?: string;
+    channel_name: string;
+    channel_type: string
+  }> {
+    const serviceOperationUrl = getServiceOperationUrl();
+
+    try {
+      const response = await fetch(`${serviceOperationUrl}/notification/test`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': pb.authStore.token ? `Bearer ${pb.authStore.token}` : '',
+        },
+        body: JSON.stringify({ notification_id: id }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "Test Successful",
+          description: `Test notification sent to ${data.channel_name}`,
+        });
+      } else {
+        toast({
+          title: "Test Failed",
+          description: data.error || "Failed to send test notification",
+          variant: "destructive",
+        });
+      }
+
+      return data;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Network error";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      return {
+        success: false,
+        error: errorMessage,
+        channel_name: '',
+        channel_type: '',
+      };
     }
   }
 };

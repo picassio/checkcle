@@ -131,6 +131,12 @@ export const settingsTranslations: SettingsTranslations = {
   gotifyServerUrlDesc: "The URL of your Gotify server",
   errorSaveChannel: "Failed to save notification channel",
 
+  // Test Notification
+  testChannel: "Test",
+  testingChannel: "Testing...",
+  testNotificationSuccess: "Test notification sent successfully",
+  testNotificationFailed: "Failed to send test notification",
+
   channelNamePlaceholder: "My Notification Channel",
   telegramChatIdPlaceholder: "Telegram Chat ID",
   botTokenPlaceholder: "Telegram Bot Token",

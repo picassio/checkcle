@@ -131,6 +131,12 @@ descriptionChannelsServices: "កំណត់រចនាសម្ព័ន្�
   gotifyServerUrlDesc: "URL នៃម៉ាស៊ីនបម្រើ Gotify របស់អ្នក",
   errorSaveChannel: "បរាជ័យក្នុងការរក្សាទុកបណ្តាញជូនដំណឹង",
 
+  // Test Notification
+  testChannel: "សាកល្បង",
+  testingChannel: "កំពុងសាកល្បង...",
+  testNotificationSuccess: "ការផ្ញើសារជូនដំណឹងសាកល្បងបានជោគជ័យ",
+  testNotificationFailed: "បរាជ័យក្នុងការផ្ញើសារជូនដំណឹងសាកល្បង",
+
   channelNamePlaceholder: "ប៉ុស្តិ៍ផ្ទាល់សារជូនដំណឹងរបស់ខ្ញុំ",
   telegramChatIdPlaceholder: "ID កុំព្យូទ័រនិមិត្តសារ Telegram",
   botTokenPlaceholder: "Token Bot Telegram",

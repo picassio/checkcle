@@ -15,6 +15,7 @@ import (
 	"service-operation/handlers"
 	"service-operation/middleware"
 	"service-operation/monitoring"
+	"service-operation/notification"
 	performancemonitoring "service-operation/performance-monitoring"
 	"service-operation/pocketbase"
 	securityscanning "service-operation/security-scanning"
@@ -44,6 +45,7 @@ func main() {
 	var dataRetentionScheduler *dataretention.Scheduler
 	var performanceMonitoringService *performancemonitoring.PerformanceMonitor
 	var securityScanningService *securityscanning.SecurityMonitor
+	var notificationManager *notification.NotificationManager
 	
 	if cfg.PocketBaseEnabled {
 		//log.Println("🔧 Initializing PocketBase client...")
@@ -107,6 +109,9 @@ func main() {
 				securityScanningService = securityscanning.NewSecurityMonitor(pbClient, nil)
 				go securityScanningService.Start()
 				//log.Println("✅ Security scanning started with nuclei support")
+
+				// Initialize notification manager for test endpoint
+				notificationManager = notification.NewNotificationManager(pbClient)
 			}
 		}
 	}
@@ -261,6 +266,14 @@ func main() {
 			json.NewEncoder(w).Encode(queueItem)
 		}).Methods("POST", "OPTIONS")
 	}
+
+	// Notification test endpoint - requires notifications:manage permission
+	notificationRouter := protectedRouter.PathPrefix("/notification").Subrouter()
+	if rbacMiddleware != nil {
+		notificationRouter.Use(rbacMiddleware.RequirePermission("notifications", "manage"))
+	}
+	notificationHandler := handlers.NewNotificationHandler(pbClient, notificationManager)
+	notificationRouter.HandleFunc("/test", notificationHandler.HandleTestNotification).Methods("POST", "OPTIONS")
 
 	log.Printf("=== 🌐 CHECKCLE SERVICE OPERATION SERVER READY ===")
 	log.Printf("🚀 Starting on port %s", cfg.Port)

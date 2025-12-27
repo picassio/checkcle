@@ -129,6 +129,12 @@ export interface SettingsTranslations {
   gotifyServerUrlDesc: string;
   errorSaveChannel: string;
 
+  // Test Notification
+  testChannel: string;
+  testingChannel: string;
+  testNotificationSuccess: string;
+  testNotificationFailed: string;
+
   channelNamePlaceholder: string;
   telegramChatIdPlaceholder: string;
   botTokenPlaceholder: string;

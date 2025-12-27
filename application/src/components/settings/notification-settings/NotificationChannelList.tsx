@@ -1,6 +1,6 @@
 
 import { AlertConfiguration } from "@/services/alertConfigService";
-import { Bell, Edit, Trash2 } from "lucide-react";
+import { Bell, Edit, Trash2, PlayCircle, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { 
   Table, 
@@ -35,6 +35,19 @@ export const NotificationChannelList = ({
   onDelete
 }: NotificationChannelListProps) => {
   const [optimisticStates, setOptimisticStates] = useState<Record<string, boolean>>({});
+  const [testingChannels, setTestingChannels] = useState<Record<string, boolean>>({});
+
+  const handleTest = async (config: CombinedChannel) => {
+    if (!config.id || config.isWebhook || config.notification_type === "webhook") return;
+
+    setTestingChannels(prev => ({ ...prev, [config.id!]: true }));
+
+    try {
+      await alertConfigService.testNotificationChannel(config.id);
+    } finally {
+      setTestingChannels(prev => ({ ...prev, [config.id!]: false }));
+    }
+  };
 
   const toggleEnabled = async (config: CombinedChannel) => {
     if (!config.id) return;
@@ -152,6 +165,20 @@ export const NotificationChannelList = ({
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={() => handleTest(channel)}
+                  disabled={channel.isWebhook || channel.notification_type === "webhook" || (channel.id ? testingChannels[channel.id] : false)}
+                  className="h-8 px-2"
+                  title="Send test notification"
+                >
+                  {channel.id && testingChannels[channel.id] ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <PlayCircle className="h-3.5 w-3.5 text-emerald-500" />
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => onEdit(channel as AlertConfiguration)}
                   disabled={channel.isWebhook}
                   className="h-8 px-2"
@@ -216,6 +243,19 @@ export const NotificationChannelList = ({
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleTest(channel)}
+                      disabled={channel.isWebhook || channel.notification_type === "webhook" || (channel.id ? testingChannels[channel.id] : false)}
+                      title="Send test notification"
+                    >
+                      {channel.id && testingChannels[channel.id] ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <PlayCircle className="h-4 w-4 text-emerald-500" />
+                      )}
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
