@@ -36,6 +36,7 @@ Our mission is to deliver a robust, scalable, and user-friendly solution for "up
 - ✅ Distributed Regional Monitoring Agent
 - ✅ System Setting Panel and Mail Settings
 - ✅ Data Retention & Automate Shrink
+- ✅ Role-Based Access Control (RBAC) System
 - ✅ Open-source release with documentation
 
 ---
@@ -96,6 +97,8 @@ The roadmap is divided into the following stages:
 **Status:** 🔧 In Progress
 #### Tentative Features:
 - [ ] ✅ Fix Regenerate Server Agent ID & Token without page refresh
+- [ ] ✅ Role-Based Access Control (RBAC) with 5 built-in roles, granular permissions, and resource assignments
+- [ ] ✅ User Management integration with RBAC (dynamic role selection, auto-assign roles)
 - [ ] 🔧 Improve the uptime history bar load performance in the uptime monitoring dashboard.
 - [ ] 🔧 Bugfix: recovery time not displayed correctly in incident history on Uptime dashboard
 - [ ] 🔧 feat: add configurable notification support customizable delay before sending downtime notifications

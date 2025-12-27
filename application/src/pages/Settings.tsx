@@ -7,6 +7,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import GeneralSettingsPanel from "@/components/settings/GeneralSettings";
 import { BrandingSettings } from "@/components/settings/branding";
 import UserManagement from "@/components/settings/user-management";
+import { RoleManagement } from "@/components/settings/role-management";
 import { NotificationSettings } from "@/components/settings/notification-settings";
 import { AlertsTemplates } from "@/components/settings/alerts-templates";
 import { AboutSystem } from "@/components/settings/about-system";
@@ -60,6 +61,7 @@ const Settings = () => {
           {activePanel === "general" && <GeneralSettingsPanel />}
           {activePanel === "branding" && <BrandingSettings />}
           {activePanel === "users" && <UserManagement />}
+          {activePanel === "roles" && <RoleManagement />}
           {activePanel === "notifications" && <NotificationSettings />}
           {activePanel === "templates" && <AlertsTemplates />}
           {activePanel === "data-retention" && <DataRetentionSettings />}

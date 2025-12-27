@@ -1,11 +1,8 @@
 
 import * as z from "zod";
 
-// Define the available roles
-export const userRoles = [
-  { label: "Admin", value: "admin" },
-  { label: "Super Admin", value: "superadmin" }
-];
+// Note: Roles are now loaded dynamically from the database via useRoles hook
+// The role field stores the role name (e.g., 'admin', 'viewer', 'service_manager')
 
 export const userFormSchema = z.object({
   full_name: z.string().min(2, {

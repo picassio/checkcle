@@ -23,6 +23,7 @@ type Config struct {
 	AllowedOrigins   []string // CORS allowed origins
 	AuthEnabled      bool     // Enable authentication middleware
 	AllowPrivateIPs  bool     // Allow SSRF to private IPs (for internal monitoring)
+	RBACEnabled      bool     // Enable RBAC permission checks
 }
 
 func Load() *Config {
@@ -42,6 +43,7 @@ func Load() *Config {
 		AllowedOrigins:  getEnvList("ALLOWED_ORIGINS", []string{}),
 		AuthEnabled:     getEnvBool("AUTH_ENABLED", true),
 		AllowPrivateIPs: getEnvBool("ALLOW_PRIVATE_IPS", true), // Default true for internal monitoring
+		RBACEnabled:     getEnvBool("RBAC_ENABLED", true),      // Enable RBAC by default
 	}
 
 	return cfg

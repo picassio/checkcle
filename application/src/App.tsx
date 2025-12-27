@@ -7,6 +7,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { SidebarProvider } from './contexts/SidebarContext';
 import { BrandingProvider } from './contexts/BrandingContext';
+import { PermissionProvider } from './contexts/PermissionContext';
 
 import Index from './pages/Index';
 import Login from './pages/Login';
@@ -45,8 +46,9 @@ function App() {
           <BrandingProvider>
             <SidebarProvider>
               <QueryClientProvider client={queryClient}>
-                <Toaster />
-                <Routes>
+                <PermissionProvider>
+                  <Toaster />
+                  <Routes>
                 {/* Public routes */}
                 <Route path="/public/:slug" element={<PublicStatusPage />} />
                 
@@ -70,7 +72,8 @@ function App() {
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
-                </Routes>
+                  </Routes>
+                </PermissionProvider>
               </QueryClientProvider>
             </SidebarProvider>
           </BrandingProvider>

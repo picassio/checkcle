@@ -19,15 +19,16 @@ const AddUserForm = ({ form, onSubmit, isSubmitting }: AddUserFormProps) => {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        
-        <div className="grid grid-cols-2 gap-4">
+
+        {/* Text fields - responsive grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <UserTextField
             control={form.control}
             name="full_name"
             label="Full Name"
             placeholder="Enter full name"
           />
-          
+
           <UserTextField
             control={form.control}
             name="email"
@@ -35,20 +36,24 @@ const AddUserForm = ({ form, onSubmit, isSubmitting }: AddUserFormProps) => {
             placeholder="Enter email"
             type="email"
           />
-          
+
           <UserTextField
             control={form.control}
             name="username"
             label="Username"
             placeholder="Enter username"
           />
-          
-          <UserRoleField
-            control={form.control}
-            name="role"
-            label="Role"
-          />
-          
+        </div>
+
+        {/* Role field - full width for radio cards */}
+        <UserRoleField
+          control={form.control}
+          name="role"
+          label="Role"
+        />
+
+        {/* Password fields - responsive grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <UserTextField
             control={form.control}
             name="password"
@@ -56,7 +61,7 @@ const AddUserForm = ({ form, onSubmit, isSubmitting }: AddUserFormProps) => {
             placeholder="Enter password"
             type="password"
           />
-          
+
           <UserTextField
             control={form.control}
             name="passwordConfirm"
@@ -65,7 +70,7 @@ const AddUserForm = ({ form, onSubmit, isSubmitting }: AddUserFormProps) => {
             type="password"
           />
         </div>
-        
+
         <UserToggleField
           control={form.control}
           name="isActive"
@@ -74,7 +79,7 @@ const AddUserForm = ({ form, onSubmit, isSubmitting }: AddUserFormProps) => {
         />
 
         <DialogFooter className="pt-4">
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

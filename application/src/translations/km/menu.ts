@@ -15,6 +15,7 @@ export const menuTranslations: MenuTranslations = {
   generalSettings: "ការកំណត់ទូទៅ",
   brandingSettings: "ម៉ាកយីហោ",
   userManagement: "ការគ្រប់គ្រងអ្នកប្រើប្រាស់",
+  roleManagement: "ការគ្រប់គ្រងតួនាទី",
   notificationSettings: "ការកំណត់ការជូនដំណឹង",
   alertsTemplates: "គំរូការជូនដំណឹង",
   rolesManagement: "ការគ្រប់គ្រងតួនាទី",

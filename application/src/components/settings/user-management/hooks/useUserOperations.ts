@@ -151,7 +151,7 @@ export const useUserOperations = (
         password: "",
         passwordConfirm: "",
         isActive: true,
-        role: "user",
+        role: "viewer",
         avatar: avatarOptions[0].url,
       });
       await fetchUsers();

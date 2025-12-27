@@ -61,15 +61,16 @@ const EditUserDialog = ({
             
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                
-                <div className="grid grid-cols-2 gap-4">
+
+                {/* Text fields - responsive grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <UserTextField
                     control={form.control}
                     name="full_name"
                     label="Full Name"
                     placeholder="Enter full name"
                   />
-                  
+
                   <UserTextField
                     control={form.control}
                     name="email"
@@ -77,21 +78,22 @@ const EditUserDialog = ({
                     placeholder="Enter email"
                     type="email"
                   />
-                  
+
                   <UserTextField
                     control={form.control}
                     name="username"
                     label="Username"
                     placeholder="Enter username"
                   />
-                  
-                  <UserRoleField
-                    control={form.control}
-                    name="role"
-                    label="Role"
-                  />
                 </div>
-                
+
+                {/* Role field - full width for radio cards */}
+                <UserRoleField
+                  control={form.control}
+                  name="role"
+                  label="Role"
+                />
+
                 <UserToggleField
                   control={form.control}
                   name="isActive"
@@ -103,18 +105,20 @@ const EditUserDialog = ({
           </div>
         </ScrollArea>
 
-        <DialogFooter className="flex-shrink-0 pt-4 border-t">
-          <Button 
-            type="button" 
-            variant="outline" 
+        <DialogFooter className="flex-shrink-0 pt-4 border-t flex-col-reverse sm:flex-row gap-2 sm:gap-0">
+          <Button
+            type="button"
+            variant="outline"
             onClick={() => setIsOpen(false)}
             disabled={isSubmitting}
+            className="w-full sm:w-auto"
           >
             Cancel
           </Button>
-          <Button 
-            onClick={form.handleSubmit(onSubmit)} 
+          <Button
+            onClick={form.handleSubmit(onSubmit)}
             disabled={isSubmitting}
+            className="w-full sm:w-auto"
           >
             {isSubmitting ? (
               <>

@@ -17,6 +17,7 @@ export const menuTranslations: MenuTranslations = {
   generalSettings: "Allgemeine Einstellungen",
   brandingSettings: "Branding",
   userManagement: "Benutzerverwaltung",
+  roleManagement: "Rollenverwaltung",
   notificationSettings: "Benachrichtigungseinstellungen",
   alertsTemplates: "Alarmvorlagen",
   rolesManagement: "Rollenverwaltung",

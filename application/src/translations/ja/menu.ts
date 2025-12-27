@@ -14,6 +14,7 @@ export const menuTranslations: MenuTranslations = {
   generalSettings: "一般設定",
   brandingSettings: "ブランディング",
   userManagement: "ユーザー管理",
+  roleManagement: "ロール管理",
   notificationSettings: "通知設定",
   alertsTemplates: "アラートテンプレート",
   rolesManagement: "ロール管理",

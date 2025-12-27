@@ -65,6 +65,14 @@ CheckCle is an Open Source solution for seamless, real-time monitoring of full-s
 - Reports & Analytics
 - Settings Panel (User Management, Data Retention, Multi-language, Themes (Dark & Light Mode), Notification and channels and alert templates).
 
+### Role-Based Access Control (RBAC)
+- **5 Built-in Roles**: Super Admin, Admin, Service Manager, Operator, Viewer
+- **Granular Permissions**: 77 resource:action permission pairs across 14 resource types
+- **Resource Assignments**: Assign specific services, servers, or other resources to users
+- **Access Levels**: View, Create, Update, Delete, Manage, Acknowledge, Export
+- **Custom Roles**: Create custom roles with tailored permission sets
+- **Dynamic Role Selection**: User-friendly role cards with descriptions in User Management
+
 ## #️⃣ Getting Started
 
 ### Current Architecture Support

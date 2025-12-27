@@ -13,6 +13,7 @@ export interface MenuTranslations {
   generalSettings: string;
   brandingSettings: string;
   userManagement: string;
+  roleManagement: string;
   notificationSettings: string;
   alertsTemplates: string;
   rolesManagement: string;

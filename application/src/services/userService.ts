@@ -86,6 +86,21 @@ const convertToUserType = (record: any, role: string = "admin"): User => {
 };
 
 export const userService = {
+  /**
+   * Helper to get user's role from user_roles collection
+   */
+  async getUserRole(userId: string, userCollection: string): Promise<string | null> {
+    try {
+      const userRoles = await pb.collection('user_roles').getFirstListItem(
+        `user_id="${userId}" && user_collection="${userCollection}"`,
+        { expand: 'role_id' }
+      );
+      return userRoles.expand?.role_id?.name || null;
+    } catch {
+      return null;
+    }
+  },
+
   async getUsers(): Promise<User[] | null> {
     try {
       // Security: Only allow user listing if user has appropriate permissions
@@ -110,10 +125,30 @@ export const userService = {
         // User doesn't have access to superadmin list, which is fine
       }
 
-      // Combine both user types and mark superadmins
+      // Fetch all user_roles in one query for efficiency
+      let userRolesMap: Map<string, string> = new Map();
+      try {
+        const allUserRoles = await pb.collection('user_roles').getFullList({
+          expand: 'role_id',
+        });
+        allUserRoles.forEach((ur: any) => {
+          const roleName = ur.expand?.role_id?.name;
+          if (roleName) {
+            userRolesMap.set(ur.user_id, roleName);
+          }
+        });
+      } catch {
+        // Failed to fetch user_roles, continue with defaults
+      }
+
+      // Combine both user types with their RBAC roles
       const allUsers = [
-        ...regularUsers.items.map((user: any) => convertToUserType(user, user.role || "admin")),
-        ...superadminUsers.items.map((user: any) => convertToUserType(user, "superadmin"))
+        ...regularUsers.items.map((user: any) =>
+          convertToUserType(user, userRolesMap.get(user.id) || "viewer")
+        ),
+        ...superadminUsers.items.map((user: any) =>
+          convertToUserType(user, userRolesMap.get(user.id) || "superadmin")
+        )
       ];
 
       return allUsers;
@@ -124,28 +159,24 @@ export const userService = {
   
   async getUser(id: string): Promise<User | null> {
     try {
-    //  console.log(`Fetching user with ID: ${id}`);
-      
       // Try fetching from regular users first
       try {
         const user = await pb.collection('users').getOne(id);
-     //   console.log("User fetch result (regular user):", user);
-        return convertToUserType(user, user.role || "admin");
-      } catch (error) {
-      //  console.log("User not found in regular users, trying superadmin collection");
+        const role = await this.getUserRole(id, 'users');
+        return convertToUserType(user, role || "viewer");
+      } catch {
+        // User not found in regular users, trying superadmin collection
       }
-      
+
       // If not found, try in superadmins
       try {
         const user = await pb.collection('_superusers').getOne(id);
-      //  console.log("User fetch result (superadmin):", user);
-        return convertToUserType(user, "superadmin");
-      } catch (error) {
-      //  console.log("User not found in superadmin collection either");
+        const role = await this.getUserRole(id, '_superusers');
+        return convertToUserType(user, role || "superadmin");
+      } catch {
         return null;
       }
-    } catch (error) {
-    //  console.error(`Failed to fetch user ${id}:`, error);
+    } catch {
       return null;
     }
   },
@@ -236,55 +267,67 @@ export const userService = {
           if (targetRole === "superadmin") {
             // Create in superadmin collection
             const newSuperUser = await pb.collection('_superusers').create(transferData);
+            // Delete RBAC roles from old user
+            await this.removeAllRbacRoles(id, 'users');
             // Delete from regular users
             await pb.collection('users').delete(id);
+            // Assign new RBAC role
+            await this.assignRbacRole(newSuperUser.id, '_superusers', targetRole);
             updatedUser = convertToUserType(newSuperUser, "superadmin");
           } else {
             // Create in regular users collection
             const newRegularUser = await pb.collection('users').create(transferData);
+            // Delete RBAC roles from old user
+            await this.removeAllRbacRoles(id, '_superusers');
             // Delete from superadmin
             await pb.collection('_superusers').delete(id);
-            updatedUser = convertToUserType(newRegularUser, "admin");
+            // Assign new RBAC role
+            await this.assignRbacRole(newRegularUser.id, 'users', targetRole);
+            updatedUser = convertToUserType(newRegularUser, targetRole);
           }
-        //  console.log("User transferred between collections due to role change");
-          
+          console.log("User transferred between collections due to role change");
+
         } catch (error) {
-        //  console.error("Failed to transfer user between collections:", error);
+          console.error("Failed to transfer user between collections:", error);
           throw new Error("Failed to change user role: " + (error instanceof Error ? error.message : "Unknown error"));
         }
       } else {
         // Regular update without changing collections
+        const collection = isCurrentlySuperadmin ? '_superusers' : 'users';
+
         if (Object.keys(cleanData).length > 0) {
-       //   console.log("Final update payload to PocketBase:", cleanData);
-          
           try {
-            // Use the appropriate collection
-            const collection = isCurrentlySuperadmin ? '_superusers' : 'users';
             const updatedRecord = await pb.collection(collection).update(id, cleanData);
-            updatedUser = convertToUserType(updatedRecord, isCurrentlySuperadmin ? "superadmin" : "admin");
-            
-        //    console.log("PocketBase update response:", updatedUser);
-            
+            updatedUser = convertToUserType(updatedRecord, targetRole || (isCurrentlySuperadmin ? "superadmin" : "admin"));
+
             // If email was updated successfully, show success message
             if (hasEmailChange) {
-         //     console.log("Email updated successfully to:", emailToUpdate);
+              console.log("Email updated successfully to:", emailToUpdate);
             }
-            
+
           } catch (error) {
-          //  console.error("Error updating user:", error);
-            
             // Provide more specific error messages for email issues
             if (hasEmailChange && error instanceof Error) {
               if (error.message.includes("email")) {
                 throw new Error("Email update failed. The email address may already be in use or invalid.");
               }
             }
-            
+
             throw error;
           }
         } else {
           // If no fields to update, get the current user
           updatedUser = await this.getUser(id);
+        }
+
+        // If role changed within same collection, sync RBAC role
+        if (roleChange && targetRole) {
+          try {
+            await this.updateRbacRole(id, collection, targetRole);
+            console.log("RBAC role updated to:", targetRole);
+          } catch (roleError) {
+            console.error("Failed to sync RBAC role:", roleError);
+          }
         }
       }
       
@@ -364,16 +407,92 @@ export const userService = {
       }
 
       // Determine which collection to use based on the role
+      // Only 'superadmin' role goes to _superusers, all others go to 'users'
       const isSuperAdminUser = cleanData.role === "superadmin";
       const collection = isSuperAdminUser ? '_superusers' : 'users';
-      
+
+      // Store the role name for RBAC assignment
+      const roleName = cleanData.role;
+
       // Create the user in the appropriate collection
       const result = await pb.collection(collection).create(cleanData);
 
-      return convertToUserType(result, isSuperAdminUser ? "superadmin" : "admin");
+      // Auto-assign the RBAC role to the new user
+      try {
+        await this.assignRbacRole(result.id, collection, roleName || 'viewer');
+      } catch (roleError) {
+        // Log but don't fail user creation if role assignment fails
+        console.error("Failed to auto-assign RBAC role:", roleError);
+      }
+
+      return convertToUserType(result, roleName || "admin");
     } catch (error) {
-    //  console.error("Failed to create user:", error);
+      console.error("Failed to create user:", error);
       throw error;
     }
+  },
+
+  /**
+   * Assign an RBAC role to a user
+   * Creates a record in the user_roles collection
+   */
+  async assignRbacRole(userId: string, userCollection: string, roleName: string): Promise<void> {
+    try {
+      // Get the role record by name
+      const roleRecord = await pb.collection('roles').getFirstListItem(`name="${roleName}"`);
+
+      if (!roleRecord) {
+        throw new Error(`Role '${roleName}' not found`);
+      }
+
+      // Check if user already has this role assigned
+      try {
+        const existingAssignment = await pb.collection('user_roles').getFirstListItem(
+          `user_id="${userId}" && user_collection="${userCollection}" && role_id="${roleRecord.id}"`
+        );
+        // Role already assigned, skip
+        if (existingAssignment) {
+          return;
+        }
+      } catch {
+        // No existing assignment, proceed to create
+      }
+
+      // Create the user_roles record
+      await pb.collection('user_roles').create({
+        user_id: userId,
+        user_collection: userCollection,
+        role_id: roleRecord.id,
+        assigned_by: pb.authStore.model?.id,
+      });
+    } catch (error) {
+      console.error("Failed to assign RBAC role:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Remove all RBAC role assignments for a user
+   */
+  async removeAllRbacRoles(userId: string, userCollection: string): Promise<void> {
+    try {
+      const assignments = await pb.collection('user_roles').getFullList({
+        filter: `user_id="${userId}" && user_collection="${userCollection}"`,
+      });
+
+      for (const assignment of assignments) {
+        await pb.collection('user_roles').delete(assignment.id);
+      }
+    } catch (error) {
+      console.error("Failed to remove RBAC roles:", error);
+    }
+  },
+
+  /**
+   * Update RBAC role for a user (remove old, assign new)
+   */
+  async updateRbacRole(userId: string, userCollection: string, newRoleName: string): Promise<void> {
+    await this.removeAllRbacRoles(userId, userCollection);
+    await this.assignRbacRole(userId, userCollection, newRoleName);
   }
 };

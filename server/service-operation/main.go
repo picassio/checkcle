@@ -119,9 +119,14 @@ func main() {
 	// Initialize security middleware
 	corsMiddleware := middleware.NewCORSMiddleware(cfg.AllowedOrigins)
 	var authMiddleware *middleware.AuthMiddleware
+	var rbacMiddleware *middleware.RBACMiddleware
 	if cfg.AuthEnabled && cfg.PocketBaseURL != "" {
 		authMiddleware = middleware.NewAuthMiddleware(cfg.PocketBaseURL)
 		log.Printf("Authentication middleware enabled")
+	}
+	if cfg.RBACEnabled && cfg.PocketBaseURL != "" {
+		rbacMiddleware = middleware.NewRBACMiddleware(cfg.PocketBaseURL)
+		log.Printf("RBAC middleware enabled")
 	}
 
 	// Apply CORS middleware to all routes
@@ -139,43 +144,70 @@ func main() {
 		protectedRouter.Use(authMiddleware.Authenticate)
 	}
 
-	// Main operation endpoint (protected)
-	protectedRouter.HandleFunc("/operation", handler.HandleOperation).Methods("POST")
+	// Create RBAC-protected subrouters for different permission groups
+	// Services/Operations - requires services:manage
+	servicesRouter := protectedRouter.PathPrefix("").Subrouter()
+	if rbacMiddleware != nil {
+		servicesRouter.Use(rbacMiddleware.RequirePermission("services", "manage"))
+	}
 
-	// Quick operation endpoint with query parameters (protected)
-	protectedRouter.HandleFunc("/operation/quick", handler.HandleQuickOperation).Methods("GET")
+	// Performance Tests - view for GET, manage for POST/mutations
+	perfViewRouter := protectedRouter.PathPrefix("/performance").Subrouter()
+	perfManageRouter := protectedRouter.PathPrefix("/performance").Subrouter()
+	if rbacMiddleware != nil {
+		perfViewRouter.Use(rbacMiddleware.RequirePermission("performance_tests", "view"))
+		perfManageRouter.Use(rbacMiddleware.RequirePermission("performance_tests", "manage"))
+	}
 
-	// Legacy ping endpoint for backward compatibility (protected)
-	protectedRouter.HandleFunc("/ping", handler.HandleOperation).Methods("POST")
-	protectedRouter.HandleFunc("/ping/quick", handler.HandleQuickOperation).Methods("GET")
+	// Security Scans - view for GET, manage for POST/mutations
+	secViewRouter := protectedRouter.PathPrefix("/security").Subrouter()
+	secManageRouter := protectedRouter.PathPrefix("/security").Subrouter()
+	if rbacMiddleware != nil {
+		secViewRouter.Use(rbacMiddleware.RequirePermission("security_scans", "view"))
+		secManageRouter.Use(rbacMiddleware.RequirePermission("security_scans", "manage"))
+	}
 
-	// Performance monitoring endpoints (protected)
-	protectedRouter.HandleFunc("/performance/tests", handler.HandlePerformanceTests).Methods("GET", "OPTIONS")
-	protectedRouter.HandleFunc("/performance/test/{testId}", handler.HandlePerformanceTestStatus).Methods("GET", "OPTIONS")
-	protectedRouter.HandleFunc("/performance/metrics/{testId}", handler.HandlePerformanceMetrics).Methods("GET", "OPTIONS")
-	protectedRouter.HandleFunc("/performance/latest", handler.HandlePerformanceLatestMetrics).Methods("GET", "OPTIONS")
-	protectedRouter.HandleFunc("/performance/budgets", handler.HandlePerformanceBudgets).Methods("GET", "OPTIONS")
-	protectedRouter.HandleFunc("/performance/report/{testId}/{timestamp}/{file:.*}", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
-	protectedRouter.HandleFunc("/performance/report/{testId}/{timestamp}/", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
-	protectedRouter.HandleFunc("/performance/report/{testId}/{timestamp}", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
+	// Main operation endpoint (requires services:manage)
+	servicesRouter.HandleFunc("/operation", handler.HandleOperation).Methods("POST")
 
-	// Queue endpoints (protected)
-	protectedRouter.HandleFunc("/performance/queue", handler.HandlePerformanceQueueStatus).Methods("GET", "OPTIONS")
-	protectedRouter.HandleFunc("/performance/queue/test/{testId}", handler.HandlePerformanceQueuePosition).Methods("GET", "OPTIONS")
-	protectedRouter.HandleFunc("/performance/queue/{itemId}/cancel", handler.HandlePerformanceCancelQueue).Methods("POST", "OPTIONS")
+	// Quick operation endpoint with query parameters (requires services:manage)
+	servicesRouter.HandleFunc("/operation/quick", handler.HandleQuickOperation).Methods("GET")
 
-	// Security scanning endpoints (protected)
-	protectedRouter.HandleFunc("/security/scans", handler.HandleSecurityScans).Methods("GET", "POST", "OPTIONS")
-	protectedRouter.HandleFunc("/security/scan/{scanId}", handler.HandleSecurityScan).Methods("GET", "PATCH", "DELETE", "OPTIONS")
-	protectedRouter.HandleFunc("/security/results/{scanId}", handler.HandleSecurityResults).Methods("GET", "OPTIONS")
-	protectedRouter.HandleFunc("/security/result/{resultId}", handler.HandleSecurityResult).Methods("GET", "OPTIONS")
-	protectedRouter.HandleFunc("/security/queue", handler.HandleSecurityQueueStatus).Methods("GET", "OPTIONS")
-	protectedRouter.HandleFunc("/security/queue/{itemId}/cancel", handler.HandleSecurityCancelQueue).Methods("POST", "OPTIONS")
-	protectedRouter.HandleFunc("/security/summary", handler.HandleSecuritySummary).Methods("GET", "OPTIONS")
+	// Legacy ping endpoint for backward compatibility (requires services:manage)
+	servicesRouter.HandleFunc("/ping", handler.HandleOperation).Methods("POST")
+	servicesRouter.HandleFunc("/ping/quick", handler.HandleQuickOperation).Methods("GET")
 
-	// Security scan run endpoint (needs access to securityScanningService) - protected
+	// Performance monitoring endpoints (view routes - requires performance_tests:view)
+	perfViewRouter.HandleFunc("/tests", handler.HandlePerformanceTests).Methods("GET", "OPTIONS")
+	perfViewRouter.HandleFunc("/test/{testId}", handler.HandlePerformanceTestStatus).Methods("GET", "OPTIONS")
+	perfViewRouter.HandleFunc("/metrics/{testId}", handler.HandlePerformanceMetrics).Methods("GET", "OPTIONS")
+	perfViewRouter.HandleFunc("/latest", handler.HandlePerformanceLatestMetrics).Methods("GET", "OPTIONS")
+	perfViewRouter.HandleFunc("/budgets", handler.HandlePerformanceBudgets).Methods("GET", "OPTIONS")
+	perfViewRouter.HandleFunc("/report/{testId}/{timestamp}/{file:.*}", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
+	perfViewRouter.HandleFunc("/report/{testId}/{timestamp}/", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
+	perfViewRouter.HandleFunc("/report/{testId}/{timestamp}", handler.HandlePerformanceReport).Methods("GET", "OPTIONS")
+	perfViewRouter.HandleFunc("/queue", handler.HandlePerformanceQueueStatus).Methods("GET", "OPTIONS")
+	perfViewRouter.HandleFunc("/queue/test/{testId}", handler.HandlePerformanceQueuePosition).Methods("GET", "OPTIONS")
+
+	// Performance management endpoints (requires performance_tests:manage)
+	perfManageRouter.HandleFunc("/queue/{itemId}/cancel", handler.HandlePerformanceCancelQueue).Methods("POST", "OPTIONS")
+
+	// Security scanning endpoints (view routes - requires security_scans:view)
+	secViewRouter.HandleFunc("/scans", handler.HandleSecurityScans).Methods("GET", "OPTIONS")
+	secViewRouter.HandleFunc("/scan/{scanId}", handler.HandleSecurityScan).Methods("GET", "OPTIONS")
+	secViewRouter.HandleFunc("/results/{scanId}", handler.HandleSecurityResults).Methods("GET", "OPTIONS")
+	secViewRouter.HandleFunc("/result/{resultId}", handler.HandleSecurityResult).Methods("GET", "OPTIONS")
+	secViewRouter.HandleFunc("/queue", handler.HandleSecurityQueueStatus).Methods("GET", "OPTIONS")
+	secViewRouter.HandleFunc("/summary", handler.HandleSecuritySummary).Methods("GET", "OPTIONS")
+
+	// Security management endpoints (requires security_scans:manage)
+	secManageRouter.HandleFunc("/scans", handler.HandleSecurityScans).Methods("POST", "OPTIONS")
+	secManageRouter.HandleFunc("/scan/{scanId}", handler.HandleSecurityScan).Methods("PATCH", "DELETE", "OPTIONS")
+	secManageRouter.HandleFunc("/queue/{itemId}/cancel", handler.HandleSecurityCancelQueue).Methods("POST", "OPTIONS")
+
+	// Security scan run endpoint (needs access to securityScanningService) - requires security_scans:manage
 	if securityScanningService != nil {
-		protectedRouter.HandleFunc("/security/scan/{scanId}/run", func(w http.ResponseWriter, r *http.Request) {
+		secManageRouter.HandleFunc("/scan/{scanId}/run", func(w http.ResponseWriter, r *http.Request) {
 			vars := mux.Vars(r)
 			scanID := vars["scanId"]
 
@@ -195,10 +227,10 @@ func main() {
 		}).Methods("POST", "OPTIONS")
 	}
 
-	// Run test endpoint (needs access to performanceMonitoringService) - protected
+	// Run test endpoint (needs access to performanceMonitoringService) - requires performance_tests:manage
 	// Now adds to queue instead of running directly
 	if performanceMonitoringService != nil {
-		protectedRouter.HandleFunc("/performance/test/{testId}/run", func(w http.ResponseWriter, r *http.Request) {
+		perfManageRouter.HandleFunc("/test/{testId}/run", func(w http.ResponseWriter, r *http.Request) {
 			vars := mux.Vars(r)
 			testID := vars["testId"]
 
@@ -257,7 +289,9 @@ func main() {
 	if securityScanningService != nil {
 		log.Printf("✓Security scanning enabled with nuclei support")
 	}
-	
+	if rbacMiddleware != nil {
+		log.Printf("✓RBAC permission checks enabled")
+	}
 
 	// Setup graceful shutdown
 	c := make(chan os.Signal, 1)

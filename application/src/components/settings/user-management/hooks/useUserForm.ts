@@ -12,7 +12,7 @@ export const useUserForm = () => {
       email: "",
       username: "",
       isActive: true,
-      role: "user",
+      role: "viewer",
       avatar: "",
     },
   });
@@ -26,7 +26,7 @@ export const useUserForm = () => {
       password: "",
       passwordConfirm: "",
       isActive: true,
-      role: "user",
+      role: "viewer",
       avatar: avatarOptions[Math.floor(Math.random() * avatarOptions.length)].url,
     },
   });
