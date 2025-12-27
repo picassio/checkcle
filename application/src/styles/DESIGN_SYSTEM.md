@@ -832,6 +832,244 @@ Use Sheet component with drag handle and proper height:
 
 ---
 
+## Settings Page Patterns
+
+### Responsive Card Container
+
+Settings pages use a card that removes borders/shadow on mobile for edge-to-edge content:
+
+```tsx
+<Card className="border-0 shadow-none sm:border sm:shadow-sm">
+  <CardHeader className="px-4 sm:px-6">
+    {/* Header content */}
+  </CardHeader>
+  <CardContent className="px-4 sm:px-6">
+    {/* Page content */}
+  </CardContent>
+</Card>
+```
+
+### Header with Icon Container
+
+Page headers use a semantic colored icon container:
+
+```tsx
+<CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+  <div className="p-1.5 rounded-md bg-purple-100 dark:bg-purple-900/30">
+    <Palette className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
+  </div>
+  {title}
+</CardTitle>
+```
+
+**Semantic colors by section type:**
+| Section | Background | Icon Color |
+|---------|------------|------------|
+| Branding/Appearance | `bg-purple-100 dark:bg-purple-900/30` | `text-purple-600 dark:text-purple-400` |
+| Links/Connections | `bg-blue-100 dark:bg-blue-900/30` | `text-blue-600 dark:text-blue-400` |
+| Email/Notifications | `bg-emerald-100 dark:bg-emerald-900/30` | `text-emerald-600 dark:text-emerald-400` |
+| Security/Roles | `bg-rose-100 dark:bg-rose-900/30` | `text-rose-600 dark:text-rose-400` |
+
+### Grid-Based Tab System
+
+Replace horizontal scrolling tabs with a proper grid:
+
+```tsx
+<TabsList className="w-full h-auto p-1 grid grid-cols-3 gap-1 mb-6">
+  <TabsTrigger
+    value="tab1"
+    className="flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 px-2 sm:px-3
+               data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800"
+  >
+    <div className="p-1 rounded bg-purple-100 dark:bg-purple-900/30">
+      <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-purple-600 dark:text-purple-400" />
+    </div>
+    <span className="text-xs sm:text-sm font-medium hidden xs:inline">{fullLabel}</span>
+    <span className="text-xs font-medium xs:hidden">{shortLabel}</span>
+  </TabsTrigger>
+</TabsList>
+```
+
+**Key elements:**
+- Grid with equal columns: `grid grid-cols-3 gap-1`
+- Icon in colored container within each tab
+- Responsive labels: full on `xs:` and up, short below
+
+### Section Headers with Dividers
+
+Use border-bottom section headers within tab content:
+
+```tsx
+<div className="space-y-4">
+  <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-700">
+    <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">
+      Section Title
+    </h3>
+  </div>
+  {/* Section content */}
+</div>
+```
+
+### Toggle Cards (Settings Fields)
+
+Wrap form fields with toggles in rounded cards:
+
+```tsx
+<div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-3">
+  <div className="flex items-center justify-between">
+    <Label htmlFor="fieldId" className="text-sm font-medium">
+      {fieldLabel}
+    </Label>
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-slate-500 dark:text-slate-400">
+        {isVisible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+      </span>
+      <Switch checked={isVisible} onCheckedChange={setIsVisible} disabled={!isEditing} />
+    </div>
+  </div>
+  <Input
+    id="fieldId"
+    value={value}
+    onChange={onChange}
+    disabled={!isEditing || !isVisible}
+    className="bg-white dark:bg-slate-900"
+  />
+  <p className="text-xs text-slate-500 dark:text-slate-400">{description}</p>
+</div>
+```
+
+### Master Toggle Card
+
+For feature-wide toggles, use an accent-colored card:
+
+```tsx
+<div className="flex items-center justify-between p-4 rounded-xl
+                bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50">
+  <div className="flex items-center gap-3">
+    <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50">
+      <Link2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+    </div>
+    <div>
+      <Label className="text-sm font-medium">{toggleLabel}</Label>
+      <p className="text-xs text-slate-500 dark:text-slate-400">{description}</p>
+    </div>
+  </div>
+  <Switch checked={isEnabled} onCheckedChange={setIsEnabled} />
+</div>
+```
+
+### Platform/Brand Icons
+
+Each platform gets a semantic color:
+
+```tsx
+const PLATFORM_ICONS = {
+  github: {
+    icon: Github,
+    bg: 'bg-slate-200 dark:bg-slate-700',
+    color: 'text-slate-700 dark:text-slate-300',
+  },
+  twitter: {
+    icon: Twitter,
+    bg: 'bg-sky-100 dark:bg-sky-900/30',
+    color: 'text-sky-600 dark:text-sky-400',
+  },
+  discord: {
+    icon: MessageCircle,
+    bg: 'bg-indigo-100 dark:bg-indigo-900/30',
+    color: 'text-indigo-600 dark:text-indigo-400',
+  },
+  docs: {
+    icon: BookOpen,
+    bg: 'bg-amber-100 dark:bg-amber-900/30',
+    color: 'text-amber-600 dark:text-amber-400',
+  },
+};
+
+// Usage
+<div className={`p-1.5 rounded-md ${platform.bg}`}>
+  <platform.icon className={`h-4 w-4 ${platform.color}`} />
+</div>
+```
+
+### Preview Cards with Header
+
+For previews (logo, email, etc.), use a card with distinct header:
+
+```tsx
+<div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+  {/* Header */}
+  <div className="bg-slate-100 dark:bg-slate-800 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+    <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300">
+      {previewTitle}
+    </h4>
+  </div>
+
+  {/* Content */}
+  <div className="p-4 bg-white dark:bg-slate-900">
+    {previewContent}
+  </div>
+</div>
+```
+
+### Email Preview Pattern
+
+Realistic email preview with gradient header and footer:
+
+```tsx
+<div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+  {/* Email Header - Gradient */}
+  <div className="bg-gradient-to-r from-emerald-50 to-slate-50
+                  dark:from-emerald-950/30 dark:to-slate-800
+                  px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+    <div className="flex items-center gap-3">
+      <div className="p-2 rounded-full bg-emerald-100 dark:bg-emerald-900/50">
+        <Mail className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+      </div>
+      <div>
+        <p className="text-xs text-slate-500 dark:text-slate-400">From</p>
+        <p className="font-medium text-sm text-slate-800 dark:text-slate-200">
+          {senderName}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  {/* Email Body */}
+  <div className="p-5 bg-white dark:bg-slate-900">
+    <div className="text-sm text-slate-500 dark:text-slate-400 italic py-8 text-center
+                    border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg">
+      [Email content will appear here...]
+    </div>
+  </div>
+
+  {/* Email Footer */}
+  <div className="px-5 py-4 bg-slate-50 dark:bg-slate-800/50
+                  border-t border-slate-200 dark:border-slate-700">
+    <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+      {footerText}
+    </p>
+  </div>
+</div>
+```
+
+### Image Error Handling
+
+Always handle broken image URLs gracefully:
+
+```tsx
+<img
+  src={imageUrl}
+  alt={altText}
+  className="h-8 w-8 object-contain"
+  onError={(e) => {
+    (e.target as HTMLImageElement).style.display = 'none';
+  }}
+/>
+```
+
+---
+
 ## Reference Implementation
 
 See these files for complete examples:
@@ -839,6 +1077,7 @@ See these files for complete examples:
 - `/src/components/settings/role-management/RoleList.tsx` - Clickable cards with dropdown actions
 - `/src/components/settings/role-management/RoleDialog.tsx` - Scrollable dialog with expandable sections
 - `/src/components/settings/role-management/UserRoleAssignment.tsx` - User cards with avatar, badge overflow, conditional borders
+- `/src/components/settings/branding/BrandingSettings.tsx` - Settings page with tabs, toggle cards, platform icons, email preview
 - `/src/components/dashboard/Sidebar.tsx` - Desktop/mobile sidebar with proper theming
 - `/src/components/dashboard/sidebar/MenuItem.tsx` - Active state with left accent border, tooltips
 - `/src/components/dashboard/sidebar/SettingsPanel.tsx` - Collapsible navigation section
