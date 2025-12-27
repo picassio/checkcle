@@ -1,3 +1,9 @@
+/**
+ * MainNavigation Component
+ *
+ * Primary navigation section with permission-based filtering.
+ * Features consistent spacing and subtle section header.
+ */
 
 import React from "react";
 import { MenuItem } from "./MenuItem";
@@ -28,20 +34,32 @@ export const MainNavigation: React.FC<MainNavigationProps> = ({ collapsed, onIte
   });
 
   return (
-    <nav className="my-2 mx-1 py-1 px-1">
-      {visibleMenuItems.map((item) => (
-        <MenuItem
-          key={item.id}
-          id={item.id}
-          path={item.path}
-          icon={item.icon}
-          translationKey={item.translationKey}
-          color={item.color}
-          hasNavigation={item.hasNavigation}
-          collapsed={collapsed}
-          onItemClick={onItemClick}
-        />
-      ))}
+    <nav className="flex-1 py-3 overflow-y-auto overscroll-contain">
+      {/* Navigation Label - hidden when collapsed */}
+      {!collapsed && (
+        <div className="px-5 mb-2">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+            Navigation
+          </span>
+        </div>
+      )}
+
+      {/* Menu Items */}
+      <div className="space-y-0.5">
+        {visibleMenuItems.map((item) => (
+          <MenuItem
+            key={item.id}
+            id={item.id}
+            path={item.path || null}
+            icon={item.icon}
+            translationKey={item.translationKey}
+            color={item.color || ''}
+            hasNavigation={item.hasNavigation ?? true}
+            collapsed={collapsed}
+            onItemClick={onItemClick}
+          />
+        ))}
+      </div>
     </nav>
   );
 };

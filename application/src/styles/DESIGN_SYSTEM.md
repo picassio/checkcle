@@ -635,6 +635,203 @@ When using expandable/collapsible sections inside dialogs:
 
 ---
 
+## Sidebar & Navigation Patterns
+
+### Sidebar Background
+
+Never use hardcoded colors. Use theme-aware classes:
+
+```tsx
+// ✅ Correct
+className="bg-slate-50 dark:bg-slate-900/95"
+className="border-slate-200 dark:border-slate-800"
+
+// ❌ Avoid
+className="bg-[#121212]"
+className="border-[#1e1e1e]"
+```
+
+### Active State with Left Accent Border
+
+The signature active state pattern - animated left border with background highlight:
+
+```tsx
+<div className="group relative flex items-center gap-3 mx-2 px-3 py-2.5 rounded-lg cursor-pointer">
+  {/* Active Indicator - Left Border */}
+  <div
+    className={`
+      absolute left-0 top-1/2 -translate-y-1/2
+      w-[3px] rounded-r-full
+      transition-all duration-150 ease-out
+      ${isActive
+        ? 'h-5 bg-primary'
+        : 'h-0 bg-transparent group-hover:h-3 group-hover:bg-slate-300 dark:group-hover:bg-slate-600'
+      }
+    `}
+  />
+
+  {/* Icon with color change */}
+  <Icon
+    className={`
+      h-[18px] w-[18px] transition-colors duration-150
+      ${isActive
+        ? 'text-primary'
+        : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-300'
+      }
+    `}
+    strokeWidth={isActive ? 2.5 : 2}
+  />
+
+  {/* Label */}
+  <span className={`
+    text-[13px] font-medium transition-colors duration-150
+    ${isActive
+      ? 'text-primary'
+      : 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100'
+    }
+  `}>
+    {label}
+  </span>
+</div>
+```
+
+**Key elements:**
+- Left border animates from `h-0` to `h-5` when active
+- `rounded-r-full` for pill shape on right side
+- Icon stroke weight increases when active (2 → 2.5)
+- Background: `bg-primary/8 dark:bg-primary/10` when active
+
+### Collapsed Mode with Tooltips
+
+Wrap sidebar with `TooltipProvider` and show tooltips in collapsed mode:
+
+```tsx
+import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+
+// Wrap sidebar
+<TooltipProvider delayDuration={0}>
+  <aside className={collapsed ? 'w-[68px]' : 'w-64'}>
+    {/* Navigation items */}
+  </aside>
+</TooltipProvider>
+
+// Menu item with tooltip
+if (collapsed) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {menuItemContent}
+      </TooltipTrigger>
+      <TooltipContent side="right" sideOffset={12} className="font-medium">
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+return menuItemContent;
+```
+
+### Navigation Section Labels
+
+Use uppercase, wide-tracked labels for section headers:
+
+```tsx
+<div className="px-5 mb-2">
+  <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+    Navigation
+  </span>
+</div>
+```
+
+### Collapsible Navigation Sections
+
+Use `ChevronRight` that rotates 90° when open:
+
+```tsx
+<Collapsible open={isOpen} onOpenChange={setIsOpen}>
+  <CollapsibleTrigger className="w-full group">
+    <div className="flex items-center justify-between mx-2 px-3 py-2 rounded-lg
+                    hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors duration-150">
+      <div className="flex items-center gap-2">
+        <Settings className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+        <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
+          {sectionLabel}
+        </span>
+      </div>
+      <ChevronRight
+        className={`
+          h-4 w-4 text-slate-400 dark:text-slate-500
+          transition-transform duration-200 ease-out
+          ${isOpen ? 'rotate-90' : ''}
+        `}
+      />
+    </div>
+  </CollapsibleTrigger>
+
+  <CollapsibleContent>
+    {/* Sub-items with left indent */}
+    <div className="mt-1 space-y-0.5">
+      {items.map((item) => (
+        <div className="mx-2 ml-5 px-3 py-2 rounded-lg">
+          {/* Item content */}
+        </div>
+      ))}
+    </div>
+  </CollapsibleContent>
+</Collapsible>
+```
+
+**Key elements:**
+- `ChevronRight` with `rotate-90` when open (not `ChevronDown` with `rotate-180`)
+- Sub-items indented with `ml-5`
+- `transition-transform duration-200 ease-out` for smooth rotation
+
+### Mobile Sidebar Drawer
+
+Use Sheet component with drag handle and proper height:
+
+```tsx
+<Sheet open={mobileOpen} onOpenChange={(open) => !open && onMobileClose?.()}>
+  <SheetContent
+    side="left"
+    className="p-0 w-[280px] border-r-0 bg-slate-50 dark:bg-slate-900/95"
+  >
+    {/* Drag Handle */}
+    <div className="flex justify-center pt-3 pb-1">
+      <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+    </div>
+
+    <div className="flex flex-col h-[calc(100%-24px)] overflow-hidden">
+      <SidebarHeader />
+
+      <div className="flex-1 overflow-y-auto overscroll-contain">
+        <MainNavigation onItemClick={onMobileClose} />
+        <SettingsPanel onItemClick={onMobileClose} />
+      </div>
+
+      {/* Safe area padding for mobile */}
+      <div className="h-safe-area-inset-bottom" />
+    </div>
+  </SheetContent>
+</Sheet>
+```
+
+**Key elements:**
+- Width: `w-[280px]` (wider than desktop collapsed)
+- Drag handle: `w-10 h-1 rounded-full`
+- `overscroll-contain` for native-feeling scroll
+- Pass `onItemClick` to close drawer after navigation
+
+### Sidebar Dimensions
+
+| State | Width | Notes |
+|-------|-------|-------|
+| Expanded (desktop) | `w-64` (256px) | Full labels visible |
+| Collapsed (desktop) | `w-[68px]` | Icons + padding |
+| Mobile drawer | `w-[280px]` | Slightly wider for touch |
+
+---
+
 ## Reference Implementation
 
 See these files for complete examples:
@@ -642,6 +839,9 @@ See these files for complete examples:
 - `/src/components/settings/role-management/RoleList.tsx` - Clickable cards with dropdown actions
 - `/src/components/settings/role-management/RoleDialog.tsx` - Scrollable dialog with expandable sections
 - `/src/components/settings/role-management/UserRoleAssignment.tsx` - User cards with avatar, badge overflow, conditional borders
+- `/src/components/dashboard/Sidebar.tsx` - Desktop/mobile sidebar with proper theming
+- `/src/components/dashboard/sidebar/MenuItem.tsx` - Active state with left accent border, tooltips
+- `/src/components/dashboard/sidebar/SettingsPanel.tsx` - Collapsible navigation section
 
 ---
 
