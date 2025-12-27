@@ -124,6 +124,48 @@ export const securityService = {
     });
   },
 
+  // Get results by queue_id (for per-run results) - preferred method
+  async getResultsByQueueId(
+    queueId: string,
+    page: number = 1,
+    perPage: number = 20,
+    severity?: string
+  ) {
+    const filter: string[] = [`queue_id="${queueId}"`];
+    if (severity) {
+      filter.push(`severity="${severity}"`);
+    }
+
+    return await pb.collection('security_results').getList<SecurityResult>(page, perPage, {
+      filter: filter.join(' && '),
+      sort: '-created',
+    });
+  },
+
+  // Get results filtered by time range (for per-run results) - fallback for old results without queue_id
+  async getResultsByTimeRange(
+    scanId: string,
+    startTime: string,
+    endTime: string,
+    page: number = 1,
+    perPage: number = 20,
+    severity?: string
+  ) {
+    const filter: string[] = [
+      `scan_id="${scanId}"`,
+      `created>="${startTime}"`,
+      `created<="${endTime}"`
+    ];
+    if (severity) {
+      filter.push(`severity="${severity}"`);
+    }
+
+    return await pb.collection('security_results').getList<SecurityResult>(page, perPage, {
+      filter: filter.join(' && '),
+      sort: '-created',
+    });
+  },
+
   // Get a single result by ID
   async getResult(resultId: string): Promise<SecurityResult> {
     return await pb.collection('security_results').getOne<SecurityResult>(resultId);
@@ -192,6 +234,31 @@ export const securityService = {
       options.filter = `status="${status}"`;
     }
     return await pb.collection('security_queue').getFullList<SecurityQueueItem>(options);
+  },
+
+  // Get queue items (runs) for a specific scan
+  async getQueueItemsByScan(scanId: string): Promise<SecurityQueueItem[]> {
+    return await pb.collection('security_queue').getFullList<SecurityQueueItem>({
+      filter: `scan_id="${scanId}"`,
+      sort: '-created',
+    });
+  },
+
+  // Delete a queue item (scan run) and its associated results
+  async deleteQueueItem(queueId: string): Promise<boolean> {
+    // First delete associated results with this queue_id
+    try {
+      const results = await pb.collection('security_results').getFullList({
+        filter: `queue_id="${queueId}"`,
+      });
+      for (const result of results) {
+        await pb.collection('security_results').delete(result.id);
+      }
+    } catch (e) {
+      // Results may not exist, continue with queue deletion
+    }
+    // Delete the queue item
+    return await pb.collection('security_queue').delete(queueId);
   },
 
   // ==================== Summary ====================

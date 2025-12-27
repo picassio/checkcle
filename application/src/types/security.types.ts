@@ -42,6 +42,7 @@ export interface SecurityScan {
 export interface SecurityResult {
   id: string;
   scan_id: string;
+  queue_id?: string; // Links result to specific scan run
   template_id: string;
   template_name: string;
   severity: 'critical' | 'high' | 'medium' | 'low' | 'info' | 'unknown';

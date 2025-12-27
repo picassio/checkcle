@@ -155,17 +155,18 @@ func (m *SecurityMonitor) processNextItem() {
 		return
 	}
 
-	// Save results
+	// Save results with queue_id to link them to this specific run
 	severityCounts := SeverityCount{}
-	for _, result := range results {
-		_, saveErr := m.client.SaveResult(&result)
+	for i := range results {
+		results[i].QueueID = item.ID // Link result to this specific scan run
+		_, saveErr := m.client.SaveResult(&results[i])
 		if saveErr != nil {
 			log.Printf("[SecurityMonitor] Error saving result: %v", saveErr)
 			continue
 		}
 
 		// Count by severity
-		switch result.Severity {
+		switch results[i].Severity {
 		case "critical":
 			severityCounts.Critical++
 		case "high":

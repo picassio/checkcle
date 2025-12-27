@@ -53,6 +53,7 @@ type SecurityScansResponse struct {
 type SecurityResult struct {
 	ID               string                 `json:"id,omitempty"`
 	ScanID           string                 `json:"scan_id"`
+	QueueID          string                 `json:"queue_id,omitempty"` // Links result to specific scan run
 	TemplateID       string                 `json:"template_id"`
 	TemplateName     string                 `json:"template_name"`
 	Severity         string                 `json:"severity"` // critical, high, medium, low, info, unknown

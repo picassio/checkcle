@@ -6,3 +6,5 @@ export { SecurityResultsTable } from './SecurityResultsTable';
 export { SecurityResultDetail } from './SecurityResultDetail';
 export { SecurityQueueStatus } from './SecurityQueueStatus';
 export { SecurityDashboard, SecurityScanOverview } from './SecurityDashboard';
+export { ScanRunHistory } from './ScanRunHistory';
+export { ScanRunResults } from './ScanRunResults';

@@ -297,6 +297,11 @@ func (c *SecurityClient) SaveResult(result *SecurityResult) (string, error) {
 		"raw_data":          rawData,
 	}
 
+	// Add queue_id if provided (links result to specific scan run)
+	if result.QueueID != "" {
+		data["queue_id"] = result.QueueID
+	}
+
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal result: %w", err)

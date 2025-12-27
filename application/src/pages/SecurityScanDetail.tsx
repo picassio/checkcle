@@ -1,3 +1,14 @@
+/**
+ * SecurityScanDetail Page
+ *
+ * Shows detailed information about a security scan with tabbed interface:
+ * - Overview: Severity distribution charts
+ * - Run History: List of scan runs with per-run results
+ * - All Results: All vulnerability findings across all runs
+ *
+ * Follows Modern Professional design system patterns.
+ */
+
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -6,14 +17,17 @@ import { Sidebar } from '@/components/dashboard/Sidebar';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { authService } from '@/services/authService';
 import { securityService } from '@/services/securityService';
-import { SecurityResult } from '@/types/security.types';
+import { SecurityResult, SecurityQueueItem } from '@/types/security.types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   SecurityScanOverview,
   SecurityResultsTable,
   SecurityResultDetail,
+  ScanRunHistory,
+  ScanRunResults,
 } from '@/components/security';
 import {
   ArrowLeft,
@@ -24,6 +38,9 @@ import {
   Shield,
   Calendar,
   Clock,
+  BarChart3,
+  History,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow, format } from 'date-fns';
@@ -35,6 +52,8 @@ const SecurityScanDetail = () => {
   const { sidebarCollapsed, toggleSidebar, mobileOpen, setMobileOpen, toggleMobile } = useSidebar();
   const currentUser = authService.getCurrentUser();
   const [selectedResult, setSelectedResult] = useState<SecurityResult | null>(null);
+  const [selectedRun, setSelectedRun] = useState<SecurityQueueItem | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('runs');
 
   const handleLogout = () => {
     authService.logout();
@@ -58,6 +77,7 @@ const SecurityScanDetail = () => {
       toast.success('Scan queued successfully');
       queryClient.invalidateQueries({ queryKey: ['security-scan', scanId] });
       queryClient.invalidateQueries({ queryKey: ['security-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['security-queue-by-scan', scanId] });
     },
     onError: (error: Error) => {
       toast.error(`Failed to queue scan: ${error.message}`);
@@ -76,20 +96,14 @@ const SecurityScanDetail = () => {
   });
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-      active: 'default',
-      paused: 'secondary',
-      running: 'default',
-      error: 'destructive',
-    };
     const colors: Record<string, string> = {
-      active: 'bg-green-500',
-      paused: 'bg-gray-500',
-      running: 'bg-blue-500 animate-pulse',
-      error: 'bg-red-500',
+      active: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800',
+      paused: 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700',
+      running: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
+      error: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800',
     };
     return (
-      <Badge variant={variants[status] || 'outline'} className={colors[status]}>
+      <Badge variant="outline" className={`text-xs ${colors[status] || colors.paused}`}>
         {status}
       </Badge>
     );
@@ -133,12 +147,14 @@ const SecurityScanDetail = () => {
         </div>
 
         {/* Scan Info Card */}
-        <Card>
+        <Card className="border-0 shadow-none sm:border sm:shadow-sm">
           <CardHeader className="p-4 md:p-6">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div className="min-w-0">
                 <CardTitle className="flex flex-wrap items-center gap-2 text-xl md:text-2xl">
-                  <Shield className="h-5 w-5 md:h-6 md:w-6 flex-shrink-0" />
+                  <div className="p-1.5 rounded-md bg-rose-100 dark:bg-rose-900/30">
+                    <Shield className="h-5 w-5 md:h-6 md:w-6 text-rose-600 dark:text-rose-400" />
+                  </div>
                   <span className="truncate">{scan.name}</span>
                   {getStatusBadge(scan.status)}
                 </CardTitle>
@@ -228,12 +244,12 @@ const SecurityScanDetail = () => {
                 <div className="flex flex-wrap items-center gap-1">
                   <span className="text-sm md:text-base font-medium">{scan.findings_count || 0}</span>
                   {(scan.critical_count || 0) > 0 && (
-                    <Badge variant="destructive" className="text-xs">
+                    <Badge variant="outline" className="text-xs bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400">
                       {scan.critical_count} critical
                     </Badge>
                   )}
                   {(scan.high_count || 0) > 0 && (
-                    <Badge variant="default" className="text-xs bg-orange-500">
+                    <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400">
                       {scan.high_count} high
                     </Badge>
                   )}
@@ -269,11 +285,51 @@ const SecurityScanDetail = () => {
           </CardContent>
         </Card>
 
-        {/* Severity Distribution */}
-        <SecurityScanOverview scanId={scanId} />
+        {/* Tabbed Content */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-flex">
+            <TabsTrigger value="overview" className="gap-2">
+              <BarChart3 className="h-4 w-4 hidden sm:block" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="runs" className="gap-2">
+              <History className="h-4 w-4 hidden sm:block" />
+              Run History
+            </TabsTrigger>
+            <TabsTrigger value="all" className="gap-2">
+              <AlertTriangle className="h-4 w-4 hidden sm:block" />
+              All Results
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Results Table */}
-        <SecurityResultsTable scanId={scanId!} onViewResult={setSelectedResult} />
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-4">
+            <SecurityScanOverview scanId={scanId} />
+          </TabsContent>
+
+          {/* Run History Tab */}
+          <TabsContent value="runs" className="space-y-4">
+            {selectedRun ? (
+              <ScanRunResults
+                scanId={scanId!}
+                run={selectedRun}
+                onBack={() => setSelectedRun(null)}
+                onViewResult={setSelectedResult}
+              />
+            ) : (
+              <ScanRunHistory
+                scanId={scanId!}
+                onRunSelect={setSelectedRun}
+                selectedRunId={selectedRun?.id}
+              />
+            )}
+          </TabsContent>
+
+          {/* All Results Tab */}
+          <TabsContent value="all" className="space-y-4">
+            <SecurityResultsTable scanId={scanId!} onViewResult={setSelectedResult} />
+          </TabsContent>
+        </Tabs>
 
         {/* Result Detail Dialog */}
         <SecurityResultDetail
