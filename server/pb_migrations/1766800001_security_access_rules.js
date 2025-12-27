@@ -17,7 +17,7 @@ const protectedCollections = [
     'maintenance',
     'operational_page',
     'ping_data',
-    'regional_service',
+    // 'regional_service' - excluded: internal service-operation infrastructure, not user-facing
     'server_metrics',
     'server_notification_templates',
     'server_threshold_templates',
