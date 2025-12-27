@@ -3,6 +3,11 @@
  *
  * Protects routes from unauthenticated users and optionally
  * enforces permission/role requirements.
+ *
+ * SECURITY NOTE: These client-side checks are for UI/UX purposes only.
+ * All sensitive operations MUST be protected by server-side authorization
+ * via PocketBase collection rules and the RBAC middleware.
+ * Client-side checks can be bypassed - never rely on them for security.
  */
 
 import { ReactNode } from 'react';

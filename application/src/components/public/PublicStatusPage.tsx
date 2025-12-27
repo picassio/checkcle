@@ -11,30 +11,53 @@ import { OverallUptimeSection } from './OverallUptimeSection';
 import { PublicStatusPageFooter } from './PublicStatusPageFooter';
 import { useLanguage } from '@/contexts/LanguageContext';
 
-// Security: Sanitize custom CSS to prevent XSS attacks
+/**
+ * Security: Sanitize custom CSS to prevent XSS and CSS injection attacks
+ * This is a defense-in-depth measure. Custom CSS should also be validated server-side.
+ */
 const sanitizeCSS = (css: string): string => {
-  if (!css) return '';
+  if (!css || typeof css !== 'string') return '';
+
+  // First, decode any unicode escape sequences that might bypass filters
+  // e.g., \0075\0072\006C = "url"
+  let sanitized = css.replace(/\\[0-9a-fA-F]{1,6}\s?/g, '');
 
   // Remove potentially dangerous CSS patterns
-  let sanitized = css
-    // Remove url() - can be used for data exfiltration
+  sanitized = sanitized
+    // Remove url() - can be used for data exfiltration or loading external resources
     .replace(/url\s*\([^)]*\)/gi, '')
-    // Remove @import - can load external resources
+    // Remove @import - can load external stylesheets
     .replace(/@import[^;]*;?/gi, '')
-    // Remove expression() - IE JS execution
+    // Remove @charset - can cause encoding issues
+    .replace(/@charset[^;]*;?/gi, '')
+    // Remove @namespace - rarely needed, can be abused
+    .replace(/@namespace[^;]*;?/gi, '')
+    // Remove expression() - IE JS execution (legacy but still a risk)
     .replace(/expression\s*\([^)]*\)/gi, '')
-    // Remove behavior: - IE JS execution
+    // Remove behavior: - IE JS execution via HTC files
     .replace(/behavior\s*:[^;]*(;|$)/gi, '')
-    // Remove -moz-binding - Firefox XBL
+    // Remove -moz-binding - Firefox XBL bindings
     .replace(/-moz-binding\s*:[^;]*(;|$)/gi, '')
     // Remove javascript: pseudo-protocol
     .replace(/javascript\s*:/gi, '')
     // Remove vbscript: pseudo-protocol
     .replace(/vbscript\s*:/gi, '')
-    // Remove data: URLs
+    // Remove data: URLs (can contain encoded scripts)
     .replace(/data\s*:/gi, '')
-    // Remove </style> tags that could break out
-    .replace(/<\/?style[^>]*>/gi, '');
+    // Remove </style> tags that could break out of style context
+    .replace(/<\/?style[^>]*>/gi, '')
+    // Remove HTML comments that could break out
+    .replace(/<!--[\s\S]*?-->/g, '')
+    // Remove any remaining < or > to prevent tag injection
+    .replace(/[<>]/g, '')
+    // Limit var() usage - remove if it references external/data URLs
+    .replace(/var\s*\(\s*--[^)]*(?:url|javascript|data|expression)[^)]*\)/gi, '');
+
+  // Limit CSS length to prevent DoS via huge stylesheets
+  const MAX_CSS_LENGTH = 50000;
+  if (sanitized.length > MAX_CSS_LENGTH) {
+    sanitized = sanitized.substring(0, MAX_CSS_LENGTH);
+  }
 
   return sanitized;
 };

@@ -7,6 +7,35 @@
 
 import { pb } from '@/lib/pocketbase';
 
+/**
+ * Security: Sanitize input for PocketBase filter queries
+ * Prevents NoSQL injection by validating input format
+ */
+const sanitizeId = (id: string): string => {
+  // PocketBase IDs are alphanumeric with underscores, max 15 chars
+  if (!id || typeof id !== 'string') {
+    throw new Error('Invalid ID format');
+  }
+  // Only allow alphanumeric and underscores
+  const sanitized = id.replace(/[^a-zA-Z0-9_]/g, '');
+  if (sanitized !== id || sanitized.length === 0 || sanitized.length > 50) {
+    throw new Error('Invalid ID format');
+  }
+  return sanitized;
+};
+
+const sanitizeCollectionName = (name: string): string => {
+  // Collection names are alphanumeric with underscores
+  if (!name || typeof name !== 'string') {
+    throw new Error('Invalid collection name');
+  }
+  const sanitized = name.replace(/[^a-zA-Z0-9_]/g, '');
+  if (sanitized !== name || sanitized.length === 0 || sanitized.length > 50) {
+    throw new Error('Invalid collection name');
+  }
+  return sanitized;
+};
+
 // Types
 export interface Role {
   id: string;
@@ -156,9 +185,12 @@ export const permissionService = {
     }
 
     try {
-      // 1. Get user's roles
+      // 1. Get user's roles (with sanitized inputs)
+      const safeUserId = sanitizeId(userInfo.id);
+      const safeCollection = sanitizeCollectionName(userInfo.collection);
+
       const userRoles = await pb.collection('user_roles').getFullList<UserRole>({
-        filter: `user_id = '${userInfo.id}' && user_collection = '${userInfo.collection}'`,
+        filter: `user_id = '${safeUserId}' && user_collection = '${safeCollection}'`,
         expand: 'role_id'
       });
 
@@ -170,8 +202,9 @@ export const permissionService = {
       const permissions = new Set<string>();
 
       for (const userRole of userRoles) {
+        const safeRoleId = sanitizeId(userRole.role_id);
         const rolePermissions = await pb.collection('role_permissions').getFullList({
-          filter: `role_id = '${userRole.role_id}'`,
+          filter: `role_id = '${safeRoleId}'`,
           expand: 'permission_id'
         });
 
@@ -185,7 +218,7 @@ export const permissionService = {
 
       // 3. Get user-specific permission overrides
       const userPermissions = await pb.collection('user_permissions').getFullList<UserPermission>({
-        filter: `user_id = '${userInfo.id}' && user_collection = '${userInfo.collection}'`,
+        filter: `user_id = '${safeUserId}' && user_collection = '${safeCollection}'`,
         expand: 'permission_id'
       });
 
@@ -203,7 +236,7 @@ export const permissionService = {
 
       // 4. Get resource assignments
       const assignments = await pb.collection('resource_assignments').getFullList<ResourceAssignment>({
-        filter: `user_id = '${userInfo.id}' && user_collection = '${userInfo.collection}'`
+        filter: `user_id = '${safeUserId}' && user_collection = '${safeCollection}'`
       });
 
       const resourceAssignments = new Map<string, Set<string>>();

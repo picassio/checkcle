@@ -5,10 +5,39 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
 )
+
+// Security: Regex for validating PocketBase IDs and collection names
+var (
+	validIDRegex         = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+	validCollectionRegex = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+)
+
+// sanitizeID validates and sanitizes a PocketBase ID
+func sanitizeID(id string) (string, error) {
+	if id == "" || len(id) > 50 {
+		return "", fmt.Errorf("invalid ID format")
+	}
+	if !validIDRegex.MatchString(id) {
+		return "", fmt.Errorf("invalid ID format: contains invalid characters")
+	}
+	return id, nil
+}
+
+// sanitizeCollectionName validates and sanitizes a collection name
+func sanitizeCollectionName(name string) (string, error) {
+	if name == "" || len(name) > 50 {
+		return "", fmt.Errorf("invalid collection name")
+	}
+	if !validCollectionRegex.MatchString(name) {
+		return "", fmt.Errorf("invalid collection name: contains invalid characters")
+	}
+	return name, nil
+}
 
 // RBACMiddleware provides role-based access control
 type RBACMiddleware struct {
@@ -225,9 +254,19 @@ func (r *RBACMiddleware) fetchUserPermissions(token, userID, userCollection stri
 	permissions := make(map[string]bool)
 	var roles []string
 
+	// Security: Sanitize inputs to prevent injection
+	safeUserID, err := sanitizeID(userID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("invalid user ID: %w", err)
+	}
+	safeCollection, err := sanitizeCollectionName(userCollection)
+	if err != nil {
+		return nil, nil, fmt.Errorf("invalid collection: %w", err)
+	}
+
 	// 1. Get user's roles
 	userRolesURL := fmt.Sprintf("%s/api/collections/user_roles/records?filter=user_id='%s' && user_collection='%s'&expand=role_id",
-		r.pbURL, userID, userCollection)
+		r.pbURL, safeUserID, safeCollection)
 
 	req, err := http.NewRequest("GET", userRolesURL, nil)
 	if err != nil {
@@ -276,8 +315,14 @@ func (r *RBACMiddleware) fetchUserPermissions(token, userID, userCollection stri
 
 	// 2. Get permissions for each role
 	for _, roleID := range roleIDs {
+		// Security: Sanitize role ID
+		safeRoleID, err := sanitizeID(roleID)
+		if err != nil {
+			continue // Skip invalid role IDs
+		}
+
 		rolePermsURL := fmt.Sprintf("%s/api/collections/role_permissions/records?filter=role_id='%s'&expand=permission_id",
-			r.pbURL, roleID)
+			r.pbURL, safeRoleID)
 
 		req, err := http.NewRequest("GET", rolePermsURL, nil)
 		if err != nil {

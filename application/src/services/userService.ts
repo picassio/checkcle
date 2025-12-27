@@ -1,5 +1,44 @@
 import { pb } from "@/lib/pocketbase";
 
+/**
+ * Security: Sanitize input for PocketBase filter queries
+ * Prevents NoSQL injection by validating input format
+ */
+const sanitizeId = (id: string): string => {
+  if (!id || typeof id !== 'string') {
+    throw new Error('Invalid ID format');
+  }
+  // Only allow alphanumeric and underscores (PocketBase ID format)
+  const sanitized = id.replace(/[^a-zA-Z0-9_]/g, '');
+  if (sanitized !== id || sanitized.length === 0 || sanitized.length > 50) {
+    throw new Error('Invalid ID format');
+  }
+  return sanitized;
+};
+
+const sanitizeCollectionName = (name: string): string => {
+  if (!name || typeof name !== 'string') {
+    throw new Error('Invalid collection name');
+  }
+  const sanitized = name.replace(/[^a-zA-Z0-9_]/g, '');
+  if (sanitized !== name || sanitized.length === 0 || sanitized.length > 50) {
+    throw new Error('Invalid collection name');
+  }
+  return sanitized;
+};
+
+const sanitizeRoleName = (name: string): string => {
+  if (!name || typeof name !== 'string') {
+    throw new Error('Invalid role name');
+  }
+  // Role names: alphanumeric, underscores, max 50 chars
+  const sanitized = name.replace(/[^a-zA-Z0-9_]/g, '');
+  if (sanitized !== name || sanitized.length === 0 || sanitized.length > 50) {
+    throw new Error('Invalid role name');
+  }
+  return sanitized;
+};
+
 export interface User {
   id: string;
   created: string;
@@ -20,9 +59,8 @@ const getCurrentUserRole = (): string | null => {
   const model = pb.authStore.model;
   if (!model) return null;
 
-  // Check if user is from _superusers collection
-  if (pb.authStore.record?.collectionName === '_superusers' ||
-      pb.authStore.record?.collectionId === 'pbc_3142635823') {
+  // Check if user is from _superusers collection (by name, not hardcoded ID)
+  if (pb.authStore.record?.collectionName === '_superusers') {
     return 'superadmin';
   }
 
@@ -91,8 +129,10 @@ export const userService = {
    */
   async getUserRole(userId: string, userCollection: string): Promise<string | null> {
     try {
+      const safeUserId = sanitizeId(userId);
+      const safeCollection = sanitizeCollectionName(userCollection);
       const userRoles = await pb.collection('user_roles').getFirstListItem(
-        `user_id="${userId}" && user_collection="${userCollection}"`,
+        `user_id="${safeUserId}" && user_collection="${safeCollection}"`,
         { expand: 'role_id' }
       );
       return userRoles.expand?.role_id?.name || null;
@@ -438,17 +478,24 @@ export const userService = {
    */
   async assignRbacRole(userId: string, userCollection: string, roleName: string): Promise<void> {
     try {
+      // Security: Sanitize inputs
+      const safeUserId = sanitizeId(userId);
+      const safeCollection = sanitizeCollectionName(userCollection);
+      const safeRoleName = sanitizeRoleName(roleName);
+
       // Get the role record by name
-      const roleRecord = await pb.collection('roles').getFirstListItem(`name="${roleName}"`);
+      const roleRecord = await pb.collection('roles').getFirstListItem(`name="${safeRoleName}"`);
 
       if (!roleRecord) {
-        throw new Error(`Role '${roleName}' not found`);
+        throw new Error(`Role '${safeRoleName}' not found`);
       }
+
+      const safeRoleId = sanitizeId(roleRecord.id);
 
       // Check if user already has this role assigned
       try {
         const existingAssignment = await pb.collection('user_roles').getFirstListItem(
-          `user_id="${userId}" && user_collection="${userCollection}" && role_id="${roleRecord.id}"`
+          `user_id="${safeUserId}" && user_collection="${safeCollection}" && role_id="${safeRoleId}"`
         );
         // Role already assigned, skip
         if (existingAssignment) {
@@ -460,9 +507,9 @@ export const userService = {
 
       // Create the user_roles record
       await pb.collection('user_roles').create({
-        user_id: userId,
-        user_collection: userCollection,
-        role_id: roleRecord.id,
+        user_id: safeUserId,
+        user_collection: safeCollection,
+        role_id: safeRoleId,
         assigned_by: pb.authStore.model?.id,
       });
     } catch (error) {
@@ -476,8 +523,12 @@ export const userService = {
    */
   async removeAllRbacRoles(userId: string, userCollection: string): Promise<void> {
     try {
+      // Security: Sanitize inputs
+      const safeUserId = sanitizeId(userId);
+      const safeCollection = sanitizeCollectionName(userCollection);
+
       const assignments = await pb.collection('user_roles').getFullList({
-        filter: `user_id="${userId}" && user_collection="${userCollection}"`,
+        filter: `user_id="${safeUserId}" && user_collection="${safeCollection}"`,
       });
 
       for (const assignment of assignments) {

@@ -4,6 +4,10 @@
  * A component that conditionally renders its children based on user permissions.
  * Use this to hide/show UI elements based on RBAC permissions.
  *
+ * SECURITY NOTE: This guard is for UI purposes only (hiding buttons, menus, etc.).
+ * All API calls and data mutations MUST be protected by server-side authorization.
+ * Never assume that hiding a UI element prevents unauthorized access.
+ *
  * @example
  * ```tsx
  * // Show button only if user can create services
